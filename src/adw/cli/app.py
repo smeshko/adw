@@ -25,7 +25,6 @@ from adw.cli.unregister import unregister as unregister_command
 from adw.cli.validate_config import validate_config_command
 from adw.cli.validators import validate_phase
 from adw.cli.webhook import webhook_app
-from adw.commands.template import escape_feature_description
 from adw.config.loader import ConfigLoader
 from adw.exceptions import ADWError, ConfigError
 from adw.models.config import ProjectConfig
@@ -334,10 +333,6 @@ def run(
                 "as a feature description"
             )
     # Note: Feature strings don't need logging - that's the default expectation
-
-    # Escape special characters for template safety (Story 6.1 Task 5)
-    # Note: safe_feature will be used when templates need the escaped version
-    _ = escape_feature_description(feature)
 
     # When --from-run is set, reuse the source run_id; otherwise generate new
     run_id = from_run if from_run is not None else str(ULID())

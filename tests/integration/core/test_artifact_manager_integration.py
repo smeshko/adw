@@ -4,6 +4,7 @@ Tests artifact lifecycle across phases and runs, including persistence
 and content integrity verification.
 """
 
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -62,7 +63,9 @@ class TestArtifactLifecycle:
         artifact_manager.store_json(run_id, "plan", "plan_output.json", plan_content)
 
         # Verify plan artifact
-        retrieved_plan = artifact_manager.get_json(run_id, "plan", "plan_output.json")
+        retrieved_plan = json.loads(
+            artifact_manager.get(run_id, "plan", "plan_output.json")
+        )
         assert retrieved_plan == plan_content
 
         # Phase 2: Build - store diff
@@ -73,7 +76,7 @@ diff --git a/src/main.py b/src/main.py
 +def new_feature():
 +    pass
 """
-        artifact_manager.store_text(run_id, "build", "changes.diff", diff_content)
+        artifact_manager.store(run_id, "build", "changes.diff", diff_content)
 
         # Verify build artifact
         retrieved_diff = artifact_manager.get(run_id, "build", "changes.diff")
@@ -103,7 +106,7 @@ diff --git a/src/main.py b/src/main.py
         artifact_manager.store_json(run_id, "plan", "plan.json", plan_data)
 
         # Build phase reads plan artifact (simulating cross-phase access)
-        plan_from_build = artifact_manager.get_json(run_id, "plan", "plan.json")
+        plan_from_build = json.loads(artifact_manager.get(run_id, "plan", "plan.json"))
         assert plan_from_build is not None
         expected_files = ["src/feature.py", "tests/test_feature.py"]
         assert plan_from_build["target_files"] == expected_files
@@ -116,8 +119,10 @@ diff --git a/src/main.py b/src/main.py
         artifact_manager.store_json(run_id, "build", "result.json", build_result)
 
         # Verify phase reads both plan and build artifacts
-        plan_for_verify = artifact_manager.get_json(run_id, "plan", "plan.json")
-        build_for_verify = artifact_manager.get_json(run_id, "build", "result.json")
+        plan_for_verify = json.loads(artifact_manager.get(run_id, "plan", "plan.json"))
+        build_for_verify = json.loads(
+            artifact_manager.get(run_id, "build", "result.json")
+        )
 
         assert plan_for_verify is not None
         assert build_for_verify is not None
@@ -151,8 +156,8 @@ class TestArtifactPersistence:
         new_manager = ArtifactManager(project_root / ".adw" / "runs")
 
         # Both runs' artifacts should be accessible
-        run1_artifact = new_manager.get_json(run_id_1, "build", "output.json")
-        run2_artifact = new_manager.get_json(run_id_2, "build", "output.json")
+        run1_artifact = json.loads(new_manager.get(run_id_1, "build", "output.json"))
+        run2_artifact = json.loads(new_manager.get(run_id_2, "build", "output.json"))
 
         assert run1_artifact == {"run": 1}
         assert run2_artifact == {"run": 2}
@@ -168,14 +173,14 @@ class TestArtifactPersistence:
         run_dir.mkdir(parents=True)
 
         # Store initial content
-        artifact_manager.store_text(run_id, "build", "log.txt", "Initial content")
+        artifact_manager.store(run_id, "build", "log.txt", "Initial content")
 
         # Verify initial content
         content_v1 = artifact_manager.get(run_id, "build", "log.txt")
         assert content_v1 == "Initial content"
 
         # Overwrite with new content
-        artifact_manager.store_text(run_id, "build", "log.txt", "Updated content")
+        artifact_manager.store(run_id, "build", "log.txt", "Updated content")
 
         # Verify new content replaced old
         content_v2 = artifact_manager.get(run_id, "build", "log.txt")
@@ -219,7 +224,7 @@ class TestContentIntegrity:
         # Unicode content with various scripts
         unicode_content = "Hello 世界 🌍 مرحبا Привет"
 
-        artifact_manager.store_text(run_id, "build", "unicode.txt", unicode_content)
+        artifact_manager.store(run_id, "build", "unicode.txt", unicode_content)
 
         # Retrieve and verify
         retrieved = artifact_manager.get(run_id, "build", "unicode.txt")
@@ -238,7 +243,7 @@ class TestContentIntegrity:
         # Create 1MB of content
         large_content = "x" * (1024 * 1024)
 
-        artifact_manager.store_text(run_id, "build", "large.txt", large_content)
+        artifact_manager.store(run_id, "build", "large.txt", large_content)
 
         # Retrieve and verify
         retrieved = artifact_manager.get(run_id, "build", "large.txt")
@@ -273,89 +278,5 @@ class TestContentIntegrity:
 
         artifact_manager.store_json(run_id, "validate", "complex.json", complex_data)
 
-        retrieved = artifact_manager.get_json(run_id, "validate", "complex.json")
+        retrieved = json.loads(artifact_manager.get(run_id, "validate", "complex.json"))
         assert retrieved == complex_data
-
-
-class TestRunContextIntegration:
-    """Tests for integration with RunContext artifacts field."""
-
-    def test_update_run_context_with_artifact_paths(
-        self,
-        artifact_manager: ArtifactManager,
-        project_root: Path,
-    ) -> None:
-        """Test updating RunContext with artifact paths after each store."""
-        run_id = "01HQKWZ0VDHNK0W4HSCZWJZXWB"
-        run_dir = project_root / ".adw" / "runs" / run_id
-        run_dir.mkdir(parents=True)
-
-        # Create initial context
-        context = RunContext(
-            run_id=run_id,
-            feature_description="Test feature",
-            current_phase="plan",
-            started_at=datetime.now(),
-        )
-        assert context.artifacts == {}
-
-        # Store artifact and update context
-        artifact_manager.store_json(run_id, "plan", "output.json", {"task": "plan"})
-        context = context.model_copy(
-            update={"artifacts": artifact_manager.get_artifact_paths(run_id)}
-        )
-        assert context.artifacts == {"plan": ["output.json"]}
-
-        # Add more artifacts
-        artifact_manager.store_text(run_id, "build", "diff.txt", "diff content")
-        artifact_manager.store_json(run_id, "build", "result.json", {"success": True})
-        context = context.model_copy(
-            update={"artifacts": artifact_manager.get_artifact_paths(run_id)}
-        )
-
-        assert "plan" in context.artifacts
-        assert "build" in context.artifacts
-        assert set(context.artifacts["build"]) == {"diff.txt", "result.json"}
-
-    def test_serialize_context_with_artifacts_to_file(
-        self,
-        artifact_manager: ArtifactManager,
-        project_root: Path,
-    ) -> None:
-        """Test that context with artifacts can be serialized and restored."""
-        import json
-
-        run_id = "01HQKWZ0VDHNK0W4HSCZWJZXWC"
-        run_dir = project_root / ".adw" / "runs" / run_id
-        run_dir.mkdir(parents=True)
-
-        # Create artifacts
-        artifact_manager.store_json(run_id, "plan", "plan.json", {"step": 1})
-        artifact_manager.store_text(run_id, "build", "log.txt", "build log")
-
-        # Create context with artifact paths
-        context = RunContext(
-            run_id=run_id,
-            feature_description="Serialization test",
-            current_phase="validate",
-            started_at=datetime.now(),
-            artifacts=artifact_manager.get_artifact_paths(run_id),
-        )
-
-        # Serialize to file
-        context_path = run_dir / "context.json"
-        context_path.write_text(context.model_dump_json(indent=2))
-
-        # Restore from file
-        restored_data = json.loads(context_path.read_text())
-        restored_context = RunContext(**restored_data)
-
-        # Verify artifacts field preserved
-        assert restored_context.artifacts == context.artifacts
-        assert "plan" in restored_context.artifacts
-        assert "build" in restored_context.artifacts
-
-        # Verify we can still access actual artifacts using paths from context
-        plan_artifact_name = restored_context.artifacts["plan"][0]
-        plan_content = artifact_manager.get_json(run_id, "plan", plan_artifact_name)
-        assert plan_content == {"step": 1}

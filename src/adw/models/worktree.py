@@ -53,12 +53,4 @@ class PortAllocation(BaseModel):
 
     model_config = {
         "frozen": True,
-        "json_schema_extra": {
-            "example": {
-                "slot": 3,
-                "backend_port": 9103,
-                "frontend_port": 9203,
-                "run_id": "01HQTEST123456789ABCD",
-            }
-        },
     }

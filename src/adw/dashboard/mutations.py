@@ -747,9 +747,9 @@ async def save_phase_settings(
     Parses form fields, validates via the phase-specific Pydantic model,
     and writes atomically to disk.
     """
-    from adw.commands.loader import get_config_class
     from adw.config.registry import ConfigRegistry
     from adw.config.yaml_generator import YAMLWithComments
+    from adw.models.command import get_config_class
 
     if phase not in _VALID_PHASES:
         return HTMLResponse(content="Invalid phase.", status_code=400)

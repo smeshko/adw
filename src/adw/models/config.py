@@ -4,10 +4,8 @@ This module contains models for project configuration, LLM settings,
 and phase-specific configuration loaded from YAML files.
 """
 
-from pathlib import Path
 from typing import Any, Literal, Self
 
-import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from adw.models.command import PhaseLLMConfig
@@ -21,11 +19,11 @@ from adw.models.webhook import WebhookConfig
 class RetryConfig(BaseModel):
     """Configuration for retry logic with exponential backoff.
 
-    Controls how transient LLM errors (timeouts, rate limits) are handled
-    through automatic retries with increasing delays.
+    The orchestrator applies it to every phase that fails with a recoverable
+    error: it reruns the whole phase, waiting longer before each attempt.
 
     Attributes:
-        max_retries: Maximum number of retry attempts.
+        max_retries: Maximum attempts per phase, including the first.
         base_delay_seconds: Initial delay before first retry.
         max_delay_seconds: Maximum delay cap.
         multiplier: Factor to multiply delay by after each attempt.
@@ -39,7 +37,7 @@ class RetryConfig(BaseModel):
     max_retries: int = Field(
         default=3,
         gt=0,
-        description="Maximum number of retry attempts",
+        description="Maximum attempts per phase, including the first",
     )
     base_delay_seconds: float = Field(
         default=1.0,
@@ -229,8 +227,6 @@ class WorktreeConfig(BaseModel):
     Attributes:
         enabled: Whether worktree isolation is enabled (default: True)
         base_dir: Directory for storing worktrees, relative to project root
-        cleanup_branch_on_remove: Delete the adw/<run_id> branch when removing
-            the worktree (default: False)
         port_range: Configuration for port allocation ranges
         max_concurrent: Maximum number of concurrent runs (determines slot count)
 
@@ -245,7 +241,6 @@ class WorktreeConfig(BaseModel):
         worktree:
           enabled: true
           base_dir: "trees"
-          cleanup_branch_on_remove: false
           port_range:
             backend_start: 9100
             frontend_start: 9200
@@ -259,10 +254,6 @@ class WorktreeConfig(BaseModel):
     base_dir: str = Field(
         default="trees",
         description="Directory for storing worktrees (relative to project root)",
-    )
-    cleanup_branch_on_remove: bool = Field(
-        default=False,
-        description="Delete the adw/<run_id> branch when removing worktree",
     )
     port_range: PortRangeConfig = Field(
         default_factory=PortRangeConfig,
@@ -517,12 +508,12 @@ class ProjectConfig(BaseModel):
         ship: Ship phase configuration (version bump, build, publish, PR merge)
 
     Example:
-        >>> config = ProjectConfig.from_yaml('''
+        >>> config = ProjectConfig.model_validate(yaml.safe_load('''
         ... name: my-project
         ... language: python
         ... framework: fastapi
         ... platform: api
-        ... ''')
+        ... '''))
         >>> config.name
         'my-project'
     """
@@ -589,61 +580,7 @@ class ProjectConfig(BaseModel):
 
         return data
 
-    @classmethod
-    def from_yaml(cls, content: str) -> Self:
-        """Load configuration from a YAML string.
-
-        Args:
-            content: YAML content as a string
-
-        Returns:
-            ProjectConfig instance
-
-        Raises:
-            ValidationError: If the YAML content is invalid
-        """
-        data = yaml.safe_load(content)
-        return cls.model_validate(data)
-
-    @classmethod
-    def from_yaml_file(cls, path: Path | str) -> Self:
-        """Load configuration from a YAML file.
-
-        Args:
-            path: Path to the YAML file
-
-        Returns:
-            ProjectConfig instance
-
-        Raises:
-            FileNotFoundError: If the file doesn't exist
-            ValidationError: If the file content is invalid
-        """
-        path = Path(path)
-        content = path.read_text()
-        return cls.from_yaml(content)
-
     model_config = {
         "frozen": False,
         "validate_assignment": True,
-        "json_schema_extra": {
-            "example": {
-                "name": "my-project",
-                "language": "python",
-                "framework": "fastapi",
-                "platform": "api",
-                "test_command": "pytest",
-                "build_command": "python -m build",
-                "llm": {
-                    "path": "/usr/bin/claude",
-                },
-                "security": {
-                    "blocked_patterns": [],
-                },
-                "git": {
-                    "branch_prefix": "feature/",
-                    "skip_hooks": False,
-                },
-            }
-        },
     }

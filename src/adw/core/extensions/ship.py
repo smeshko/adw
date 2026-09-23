@@ -13,8 +13,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import yaml
 
-from adw.commands.loader import get_config_class
-from adw.models.command import ShipCommandConfig
+from adw.models.command import ShipCommandConfig, get_config_class
 
 if TYPE_CHECKING:
     from adw.models import GitConfig, LLMResult, PhaseResult, RunContext

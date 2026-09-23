@@ -19,7 +19,7 @@ Example:
     >>> registry.register(my_extension)
 
     >>> # Or use factory for built-in extensions
-    >>> registry = create_default_registry(git_config, runs_dir)
+    >>> registry = create_default_registry(GitConfig(), runs_dir)
 """
 
 from pathlib import Path
@@ -46,7 +46,8 @@ def create_default_registry(
     - ShipExtension: Skip logic based on PR state, hook env from config
 
     Args:
-        git_config: Git configuration.
+        git_config: Git configuration; supplies the base branch for PRs
+            and for the post-merge checkout.
         runs_dir: Path to .adw/runs directory.
         project_root: Path to project root for loading phase configs.
 

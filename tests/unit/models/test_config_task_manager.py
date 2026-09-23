@@ -6,6 +6,7 @@ Per ADR-001: Tests focus on validation logic and required fields.
 from pathlib import Path
 
 import pytest
+import yaml
 from pydantic import ValidationError as PydanticValidationError
 
 from adw.config.loader import ConfigLoader
@@ -124,7 +125,7 @@ task_manager:
     prefix: "ci:"
   auto_close: false
 """
-        config = ProjectConfig.from_yaml(yaml_content)
+        config = ProjectConfig.model_validate(yaml.safe_load(yaml_content))
         assert config.task_manager.type == "linear"
         assert config.task_manager.team_key == "RULE"
         assert config.task_manager.state_mapping["plan"] == "Backlog"

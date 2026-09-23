@@ -67,7 +67,6 @@ class MockExecutor:
             final_output = r.get("final_output", content)
             self._responses.append(
                 LLMResult(
-                    success=True,
                     content=content,
                     final_output=final_output,
                     tool_calls=tool_calls,
@@ -99,7 +98,6 @@ class MockExecutor:
         self,
         prompt: str,
         *,
-        timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
         model: str | None = None,
@@ -108,7 +106,6 @@ class MockExecutor:
 
         Args:
             prompt: The prompt being "sent" (stored for tracking).
-            timeout: Ignored in mock (for interface compatibility).
             phase: Ignored in mock (for interface compatibility).
             cwd: Ignored in mock (for interface compatibility).
                  Added for worktree support (Story 10.5).
@@ -134,7 +131,6 @@ class MockExecutor:
 
         # Default response
         return LLMResult(
-            success=True,
             content="Mock response",
             final_output="Mock response",  # ISS-023
             tokens_used=50,
@@ -145,45 +141,3 @@ class MockExecutor:
     def call_count(self) -> int:
         """Return the number of times execute() has been called."""
         return len(self._all_prompts)
-
-    @property
-    def last_prompt(self) -> str | None:
-        """Return the most recent prompt, or None if no calls made."""
-        return self._all_prompts[-1] if self._all_prompts else None
-
-    @property
-    def all_prompts(self) -> list[str]:
-        """Return a copy of all prompts received."""
-        return self._all_prompts.copy()
-
-    def assert_called_once(self) -> None:
-        """Assert that execute() was called exactly once.
-
-        Raises:
-            AssertionError: If call count is not 1.
-        """
-        if self.call_count != 1:
-            msg = f"Expected 1 call, got {self.call_count}"
-            raise AssertionError(msg)
-
-    def assert_called_with(self, prompt: str) -> None:
-        """Assert that the last call used the given prompt.
-
-        Args:
-            prompt: The expected prompt string.
-
-        Raises:
-            AssertionError: If no calls made or prompt doesn't match.
-        """
-        if self.last_prompt is None:
-            msg = "Expected a call, but execute() was never called"
-            raise AssertionError(msg)
-        if self.last_prompt != prompt:
-            msg = f"Expected prompt '{prompt}', got '{self.last_prompt}'"
-            raise AssertionError(msg)
-
-    def reset(self) -> None:
-        """Reset all state (responses, failures, call tracking)."""
-        self._responses.clear()
-        self._failures.clear()
-        self._all_prompts.clear()

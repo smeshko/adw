@@ -222,8 +222,6 @@ src/adw/defaults/commands/validate/
 | `src/adw/core/phase_runner.py` | Phase execution, artifact loading/saving |
 | `src/adw/core/orchestrator.py` | Phase sequencing |
 | `src/adw/models/command.py` | `ValidateCommandConfig` model |
-| `src/adw/validation/phase.py` | `ValidationPhase` class |
-| `src/adw/validation/models.py` | `ValidationResult` model |
 | `src/adw/defaults/commands/validate/prompt.md` | Default validate prompt |
 | `src/adw/defaults/commands/validate/code-review-loop/instructions.xml` | Workflow logic |
 

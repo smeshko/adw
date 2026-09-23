@@ -95,23 +95,3 @@ class TestHookResult:
             "duration_ms": 100,
             "hook_type": "pre",
         }
-
-    def test_is_success_property(self) -> None:
-        """Test the is_success computed property."""
-        success = HookResult(
-            stdout="ok",
-            stderr="",
-            exit_code=0,
-            duration_ms=10,
-            hook_type="pre",
-        )
-        assert success.is_success is True
-
-        failure = HookResult(
-            stdout="",
-            stderr="error",
-            exit_code=1,
-            duration_ms=10,
-            hook_type="post",
-        )
-        assert failure.is_success is False

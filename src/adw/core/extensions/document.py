@@ -42,11 +42,7 @@ class DocumentExtension:
 
     phase: ClassVar[str] = "document"
 
-    def __init__(
-        self,
-        git_config: GitConfig,
-        runs_dir: Path,
-    ) -> None:
+    def __init__(self, git_config: GitConfig, runs_dir: Path) -> None:
         """Initialize DocumentExtension.
 
         Args:

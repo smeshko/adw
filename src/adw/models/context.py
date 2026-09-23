@@ -1,7 +1,7 @@
 """Context models for ADW run state management.
 
-This module contains models for tracking run context, session context,
-and project context throughout the ADW workflow execution.
+This module contains models for tracking run context and state snapshots
+throughout the ADW workflow execution.
 """
 
 from datetime import UTC, datetime
@@ -145,55 +145,6 @@ class RunContext(BaseModel):
         """
         return sum(self.phase_tokens.values())
 
-    def resolve_artifact_path(
-        self,
-        relative: str,
-        *,
-        project_root: Path | None = None,
-    ) -> Path:
-        """Resolve a relative artifact path to an absolute path.
-
-        Considers worktree_path if present, otherwise falls back to
-        project_root for non-worktree runs.
-
-        Story 10.5: Worktree Context in Phases - enables artifact paths
-        to work correctly across worktree lifecycle.
-
-        Args:
-            relative: Relative artifact path
-                (e.g., '.adw/runs/<run_id>/artifacts/plan/plan_output.md')
-            project_root: Optional project root for non-worktree runs.
-                         If None and worktree_path is None, uses Path.cwd().
-
-        Returns:
-            Absolute path to the artifact.
-
-        Example:
-            >>> context.worktree_path = Path('/project/.worktrees/01RUN')
-            >>> context.resolve_artifact_path('.adw/runs/01RUN/artifacts/plan/out.md')
-            PosixPath('/project/.worktrees/01RUN/.adw/runs/01RUN/artifacts/plan/out.md')
-        """
-        base = self.worktree_path or project_root or Path.cwd()
-        return base / relative
-
-    def get_runs_dir(self, project_root: Path | None = None) -> Path:
-        """Get the runs directory for this context.
-
-        Returns the appropriate .adw/runs directory based on whether
-        this is a worktree or non-worktree run.
-
-        Story 10.5: Worktree Context in Phases - ensures runs directory
-        is relative to worktree when in worktree mode.
-
-        Args:
-            project_root: Optional project root for non-worktree runs.
-
-        Returns:
-            Path to the .adw/runs directory.
-        """
-        base = self.worktree_path or project_root or Path.cwd()
-        return base / ".adw" / "runs"
-
     @field_validator("run_id")
     @classmethod
     def validate_ulid(cls, v: str) -> str:
@@ -230,87 +181,6 @@ class RunContext(BaseModel):
     model_config = {
         "frozen": False,  # Allow mutation for development, use model_copy
         "validate_assignment": True,  # Validate on attribute assignment
-        "json_schema_extra": {
-            "example": {
-                "run_id": "01KDSG2VDHNK0W4HSCZWJZXWSQ",
-                "feature_description": "Add user authentication",
-                "current_phase": "plan",
-                "phase_history": ["plan"],
-                "started_at": "2024-01-15T10:30:00",
-                "completed_at": None,
-                "status": "running",
-                "interrupted_phase": None,
-                "interrupted_at": None,
-                "artifacts": {"plan": ["plan.md"]},
-                "phase_tokens": {"plan": 500, "code": 1200},
-                "commit_shas": ["abc123def456789..."],
-                "worktree_path": "/project/trees/01KDSG2VDHNK0W4HSCZWJZXWSQ",
-                "use_worktree": True,
-                "branch_name": "adw/01KDSG2VDHNK0W4HSCZWJZXWSQ",
-                "branch_deleted": False,
-                "pr_creation_attempted": False,
-                "pr_creation_failed": False,
-                "pr_failure_reason": None,
-                "platform": "cli",
-            }
-        },
-    }
-
-
-class SessionContext(BaseModel):
-    """Current session state derived from RunContext.
-
-    This model represents the active session state, providing a view
-    into the current run context with session-specific information.
-
-    Attributes:
-        run_id: ULID of the current run
-        current_phase: Currently active phase name
-        is_resuming: Whether this session is resuming a previous run
-        last_checkpoint: Path to the last saved state checkpoint
-    """
-
-    run_id: str = Field(..., description="ULID of the current run")
-    current_phase: str = Field(..., description="Currently active phase name")
-    is_resuming: bool = Field(
-        default=False, description="Whether resuming a previous run"
-    )
-    last_checkpoint: str | None = Field(
-        default=None, description="Path to last saved state checkpoint"
-    )
-
-    model_config = {
-        "frozen": False,
-        "validate_assignment": True,
-    }
-
-
-class ProjectContext(BaseModel):
-    """Resolved project configuration and paths.
-
-    This model contains the resolved project information including
-    paths, configuration, and environment details.
-
-    Attributes:
-        project_root: Absolute path to the project root directory
-        config_path: Path to the project.yaml configuration file
-        runs_dir: Directory for storing run data
-        language: Programming language of the project
-        framework: Framework being used (if any)
-        platform: Target platform
-    """
-
-    project_root: Path = Field(..., description="Absolute path to project root")
-    config_path: Path = Field(..., description="Path to project.yaml configuration")
-    runs_dir: Path = Field(..., description="Directory for storing run data")
-    language: str = Field(..., description="Programming language")
-    framework: str | None = Field(default=None, description="Framework being used")
-    platform: str = Field(default="cli", description="Target platform")
-
-    model_config = {
-        "frozen": False,
-        "validate_assignment": True,
-        "arbitrary_types_allowed": True,  # Allow Path type
     }
 
 

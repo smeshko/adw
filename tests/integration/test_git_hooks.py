@@ -23,59 +23,6 @@ from adw.hooks.git_commit import (
 )
 
 
-@pytest.fixture
-def git_repo(tmp_path: Path) -> Path:
-    """Create an isolated git repository for testing.
-
-    Creates a minimal git repository with an initial commit
-    so that branch operations can be performed.
-
-    Args:
-        tmp_path: Pytest's temporary directory fixture.
-
-    Returns:
-        Path to the initialized git repository.
-    """
-    # Initialize git repo
-    subprocess.run(
-        ["git", "init"],
-        cwd=tmp_path,
-        capture_output=True,
-        check=True,
-    )
-
-    # Configure git user for commits
-    subprocess.run(
-        ["git", "config", "user.email", "test@example.com"],
-        cwd=tmp_path,
-        capture_output=True,
-        check=True,
-    )
-    subprocess.run(
-        ["git", "config", "user.name", "Test User"],
-        cwd=tmp_path,
-        capture_output=True,
-        check=True,
-    )
-
-    # Create initial file and commit
-    (tmp_path / "README.md").write_text("# Test Project\n")
-    subprocess.run(
-        ["git", "add", "."],
-        cwd=tmp_path,
-        capture_output=True,
-        check=True,
-    )
-    subprocess.run(
-        ["git", "commit", "-m", "Initial commit"],
-        cwd=tmp_path,
-        capture_output=True,
-        check=True,
-    )
-
-    return tmp_path
-
-
 class TestGitBranchIntegration:
     """Integration tests for git branch operations."""
 

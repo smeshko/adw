@@ -1,42 +1,12 @@
 """Tests for the ConsoleTransport class."""
 
 import io
-import sys
 from datetime import UTC, datetime
-from unittest.mock import patch
 
 import pytest
 
 from adw.logging.console import ConsoleTransport, should_log
 from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel, Verbosity
-
-
-class TestConsoleTransportTTYDetection:
-    """Tests for TTY detection behavior."""
-
-    def test_detects_tty_when_stdout_is_tty(self) -> None:
-        """ConsoleTransport detects TTY when stdout.isatty() returns True."""
-        with patch.object(sys.stdout, "isatty", return_value=True):
-            transport = ConsoleTransport()
-            assert transport.is_tty is True
-
-    def test_detects_non_tty_when_stdout_is_not_tty(self) -> None:
-        """ConsoleTransport detects non-TTY when stdout.isatty() returns False."""
-        with patch.object(sys.stdout, "isatty", return_value=False):
-            transport = ConsoleTransport()
-            assert transport.is_tty is False
-
-    def test_can_force_tty_mode(self) -> None:
-        """ConsoleTransport can be forced to TTY mode."""
-        with patch.object(sys.stdout, "isatty", return_value=False):
-            transport = ConsoleTransport(force_tty=True)
-            assert transport.is_tty is True
-
-    def test_can_force_non_tty_mode(self) -> None:
-        """ConsoleTransport can be forced to non-TTY mode."""
-        with patch.object(sys.stdout, "isatty", return_value=True):
-            transport = ConsoleTransport(force_tty=False)
-            assert transport.is_tty is False
 
 
 class TestConsoleTransportWrite:

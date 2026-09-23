@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from adw.exceptions import HookError
-from adw.hooks.runner import HookRunner, find_hook
+from adw.hooks.runner import HookRunner
 from adw.models import HookConfig, RunContext
 
 
@@ -51,7 +51,7 @@ class TestHookIntegration:
 
         result = runner.run_hook(hook_path, run_context, "test")
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert result.exit_code == 0
         assert "Hook executed successfully" in result.stdout
         assert "01KDSG2VDHNK0W4HSCZWJZXWSQ" in result.stdout
@@ -95,7 +95,7 @@ class TestHookIntegration:
             context_file=context_file,
         )
 
-        assert result.is_success
+        assert result.exit_code == 0
         # Verify each environment variable
         assert "ADW_RUN_ID=01KDSG2VDHNK0W4HSCZWJZXWSQ" in result.stdout
         assert "ADW_PHASE=build" in result.stdout
@@ -121,47 +121,6 @@ class TestHookIntegration:
         assert error.code == "HOOK_TIMEOUT"
         assert "timed out" in error.message.lower()
 
-    def test_find_and_execute_hook_workflow(
-        self,
-        hook_config: HookConfig,
-        run_context: RunContext,
-        tmp_path: Path,
-    ) -> None:
-        """Test the complete workflow of finding and executing a hook."""
-        # Create a command directory with a pre-hook
-        command_dir = tmp_path / "commands" / "plan"
-        command_dir.mkdir(parents=True)
-
-        pre_hook = command_dir / "pre-hook.sh"
-        pre_hook.write_text(
-            "#!/bin/bash\n"
-            "echo 'Preparing environment for $ADW_PHASE phase'\n"
-            "echo 'Run ID: $ADW_RUN_ID'\n"
-        )
-        pre_hook.chmod(pre_hook.stat().st_mode | stat.S_IEXEC)
-
-        # Find and execute the hook
-        found_hook = find_hook(command_dir, "pre")
-        assert found_hook is not None
-        assert found_hook == pre_hook
-
-        runner = HookRunner(hook_config)
-        result = runner.run_hook(found_hook, run_context, "plan")
-
-        assert result.is_success
-        assert "Preparing environment" in result.stdout
-
-    def test_missing_hook_returns_none(self, tmp_path: Path) -> None:
-        """Test that find_hook returns None for missing hooks."""
-        empty_dir = tmp_path / "empty"
-        empty_dir.mkdir()
-
-        result = find_hook(empty_dir, "pre")
-        assert result is None
-
-        result = find_hook(empty_dir, "post")
-        assert result is None
-
     def test_hook_inherits_system_environment(
         self,
         hook_config: HookConfig,
@@ -176,7 +135,7 @@ class TestHookIntegration:
         runner = HookRunner(hook_config)
         result = runner.run_hook(hook_path, run_context, "test")
 
-        assert result.is_success
+        assert result.exit_code == 0
         # PATH should be inherited from os.environ
         assert "PATH=" in result.stdout
         assert os.environ.get("PATH", "") in result.stdout
@@ -199,7 +158,7 @@ class TestHookIntegration:
         runner = HookRunner(hook_config)
         result = runner.run_hook(hook_path, run_context, "test")
 
-        assert result.is_success
+        assert result.exit_code == 0
         # Default working directory is cwd
         # Use samefile() for macOS case-insensitive filesystem compatibility
         assert Path.cwd().samefile(Path(result.stdout.strip()))
@@ -225,5 +184,5 @@ class TestHookIntegration:
             hook_path, run_context, "test", working_dir=project_root
         )
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert str(project_root) in result.stdout
