@@ -5,6 +5,7 @@ ADW workflow execution, including:
 - Branch name sanitization
 - Uncommitted changes detection
 - Branch creation and switching
+- Switching a non-worktree run to its branch (ensure_on_branch)
 
 All git operations use subprocess.run() for simplicity and
 avoid external dependencies like gitpython.
@@ -12,8 +13,10 @@ avoid external dependencies like gitpython.
 
 import re
 import subprocess
+from pathlib import Path
 
 from adw.exceptions import HookError
+from adw.hooks.git_commit import get_current_branch
 
 # Maximum length for branch names.
 # Git allows ~256 chars, but we use 50 to keep branch names readable
@@ -71,11 +74,14 @@ def sanitize_branch_name(feature: str) -> str:
     return name
 
 
-def check_uncommitted_changes() -> bool:
+def check_uncommitted_changes(*, working_dir: Path | None = None) -> bool:
     """Check if the working tree has uncommitted changes.
 
     Uses `git status --porcelain` to detect any uncommitted changes
     including staged, unstaged, and untracked files.
+
+    Args:
+        working_dir: Directory to run git commands in (default: current dir).
 
     Returns:
         True if uncommitted changes exist, False otherwise.
@@ -92,6 +98,7 @@ def check_uncommitted_changes() -> bool:
         capture_output=True,
         text=True,
         check=False,
+        cwd=working_dir,
     )
 
     if result.returncode != 0:
@@ -108,7 +115,9 @@ def check_uncommitted_changes() -> bool:
     return bool(result.stdout.strip())
 
 
-def create_or_switch_branch(branch_name: str) -> None:
+def create_or_switch_branch(
+    branch_name: str, *, working_dir: Path | None = None
+) -> None:
     """Create a new branch or switch to an existing one.
 
     This function is idempotent: it will create the branch if it
@@ -116,6 +125,7 @@ def create_or_switch_branch(branch_name: str) -> None:
 
     Args:
         branch_name: The full branch name (e.g., "feature/add-auth")
+        working_dir: Directory to run git commands in (default: current dir).
 
     Raises:
         HookError: If git operations fail (e.g., not a git repo)
@@ -129,6 +139,7 @@ def create_or_switch_branch(branch_name: str) -> None:
         capture_output=True,
         text=True,
         check=False,
+        cwd=working_dir,
     )
 
     if result.returncode != 0:
@@ -150,6 +161,7 @@ def create_or_switch_branch(branch_name: str) -> None:
             capture_output=True,
             text=True,
             check=False,
+            cwd=working_dir,
         )
     else:
         # Create and switch to new branch
@@ -158,6 +170,7 @@ def create_or_switch_branch(branch_name: str) -> None:
             capture_output=True,
             text=True,
             check=False,
+            cwd=working_dir,
         )
 
     if checkout_result.returncode != 0:
@@ -171,3 +184,42 @@ def create_or_switch_branch(branch_name: str) -> None:
             stderr=checkout_result.stderr,
             suggestion="Check for uncommitted changes or ensure branch name is valid",
         )
+
+
+def ensure_on_branch(branch_name: str, *, working_dir: Path | None = None) -> None:
+    """Make sure the repository in working_dir has branch_name checked out.
+
+    Already on the branch, this does nothing, whatever the state of the tree.
+    Otherwise it refuses to switch away from uncommitted changes, and creates
+    or switches to the branch on a clean tree.
+
+    Args:
+        branch_name: The full branch name (e.g., "feature/add-auth").
+        working_dir: Directory to run git commands in (default: current dir).
+
+    Raises:
+        HookError: GIT_BRANCH_CHECK_FAILED outside a git repository,
+            GIT_UNCOMMITTED_CHANGES on a dirty tree, or GIT_BRANCH_FAILED
+            if the checkout fails.
+
+    Example:
+        >>> ensure_on_branch("feature/add-auth", working_dir=Path("."))
+    """
+    if get_current_branch(working_dir=working_dir) == branch_name:
+        return
+
+    if check_uncommitted_changes(working_dir=working_dir):
+        raise HookError(
+            code="GIT_UNCOMMITTED_CHANGES",
+            message=(
+                f"Cannot switch to branch '{branch_name}': "
+                "the working tree has uncommitted changes"
+            ),
+            phase="run-start",
+            suggestion=(
+                "Commit or stash your changes, or run with worktree isolation "
+                "(drop --no-worktree)"
+            ),
+        )
+
+    create_or_switch_branch(branch_name, working_dir=working_dir)

@@ -14,6 +14,7 @@ from adw.exceptions import HookError
 from adw.hooks.git_branch import (
     check_uncommitted_changes,
     create_or_switch_branch,
+    ensure_on_branch,
     sanitize_branch_name,
 )
 from adw.hooks.git_commit import (
@@ -213,6 +214,73 @@ class TestGitHookErrorHandling:
             "not a git repository" in exc_info.value.stderr.lower()
             or "not a git repository" in exc_info.value.message.lower()
         )
+
+
+class TestEnsureOnBranch:
+    """Integration tests for ensure_on_branch against a real repository.
+
+    The process cwd is a directory outside any repository, so each call acts
+    on ``working_dir`` or fails.
+    """
+
+    @pytest.fixture(autouse=True)
+    def outside_cwd(
+        self, tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Run from a directory outside every git repository."""
+        monkeypatch.chdir(tmp_path_factory.mktemp("outside"))
+
+    @staticmethod
+    def _current_branch(repo: Path) -> str:
+        return subprocess.run(
+            ["git", "branch", "--show-current"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+    def test_creates_and_switches(self, git_repo: Path) -> None:
+        """A missing branch is created and checked out in working_dir."""
+        ensure_on_branch("feature/x", working_dir=git_repo)
+
+        assert self._current_branch(git_repo) == "feature/x"
+
+    def test_already_on_branch_ignores_dirty_tree(self, git_repo: Path) -> None:
+        """Already on the branch, a dirty tree is left alone."""
+        subprocess.run(
+            ["git", "checkout", "-b", "feature/x"],
+            cwd=git_repo,
+            capture_output=True,
+            check=True,
+        )
+        (git_repo / "untracked.txt").write_text("scratch")
+
+        ensure_on_branch("feature/x", working_dir=git_repo)
+
+        assert self._current_branch(git_repo) == "feature/x"
+        assert (git_repo / "untracked.txt").exists()
+
+    def test_refuses_dirty_tree(self, git_repo: Path) -> None:
+        """A dirty tree on another branch raises and HEAD stays put."""
+        initial_branch = self._current_branch(git_repo)
+        (git_repo / "README.md").write_text("modified")
+
+        with pytest.raises(HookError) as exc_info:
+            ensure_on_branch("feature/x", working_dir=git_repo)
+
+        assert exc_info.value.code == "GIT_UNCOMMITTED_CHANGES"
+        assert self._current_branch(git_repo) == initial_branch
+
+    def test_non_git_dir_raises(self, tmp_path: Path) -> None:
+        """A directory outside git raises GIT_BRANCH_CHECK_FAILED."""
+        plain = tmp_path / "plain"
+        plain.mkdir()
+
+        with pytest.raises(HookError) as exc_info:
+            ensure_on_branch("feature/x", working_dir=plain)
+
+        assert exc_info.value.code == "GIT_BRANCH_CHECK_FAILED"
 
 
 class TestStageChangesIntegration:

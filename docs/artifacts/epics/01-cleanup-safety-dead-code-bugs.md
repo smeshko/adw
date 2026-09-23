@@ -327,7 +327,7 @@ Include screenshots of run-detail log search and the live stream against a real 
 
 ## Phase 1.9 — Hook config and phase-hook scripts
 
-**Plan**: _not yet created_
+**Plan**: [01.9-hook-config-and-phase-hook-scripts](../plans/01.9-hook-config-and-phase-hook-scripts/PLAN.md) · status: done
 
 **Linear**: ADW-15 (https://linear.app/ivo-tsonev/issue/ADW-15)
 
@@ -351,11 +351,11 @@ Include screenshots of run-detail log search and the live stream against a real 
 
 ### Acceptance criteria
 
-- [ ] With `hooks: {timeout_seconds: 5}`, a post-hook that sleeps 10 s fails after about 5 s.
-- [ ] `grep -rn "python3 -c" src/adw/defaults` returns nothing.
-- [ ] A non-worktree `adw run` in a scratch repo creates and switches to the feature branch before the plan phase.
-- [ ] `tests/integration/test_ship_post_hook.py` and `test_git_hooks.py` pass against the trimmed scripts.
-- [ ] Lint and tests pass.
+- [x] With `hooks: {timeout_seconds: 5}`, a post-hook that sleeps 10 s fails after about 5 s.
+- [x] `grep -rn "python3 -c" src/adw/defaults` returns nothing.
+- [x] A non-worktree `adw run` in a scratch repo creates and switches to the feature branch before the plan phase.
+- [x] `tests/integration/test_ship_post_hook.py` and `test_git_hooks.py` pass against the trimmed scripts.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -400,6 +400,6 @@ Include rendered-prompt snapshots (before/after) for the document and validate p
 
 - [ ] Every phase merged and its acceptance criteria met
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
-- [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code — phase 1.8: B3 `test_build_cmd_in_env_without_ship_config`, `test_ship_hook_env_carries_project_build_command`; B4 `test_reads_log_written_by_run`, `test_log_stream_emits_live_log_lines`; B11 `test_initialize_writes_loadable_config`, `test_init_output_passes_validate`; B17 `test_accepted_defaults_yield_ship_mapping`; B21 `test_run_events_close_on_interrupted`, `test_log_stream_closes_on_interrupted`; phase 1.7: B1 `test_auto_close_leaves_ticket_open_and_warns_once`, B12 `test_pr_sets_pr_url`, see [VALIDATION.md](../plans/archive/2026-09-23-01.7-carry-pr-url-on-run-context/VALIDATION.md); phase 1.10: B5 `test_document_prompt_fills_included_build_diff`, `test_validate_prompt_fills_included_commands`, see [VALIDATION.md](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/VALIDATION.md)
+- [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code — phase 1.9: B10 `test_runner_uses_project_hook_config`, `test_project_hook_timeout_stops_post_hook`; B16 `test_non_worktree_run_switches_branch_before_plan`, `test_build_post_hook_extracts_story_and_leaves_changes_uncommitted`, see [VALIDATION.md](../plans/01.9-hook-config-and-phase-hook-scripts/VALIDATION.md); phase 1.8: B3 `test_build_cmd_in_env_without_ship_config`, `test_ship_hook_env_carries_project_build_command`; B4 `test_reads_log_written_by_run`, `test_log_stream_emits_live_log_lines`; B11 `test_initialize_writes_loadable_config`, `test_init_output_passes_validate`; B17 `test_accepted_defaults_yield_ship_mapping`; B21 `test_run_events_close_on_interrupted`, `test_log_stream_closes_on_interrupted`; phase 1.7: B1 `test_auto_close_leaves_ticket_open_and_warns_once`, B12 `test_pr_sets_pr_url`, see [VALIDATION.md](../plans/archive/2026-09-23-01.7-carry-pr-url-on-run-context/VALIDATION.md); phase 1.10: B5 `test_document_prompt_fills_included_build_diff`, `test_validate_prompt_fills_included_commands`, see [VALIDATION.md](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/VALIDATION.md)
 - [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/archive/2026-09-23-01.1-isolate-test-suite/VALIDATION.md)
 - [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l` — phase 1.2: 46,993 → 44,596 (−2,397; −2,420 against `cdb2003f`'s 47,016), see [VALIDATION.md](../plans/archive/2026-09-23-01.2-delete-dead-code/VALIDATION.md); phase 1.10: 42,282 → 41,983 (−299), see [VALIDATION.md](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/VALIDATION.md)
