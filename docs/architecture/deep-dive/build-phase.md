@@ -186,8 +186,7 @@ src/adw/defaults/commands/build/
 ├── post.sh                # Story output extraction
 └── dev-story/             # Bundled workflow files
     ├── workflow.yaml      # Workflow config
-    ├── instructions.xml   # Execution steps
-    └── checklist.md       # Definition of done
+    └── instructions.xml   # Execution steps
 ```
 
 ## Auto-Commit
