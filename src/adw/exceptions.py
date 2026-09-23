@@ -114,49 +114,6 @@ class ConfigError(ADWError):
         )
 
 
-class CommandError(ADWError):
-    """Exception for command resolution failures.
-
-    Used when a command cannot be found or resolved from the
-    three-tier resolution system (project → user → bundled).
-
-    Common error codes:
-    - COMMAND_NOT_FOUND: Requested command doesn't exist
-    - COMMAND_INVALID: Command exists but has invalid configuration
-    - COMMAND_LOAD_FAILED: Command directory exists but failed to load
-
-    Example:
-        >>> raise CommandError(
-        ...     code="COMMAND_NOT_FOUND",
-        ...     message="Command 'deploy' not found",
-        ...     suggestion="Check available commands with 'adw list-commands'",
-        ... )
-    """
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        *,
-        suggestion: str | None = None,
-        recoverable: bool = False,
-    ) -> None:
-        """Initialize a CommandError.
-
-        Args:
-            code: Unique error code (e.g., "COMMAND_NOT_FOUND").
-            message: Human-readable error message.
-            suggestion: Optional actionable next step.
-            recoverable: Whether the operation can be retried (default False).
-        """
-        super().__init__(
-            code=code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=recoverable,
-        )
-
-
 class HookError(ADWError):
     """Exception for hook script execution failures.
 
@@ -270,67 +227,6 @@ class LLMError(ADWError):
             suggestion=suggestion,
             recoverable=recoverable,
         )
-
-
-class PhaseError(ADWError):
-    """Exception for phase execution failures.
-
-    Used when a phase fails to execute properly, distinct from
-    hook failures or LLM errors.
-
-    Common error codes:
-    - PHASE_FAILED: Phase execution failed
-    - PHASE_SKIPPED: Phase was skipped due to dependency failure
-    - PHASE_INVALID: Invalid phase configuration
-
-    Example:
-        >>> raise PhaseError(
-        ...     code="PHASE_FAILED",
-        ...     message="Phase 'build' failed after 3 retries",
-        ...     phase="build",
-        ...     suggestion="Check the phase logs for details",
-        ... )
-    """
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        *,
-        phase: str,
-        suggestion: str | None = None,
-        recoverable: bool = False,
-    ) -> None:
-        """Initialize a PhaseError.
-
-        Args:
-            code: Unique error code (e.g., "PHASE_FAILED").
-            message: Human-readable error message.
-            phase: The phase that failed (e.g., "build", "validate").
-            suggestion: Optional actionable next step.
-            recoverable: Whether the operation can be retried (default False).
-        """
-        super().__init__(
-            code=code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=recoverable,
-        )
-        self.phase = phase
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize error to dictionary for structured logging.
-
-        Returns:
-            Dictionary containing all error attributes including phase.
-        """
-        d = super().to_dict()
-        d.update(
-            {
-                "phase": self.phase,
-            }
-        )
-        return d
 
 
 class StateError(ADWError):

@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.core.constants import PHASE_SEQUENCE
-from adw.exceptions import ConfigError, HookError, LLMError, PhaseError
+from adw.exceptions import ConfigError, HookError, LLMError
 from adw.models import RunContext
 from adw.models.config import RetryConfig
 from adw.models.phase import PhaseResult, PhaseStatus
@@ -500,16 +500,15 @@ class TestErrorHandling:
         mock_context_manager: MagicMock,
     ) -> None:
         """Test that non-recoverable error sets status to failed."""
-        error = PhaseError(
+        error = LLMError(
             code="PHASE_FAILED",
             message="Phase failed",
             suggestion="Check logs",
             recoverable=False,
-            phase="plan",
         )
         mock_phase_runner.run.side_effect = error
 
-        with pytest.raises(PhaseError):
+        with pytest.raises(LLMError):
             orchestrator.run("Test feature")
 
         # Last save should have status = "failed"
@@ -1605,7 +1604,6 @@ class TestWorktreeNoAutoDelete:
         Worktrees are NEVER automatically deleted, even on failure.
         """
         from adw.core.orchestrator import Orchestrator
-        from adw.exceptions import PhaseError
         from adw.models import WorktreeConfig
 
         runs_dir = tmp_path / ".adw" / "runs"
@@ -1633,10 +1631,9 @@ class TestWorktreeNoAutoDelete:
         )
 
         # Make phase runner fail
-        mock_phase_runner.run.side_effect = PhaseError(
+        mock_phase_runner.run.side_effect = LLMError(
             code="PHASE_FAILED",
             message="Test failure",
-            phase="plan",
             recoverable=False,
         )
 
@@ -1645,7 +1642,7 @@ class TestWorktreeNoAutoDelete:
 
         with (
             patch.object(WorktreeManager, "remove_worktree") as remove_worktree,
-            pytest.raises(PhaseError),
+            pytest.raises(LLMError),
         ):
             orchestrator.run("Test feature")
 
@@ -1954,7 +1951,7 @@ class TestStatusSyncServiceIntegration:
         # Make phase runner fail on build phase
         def fail_on_build(phase: str, context: RunContext, **kwargs):
             if phase == "build":
-                raise PhaseError(
+                raise HookError(
                     code="BUILD_FAILED",
                     message="Build failed",
                     phase="build",
@@ -1984,7 +1981,7 @@ class TestStatusSyncServiceIntegration:
             status_sync_service=mock_status_sync_service,
         )
 
-        with pytest.raises(PhaseError):
+        with pytest.raises(HookError):
             orchestrator.run("Test feature")
 
         # Verify sync_run_failed was called

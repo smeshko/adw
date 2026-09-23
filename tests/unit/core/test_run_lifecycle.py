@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.core.run_lifecycle import RunLifecycle
-from adw.exceptions import HookError, PhaseError, WorktreeError
+from adw.exceptions import HookError, LLMError, WorktreeError
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.task import TaskInfo
 
@@ -827,10 +827,9 @@ class TestHandleADWError:
             status="running",
         )
 
-        error = PhaseError(
+        error = LLMError(
             code="TEST_ERROR",
             message="Test error",
-            phase="build",
         )
 
         result = run_lifecycle.handle_adw_error(context, error)
@@ -867,7 +866,7 @@ class TestHandleADWError:
             status="running",
         )
 
-        error = PhaseError(code="TEST_ERROR", message="Test error", phase="build")
+        error = LLMError(code="TEST_ERROR", message="Test error")
         lifecycle.handle_adw_error(context, error)
 
         mock_label_manager.set_failed.assert_called_once()
@@ -901,7 +900,7 @@ class TestHandleADWError:
             status="running",
         )
 
-        error = PhaseError(code="TEST_ERROR", message="Test error", phase="build")
+        error = LLMError(code="TEST_ERROR", message="Test error")
         lifecycle.handle_adw_error(context, error)
 
         mock_status_sync_service.sync_run_failed.assert_called_once()
@@ -921,7 +920,7 @@ class TestHandleADWError:
             status="running",
         )
 
-        error = PhaseError(code="TEST_ERROR", message="Test error", phase="build")
+        error = LLMError(code="TEST_ERROR", message="Test error")
         run_lifecycle.handle_adw_error(context, error)
 
         mock_index_manager.update_run.assert_called_once()

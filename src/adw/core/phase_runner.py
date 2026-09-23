@@ -141,7 +141,7 @@ class PhaseRunner:
 
         Raises:
             HookError: If pre/post hook fails.
-            CommandError: If command resolution/template fails.
+            ConfigError: If command resolution or template rendering fails.
             LLMError: If LLM execution fails.
         """
         started_at = datetime.now(UTC)
@@ -359,8 +359,7 @@ class PhaseRunner:
             Rendered prompt string.
 
         Raises:
-            CommandError: If resolution or rendering fails.
-            ConfigError: If an included file cannot be read.
+            ConfigError: If an included or input file cannot be read.
         """
         logger.debug("Loading prompt", extra={"phase": phase})
 

@@ -553,16 +553,16 @@ class TestErrorDisplay:
 
     def test_on_phase_error_shows_phase_name(self) -> None:
         """Test that error display includes phase name."""
-        from adw.exceptions import CommandError
+        from adw.exceptions import LLMError
 
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=80)
         progress = ProgressDisplay(console)
 
-        error = CommandError(
-            code="COMMAND_NOT_FOUND",
-            message="Command not found",
-            suggestion="Check command configuration",
+        error = LLMError(
+            code="LLM_EXECUTION_FAILED",
+            message="Claude Code exited with an error",
+            suggestion="Check the phase log",
             recoverable=False,
         )
 

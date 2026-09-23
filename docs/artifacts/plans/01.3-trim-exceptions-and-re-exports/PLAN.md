@@ -86,7 +86,7 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
 - [x] TASK-001: Fold PortAllocationError and MaxConcurrentRunsError into WorktreeError
-- [ ] TASK-002: Delete the never-raised CommandError and PhaseError
+- [x] TASK-002: Delete the never-raised CommandError and PhaseError
 - [ ] TASK-003: Strip to_dict, docstring examples and pass-through inits from exceptions.py (depends on TASK-001,TASK-002)
 - [ ] TASK-004: Trim package re-export lists to what src imports
 - [ ] TASK-005: Final Validation
