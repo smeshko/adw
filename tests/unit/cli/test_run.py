@@ -9,6 +9,8 @@ Tests for the `adw run FEATURE_DESCRIPTION` command including:
 Help text verification tests removed per TEST_REDUCTION_PLAN.md
 """
 
+from pathlib import Path
+
 import pytest
 from typer.testing import CliRunner
 
@@ -16,6 +18,16 @@ from adw.cli.app import app
 from adw.core.constants import PHASE_SEQUENCE
 
 runner = CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def isolated_cwd(git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run each `adw run` invocation inside a throwaway repo.
+
+    Invoked from the checkout, `adw run` executes a real (mocked) pipeline
+    against it, leaving runs, worktrees and branches behind.
+    """
+    monkeypatch.chdir(git_repo)
 
 
 @pytest.fixture

@@ -16,6 +16,16 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def isolated_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run the hook outside any git repo.
+
+    post.sh commits and pushes a dirty working tree (`git add -A && git commit
+    && git push`); run from the checkout, it would act on the checkout.
+    """
+    monkeypatch.chdir(tmp_path)
+
+
 class TestShipPostHookStatusParsing:
     """Tests for parsing LLM output status markers."""
 
