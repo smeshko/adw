@@ -262,7 +262,7 @@ A test drives the fake `claude` script (a shell file that exits 1) through `Phas
 
 ## Phase 1.7 — Carry the PR URL on the run context
 
-**Plan**: _not yet created_
+**Plan**: [01.7-carry-pr-url-on-run-context](../plans/01.7-carry-pr-url-on-run-context/PLAN.md) · status: planned
 
 **Linear**: ADW-13 (https://linear.app/ivo-tsonev/issue/ADW-13)
 
