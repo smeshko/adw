@@ -262,7 +262,8 @@ class TestInitConfigValidation:
         assert isinstance(config, dict)
 
     def test_generated_config_has_test_command(self, tmp_path: Path) -> None:
-        """Test that generated config includes test_command setting."""
+        """Test that generated config includes the detected test_command."""
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "x"\n')
         subprocess.run(
             [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
@@ -271,7 +272,7 @@ class TestInitConfigValidation:
         )
 
         config = yaml.safe_load((tmp_path / ".adw" / "project.yaml").read_text())
-        assert "test_command" in config
+        assert config["test_command"] == "pytest"
 
 
 class TestInitRunIntegration:
