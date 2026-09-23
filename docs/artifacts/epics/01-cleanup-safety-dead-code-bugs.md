@@ -365,7 +365,7 @@ Include a scratch-repo transcript of a non-worktree mocked run showing the branc
 
 ## Phase 1.10 — Expand includes before substitution
 
-**Plan**: _not yet created_
+**Plan**: [01.10-expand-includes-before-substitution](../plans/01.10-expand-includes-before-substitution/PLAN.md) · status: planned
 
 **Linear**: ADW-16 (https://linear.app/ivo-tsonev/issue/ADW-16)
 
