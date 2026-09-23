@@ -39,35 +39,27 @@ class TestRunTriggerBuildCommand:
 
     def test_basic_command(self) -> None:
         """Basic command without phases."""
-        trigger = RunTrigger(project_dir=Path("/projects/test"))
+        trigger = RunTrigger()
         cmd = trigger._build_command("Add dark mode", None)
         assert cmd == ["adw", "run", "Add dark mode"]
 
     def test_single_phase(self) -> None:
         """Command with single phase."""
-        trigger = RunTrigger(project_dir=Path("/projects/test"))
+        trigger = RunTrigger()
         cmd = trigger._build_command("Add login", ["plan"])
         assert cmd == ["adw", "run", "--phase", "plan", "Add login"]
 
     def test_multiple_phases_uses_first(self) -> None:
         """Multiple phases uses first phase only (CLI limitation)."""
-        trigger = RunTrigger(project_dir=Path("/projects/test"))
+        trigger = RunTrigger()
         cmd = trigger._build_command("Add login", ["plan", "build"])
         assert cmd == ["adw", "run", "--phase", "plan", "Add login"]
 
     def test_custom_adw_command(self) -> None:
         """Custom ADW command path."""
-        trigger = RunTrigger(
-            project_dir=Path("/projects/test"),
-            adw_command="/usr/local/bin/adw",
-        )
+        trigger = RunTrigger(adw_command="/usr/local/bin/adw")
         cmd = trigger._build_command("Test feature", None)
         assert cmd[0] == "/usr/local/bin/adw"
-
-    def test_default_project_dir(self) -> None:
-        """Default project dir is cwd."""
-        trigger = RunTrigger()
-        assert trigger._project_dir == Path.cwd()
 
 
 class TestRunTriggerStartRun:
@@ -76,7 +68,7 @@ class TestRunTriggerStartRun:
     @pytest.mark.asyncio
     async def test_successful_start(self) -> None:
         """Successful run start returns success result with PID."""
-        trigger = RunTrigger(project_dir=Path("/projects/test"))
+        trigger = RunTrigger()
 
         mock_process = MagicMock()
         mock_process.pid = 42
@@ -101,7 +93,7 @@ class TestRunTriggerStartRun:
     @pytest.mark.asyncio
     async def test_start_with_phases(self) -> None:
         """Run start passes phases to command builder."""
-        trigger = RunTrigger(project_dir=Path("/projects/test"))
+        trigger = RunTrigger()
 
         mock_process = MagicMock()
         mock_process.pid = 100
@@ -118,7 +110,7 @@ class TestRunTriggerStartRun:
     @pytest.mark.asyncio
     async def test_command_not_found(self) -> None:
         """FileNotFoundError returns failure result."""
-        trigger = RunTrigger(project_dir=Path("/projects/test"))
+        trigger = RunTrigger()
 
         with patch(
             "adw.core.run_trigger.subprocess.Popen",
@@ -135,7 +127,7 @@ class TestRunTriggerStartRun:
     @pytest.mark.asyncio
     async def test_os_error(self) -> None:
         """OSError during subprocess start returns failure."""
-        trigger = RunTrigger(project_dir=Path("/projects/test"))
+        trigger = RunTrigger()
 
         with patch(
             "adw.core.run_trigger.subprocess.Popen",
@@ -148,22 +140,3 @@ class TestRunTriggerStartRun:
 
         assert result.success is False
         assert "Permission denied" in result.error
-
-    @pytest.mark.asyncio
-    async def test_project_path_overrides_default(self) -> None:
-        """project_path parameter overrides the default project_dir."""
-        trigger = RunTrigger(project_dir=Path("/default/dir"))
-
-        mock_process = MagicMock()
-        mock_process.pid = 55
-
-        with patch(
-            "adw.core.run_trigger.subprocess.Popen", return_value=mock_process
-        ) as mock_popen:
-            await trigger.start_run(
-                project_path="/custom/project",
-                feature="Test",
-            )
-
-        call_kwargs = mock_popen.call_args
-        assert call_kwargs.kwargs["cwd"] == Path("/custom/project")
