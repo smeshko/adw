@@ -1,6 +1,6 @@
 # Plan: Trim exceptions and re-export surfaces
 
-Status: in-progress
+Status: done
 Branch: feature/adw-9
 Risk: small
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -72,13 +72,13 @@ After this phase:
 
 ## Acceptance Criteria
 
-- [ ] `exceptions.py` defines exactly `ADWError`, `ConfigError`, `StateError`, `LLMError`, `TaskError`, `HookError`, `WorktreeError` and `SecurityError`. Evidence: `grep -n '^class ' src/adw/exceptions.py`.
-- [ ] `grep -rnw "CommandError\|PhaseError\|PortAllocationError\|MaxConcurrentRunsError\|get_logger\|reset_logger" src tests` returns nothing, and `grep -n "def to_dict" src/adw/exceptions.py` returns nothing.
-- [ ] `adw status nonexistent-id` and `adw resume` in an empty directory print the same panel (code, message, suggestion) and exit code as the baseline. Evidence: `diff` of before and after output.
-- [ ] `adw --help` output is unchanged after the `cli/__init__.py` trim. Evidence: `diff` against `before-help.txt`.
-- [ ] The trimmed `__init__.py` files export only the names listed under Scope. Evidence: `grep -rn "from adw\.\(hooks\|executors\|commands\|logging\|cli\|config\) import" src tests` lists only `LogManager`/`LogManagerHandler`/`create_redactor_from_config`, `app`, and `from adw.cli import wizard` (a subpackage import).
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage at or above 80%.
-- [ ] `src` line count is recorded against the 42,085 baseline for the epic-level LOC criterion.
+- [x] `exceptions.py` defines exactly `ADWError`, `ConfigError`, `StateError`, `LLMError`, `TaskError`, `HookError`, `WorktreeError` and `SecurityError`. Evidence: `grep -n '^class ' src/adw/exceptions.py`.
+- [x] `grep -rnw "CommandError\|PhaseError\|PortAllocationError\|MaxConcurrentRunsError\|get_logger\|reset_logger" src tests` returns nothing, and `grep -n "def to_dict" src/adw/exceptions.py` returns nothing.
+- [x] `adw status nonexistent-id` and `adw resume` in an empty directory print the same panel (code, message, suggestion) and exit code as the baseline. Evidence: `diff` of before and after output.
+- [x] `adw --help` output is unchanged after the `cli/__init__.py` trim. Evidence: `diff` against `before-help.txt`.
+- [x] The trimmed `__init__.py` files export only the names listed under Scope. Evidence: `grep -rn "from adw\.\(hooks\|executors\|commands\|logging\|cli\|config\) import" src tests` lists only `LogManager`/`LogManagerHandler`/`create_redactor_from_config`, `app`, and `from adw.cli import wizard` (a subpackage import).
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage at or above 80%.
+- [x] `src` line count is recorded against the 42,085 baseline for the epic-level LOC criterion: 41,474 (−611).
 
 ## Tasks
 
@@ -89,4 +89,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-002: Delete the never-raised CommandError and PhaseError
 - [x] TASK-003: Strip to_dict, docstring examples and pass-through inits from exceptions.py (depends on TASK-001,TASK-002)
 - [x] TASK-004: Trim package re-export lists to what src imports
-- [ ] TASK-005: Final Validation
+- [x] TASK-005: Final Validation
