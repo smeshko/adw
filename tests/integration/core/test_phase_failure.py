@@ -5,6 +5,8 @@ isolated git repository, so ``llm.retry`` travels from ``project.yaml`` to the
 orchestrator's retry loop exactly as it does in production.
 """
 
+import json
+import os
 import subprocess
 from collections.abc import Generator
 from pathlib import Path
@@ -13,6 +15,7 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 
 from adw.cli.bootstrap import create_orchestrator
+from adw.core.index_manager import IndexManager
 from adw.exceptions import LLMError
 from adw.executors.mock import MockExecutor
 
@@ -28,6 +31,14 @@ llm:
     base_delay_seconds: 0.5
     multiplier: 3
     max_delay_seconds: 1.0
+"""
+
+FAKE_CLAUDE = """\
+#!/bin/sh
+echo call >> "$(dirname "$0")/calls.log"
+echo '{"type":"result","subtype":"success","is_error":true,"result":"API Error: 529 overloaded"}'
+echo "fatal: simulated failure" >&2
+exit 1
 """
 
 
@@ -78,3 +89,33 @@ def test_mock_executor_fails_twice_then_succeeds(retry_project: MagicMock) -> No
     assert context.status == "completed"
     assert executor.call_count == 3
     assert retry_project.call_args_list == [call(0.5), call(1.0)]
+
+
+def test_fake_claude_exit_fails_run(
+    retry_project: MagicMock, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A claude binary that keeps exiting 1 fails the run after every attempt."""
+    bin_dir = git_repo / "bin"
+    bin_dir.mkdir()
+    fake_claude = bin_dir / "claude"
+    fake_claude.write_text(FAKE_CLAUDE)
+    fake_claude.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+    monkeypatch.delenv("ADW_MOCK_EXECUTOR")
+
+    orchestrator = create_orchestrator(with_progress=False)
+    with pytest.raises(LLMError) as exc_info:
+        orchestrator.run_single_phase("plan", "noop feature", use_worktree=False)
+
+    assert exc_info.value.code == "CLAUDE_EXIT_NONZERO"
+    assert "simulated failure" in exc_info.value.message
+    assert len((bin_dir / "calls.log").read_text().splitlines()) == 4
+    assert retry_project.call_args_list == [call(0.5), call(1.0), call(1.0)]
+
+    contexts = list((git_repo / ".adw" / "runs").glob("*/context.json"))
+    assert len(contexts) == 1
+    assert json.loads(contexts[0].read_text())["status"] == "failed"
+
+    recent_runs = IndexManager().get_recent_runs()
+    assert len(recent_runs) == 1
+    assert recent_runs[0].status == "failed"

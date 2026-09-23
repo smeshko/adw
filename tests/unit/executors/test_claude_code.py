@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from adw.exceptions import LLMError
 from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.models.config import LLMConfig
@@ -141,20 +142,6 @@ class TestClaudeCodeExecutorExecute:
             result = executor.execute("Test prompt")
 
         assert result.success is True
-
-    def test_execute_returns_failure_on_non_zero_exit(
-        self, executor: ClaudeCodeExecutor, mock_subprocess
-    ) -> None:
-        """execute() should return success=False when process exits non-zero."""
-        mock_asyncio, process = mock_subprocess
-        process.returncode = 1
-        process.stderr.readline = AsyncMock(side_effect=[b"Error occurred\n", b""])
-
-        with patch("shutil.which", return_value="/usr/bin/claude"):
-            result = executor.execute("Test prompt")
-
-        assert result.success is False
-        assert result.error is not None
 
     def test_execute_includes_duration_ms(
         self, executor: ClaudeCodeExecutor, mock_subprocess
@@ -820,44 +807,19 @@ class TestErrorHandling:
         assert exc_info.value.code == "CLAUDE_NOT_FOUND"
         assert "/nonexistent/path/to/claude" in exc_info.value.message
 
-    def test_subprocess_error_returns_failure_result(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
-        """Subprocess errors should return LLMResult with success=False."""
+    @pytest.fixture
+    def exited_process(self):
+        """Patch asyncio so execute() reads a process that has already exited.
+
+        Tests set ``stdout.readline`` / ``stderr.readline`` side effects and
+        ``returncode`` on the yielded process.
+        """
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
             process.stdout.readline = AsyncMock(side_effect=[b""])
-            process.stderr.readline = AsyncMock(side_effect=[b"Process crashed\n", b""])
-            process.wait = AsyncMock(return_value=None)
-            process.returncode = 1  # Non-zero exit
-
-            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
-            mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = _run_async
-            mock_asyncio.create_task = asyncio.create_task
-            mock_asyncio.gather = asyncio.gather
-            mock_asyncio.wait_for = asyncio.wait_for
-
-            with patch("shutil.which", return_value="/usr/bin/claude"):
-                result = executor.execute("Test prompt")
-
-            assert result.success is False
-            assert result.error is not None
-
-    def test_stderr_included_in_error_message(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
-        """stderr content should be included in error message."""
-        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
-            process = AsyncMock()
-            process.stdout = AsyncMock()
-            process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b""])
-            process.stderr.readline = AsyncMock(
-                side_effect=[b"Error: Rate limit exceeded\n", b""]
-            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 1
 
@@ -869,35 +831,93 @@ class TestErrorHandling:
             mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
-                result = executor.execute("Test prompt")
+                yield process
 
-            assert "Rate limit exceeded" in result.error
+    def test_non_zero_exit_raises_recoverable_llm_error(
+        self, executor: ClaudeCodeExecutor, exited_process: AsyncMock
+    ) -> None:
+        """A non-zero exit raises a recoverable CLAUDE_EXIT_NONZERO error."""
+        exited_process.stderr.readline = AsyncMock(
+            side_effect=[b"Process crashed\n", b""]
+        )
+
+        with pytest.raises(LLMError) as exc_info:
+            executor.execute("Test prompt")
+
+        assert exc_info.value.code == "CLAUDE_EXIT_NONZERO"
+        assert exc_info.value.recoverable is True
+
+    def test_stderr_included_in_error_message(
+        self, executor: ClaudeCodeExecutor, exited_process: AsyncMock
+    ) -> None:
+        """stderr content should be included in error message."""
+        exited_process.stderr.readline = AsyncMock(
+            side_effect=[b"Error: Rate limit exceeded\n", b""]
+        )
+
+        with pytest.raises(LLMError) as exc_info:
+            executor.execute("Test prompt")
+
+        assert "Rate limit exceeded" in exc_info.value.message
 
     def test_fallback_error_message_when_no_stderr(
-        self, executor: ClaudeCodeExecutor
+        self, executor: ClaudeCodeExecutor, exited_process: AsyncMock
     ) -> None:
-        """Should provide fallback error message when stderr is empty."""
-        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
-            process = AsyncMock()
-            process.stdout = AsyncMock()
-            process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b""])
-            process.stderr.readline = AsyncMock(side_effect=[b""])  # Empty stderr
-            process.wait = AsyncMock(return_value=None)
-            process.returncode = 42
+        """With no stderr and no error result, the message is the exit code."""
+        exited_process.returncode = 42
 
-            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
-            mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = _run_async
-            mock_asyncio.create_task = asyncio.create_task
-            mock_asyncio.gather = asyncio.gather
-            mock_asyncio.wait_for = asyncio.wait_for
+        with pytest.raises(LLMError) as exc_info:
+            executor.execute("Test prompt")
 
-            with patch("shutil.which", return_value="/usr/bin/claude"):
-                result = executor.execute("Test prompt")
+        assert exc_info.value.message == "Claude Code exited with code 42"
 
-            assert result.success is False
-            assert "42" in result.error  # Exit code in fallback message
+    def test_error_result_text_used_when_stderr_empty(
+        self, executor: ClaudeCodeExecutor, exited_process: AsyncMock
+    ) -> None:
+        """With empty stderr, the is_error result text explains the exit."""
+        exited_process.stdout.readline = AsyncMock(
+            side_effect=[
+                b'{"type":"result","is_error":true,"result":"API Error: 529 overloaded"}\n',
+                b"",
+            ]
+        )
+
+        with pytest.raises(LLMError) as exc_info:
+            executor.execute("Test prompt")
+
+        assert exc_info.value.message == (
+            "Claude Code exited with code 1: API Error: 529 overloaded"
+        )
+
+    def test_stderr_tail_limited_to_20_lines(
+        self, executor: ClaudeCodeExecutor, exited_process: AsyncMock
+    ) -> None:
+        """Only the last 20 stderr lines reach the error message."""
+        exited_process.stderr.readline = AsyncMock(
+            side_effect=[f"line {n}\n".encode() for n in range(1, 31)] + [b""]
+        )
+
+        with pytest.raises(LLMError) as exc_info:
+            executor.execute("Test prompt")
+
+        detail = exc_info.value.message.split(": ", 1)[1]
+        assert detail.splitlines() == [f"line {n}" for n in range(11, 31)]
+
+    def test_non_zero_exit_writes_error_to_live_stream(
+        self, exited_process: AsyncMock
+    ) -> None:
+        """The error message is written to live.log before raising."""
+        live_stream = MagicMock()
+        executor = ClaudeCodeExecutor(LLMConfig(path="claude"), live_stream=live_stream)
+        exited_process.stderr.readline = AsyncMock(
+            side_effect=[b"fatal: simulated failure\n", b""]
+        )
+
+        with pytest.raises(LLMError) as exc_info:
+            executor.execute("Test prompt")
+
+        live_stream.write_error.assert_called_once_with(exc_info.value.message)
+        live_stream.write_llm_end.assert_not_called()
 
 
 class TestPathConfiguration:
@@ -1407,46 +1427,6 @@ class TestHookRunnerTimeoutResolution:
         from adw.hooks.runner import DEFAULT_HOOK_TIMEOUT
 
         assert DEFAULT_HOOK_TIMEOUT == 60
-
-
-class TestDurationOnFailure:
-    """Tests for duration_ms being set even on failure (Story 3-4 Task 6)."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
-
-    def test_duration_ms_set_on_subprocess_failure(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
-        """duration_ms should be set even when subprocess returns non-zero exit."""
-        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
-            process = AsyncMock()
-            process.stdout = AsyncMock()
-            process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"partial output\n", b""])
-            process.stderr.readline = AsyncMock(
-                side_effect=[b"Error: something failed\n", b""]
-            )
-            process.wait = AsyncMock(return_value=None)
-            process.returncode = 1  # Non-zero exit code
-
-            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
-            mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = _run_async
-            mock_asyncio.create_task = asyncio.create_task
-            mock_asyncio.gather = asyncio.gather
-            mock_asyncio.wait_for = asyncio.wait_for
-
-            with patch("shutil.which", return_value="/usr/bin/claude"):
-                result = executor.execute("Test prompt")
-
-            # Even on failure, duration_ms should be set
-            assert result.success is False
-            assert result.duration_ms >= 0
-            assert result.error is not None
 
 
 class TestExceptionCleanup:
