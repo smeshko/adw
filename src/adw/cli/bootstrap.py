@@ -270,7 +270,6 @@ def create_orchestrator(
     else:
         base_executor = ClaudeCodeExecutor(
             config=llm_config,
-            console=console,
             security_interceptor=security_interceptor,
             allow_dangerous=allow_dangerous,
             live_stream=live_stream,

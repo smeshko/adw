@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from adw.exceptions import HookError
-from adw.hooks.runner import HookRunner, find_hook
+from adw.hooks.runner import HookRunner
 from adw.models import HookConfig, RunContext
 
 
@@ -194,68 +194,3 @@ class TestHookRunner:
         # This should succeed because we override with longer timeout
         result = runner.run_hook(success_hook, run_context, "plan", timeout=60)
         assert result.exit_code == 0
-
-
-class TestFindHook:
-    """Tests for find_hook function."""
-
-    def test_finds_hook_with_sh_extension(self, tmp_path: Path) -> None:
-        """Test finding a hook with .sh extension."""
-        hook = tmp_path / "pre-hook.sh"
-        hook.write_text("#!/bin/bash\necho 'test'\n")
-
-        result = find_hook(tmp_path, "pre")
-        assert result == hook
-
-    def test_finds_hook_without_extension(self, tmp_path: Path) -> None:
-        """Test finding a hook without extension."""
-        hook = tmp_path / "post-hook"
-        hook.write_text("#!/bin/bash\necho 'test'\n")
-
-        result = find_hook(tmp_path, "post")
-        assert result == hook
-
-    def test_prefers_sh_extension(self, tmp_path: Path) -> None:
-        """Test that .sh extension is preferred over extensionless."""
-        hook_sh = tmp_path / "pre-hook.sh"
-        hook_sh.write_text("#!/bin/bash\necho 'sh'\n")
-
-        hook_no_ext = tmp_path / "pre-hook"
-        hook_no_ext.write_text("#!/bin/bash\necho 'no ext'\n")
-
-        result = find_hook(tmp_path, "pre")
-        assert result == hook_sh
-
-    def test_returns_none_when_not_found(self, tmp_path: Path) -> None:
-        """Test that None is returned when hook doesn't exist."""
-        result = find_hook(tmp_path, "pre")
-        assert result is None
-
-    def test_returns_none_for_directory(self, tmp_path: Path) -> None:
-        """Test that directories are not returned as hooks."""
-        hook_dir = tmp_path / "pre-hook.sh"
-        hook_dir.mkdir()
-
-        result = find_hook(tmp_path, "pre")
-        assert result is None
-
-    def test_finds_pre_hook(self, tmp_path: Path) -> None:
-        """Test finding pre-hook specifically."""
-        pre = tmp_path / "pre-hook.sh"
-        pre.write_text("#!/bin/bash\n")
-        post = tmp_path / "post-hook.sh"
-        post.write_text("#!/bin/bash\n")
-
-        result = find_hook(tmp_path, "pre")
-        assert result == pre
-        assert result != post
-
-    def test_finds_post_hook(self, tmp_path: Path) -> None:
-        """Test finding post-hook specifically."""
-        pre = tmp_path / "pre-hook.sh"
-        pre.write_text("#!/bin/bash\n")
-        post = tmp_path / "post-hook.sh"
-        post.write_text("#!/bin/bash\n")
-
-        result = find_hook(tmp_path, "post")
-        assert result == post

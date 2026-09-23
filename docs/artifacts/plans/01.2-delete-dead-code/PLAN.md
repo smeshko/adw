@@ -110,5 +110,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-003: Move get_config_class into models and delete CommandLoader (depends on TASK-002)
 - [x] TASK-004: Delete dead core symbols and their cascades (depends on TASK-003)
 - [x] TASK-005: Delete dead model symbols and schema examples (depends on TASK-004)
-- [ ] TASK-006: Delete dead executor, hook, logging, worktree and cli symbols (depends on TASK-005)
+- [x] TASK-006: Delete dead executor, hook, logging, worktree and cli symbols (depends on TASK-005)
 - [ ] TASK-007: Final Validation

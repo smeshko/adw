@@ -15,8 +15,6 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from rich.console import Console
-
 from adw.exceptions import LLMError
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult, ToolCall
@@ -48,7 +46,6 @@ class ClaudeCodeExecutor:
         self,
         config: LLMConfig,
         *,
-        console: Console | None = None,
         security_interceptor: "SecurityInterceptor | None" = None,
         allow_dangerous: bool = False,
         live_stream: "LiveStreamTransport | None" = None,
@@ -57,8 +54,6 @@ class ClaudeCodeExecutor:
 
         Args:
             config: LLM configuration containing path, timeout, and other settings.
-            console: Optional Rich console for streaming output. If not provided,
-                     a new Console instance is created.
             security_interceptor: Optional SecurityInterceptor for checking tool
                         calls against security patterns (Story 3.6).
             allow_dangerous: If True, log warnings instead of blocking dangerous
@@ -67,7 +62,6 @@ class ClaudeCodeExecutor:
                         to live.log for real-time tailing.
         """
         self.config = config
-        self.console = console or Console()
         self.security_interceptor = security_interceptor
         self.allow_dangerous = allow_dangerous
         self.live_stream = live_stream

@@ -453,16 +453,6 @@ class TestRealTimeStreaming:
             assert "Line 1" in result.content
             assert "Line 2" in result.content
 
-    def test_accepts_custom_console(self) -> None:
-        """Executor should accept custom Rich console."""
-        from rich.console import Console
-
-        custom_console = Console(force_terminal=True)
-        config = LLMConfig(path="claude")
-        executor = ClaudeCodeExecutor(config, console=custom_console)
-
-        assert executor.console is custom_console
-
     def test_uses_create_task_for_concurrent_processing(
         self, executor: ClaudeCodeExecutor
     ) -> None:

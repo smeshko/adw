@@ -268,30 +268,3 @@ class HookRunner:
             duration_ms=duration_ms,
             hook_type=hook_type,
         )
-
-
-def find_hook(command_dir: Path, hook_type: Literal["pre", "post"]) -> Path | None:
-    """Find a hook script in the command directory.
-
-    Searches for hook scripts with or without .sh extension.
-    Returns None if no hook is found (which is not an error).
-
-    Args:
-        command_dir: Directory to search for hooks
-        hook_type: Type of hook to find ("pre" or "post")
-
-    Returns:
-        Path to the hook script if found, None otherwise
-
-    Example:
-        >>> hook = find_hook(Path("/project/commands/plan"), "pre")
-        >>> if hook:
-        ...     runner.run_hook(hook, context, "plan")
-    """
-    # Check with .sh extension first, then without
-    for ext in [".sh", ""]:
-        hook_path = command_dir / f"{hook_type}-hook{ext}"
-        if hook_path.exists() and hook_path.is_file():
-            return hook_path
-
-    return None
