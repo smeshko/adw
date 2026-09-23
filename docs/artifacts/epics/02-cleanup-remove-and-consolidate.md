@@ -172,7 +172,7 @@ Include `adw global --help` and a full-suite pass in the PR.
 
 ## Phase 2.5 — Make dashboard settings read-only
 
-**Plan**: [02.5-make-dashboard-settings-read-only](../plans/02.5-make-dashboard-settings-read-only/PLAN.md) · status: done
+**Plan**: [02.5-make-dashboard-settings-read-only](../plans/archive/2026-09-23-02.5-make-dashboard-settings-read-only/PLAN.md) · status: done
 
 **Linear**: ADW-21 (https://linear.app/ivo-tsonev/issue/ADW-21)
 
