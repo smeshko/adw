@@ -43,7 +43,6 @@ class TestSummaryPanelGeneration:
             "phases": {},
             "llm_retry": {},
             "security": {},
-            "webhooks": {},
         }
 
         panel = generate_summary_panel(state)
@@ -87,7 +86,6 @@ class TestSummaryPanelGeneration:
                 "retry_base_delay": 2.0,
             },
             "security": {"security_allow_dangerous": False},
-            "webhooks": {"enabled": True, "providers": {"linear": {"enabled": True}}},
         }
 
         panel = generate_summary_panel(state)
@@ -111,7 +109,7 @@ class TestSummaryPanelGeneration:
         assert "Ship:" in output
         assert "LLM Retry:" in output
         assert "Security:" in output
-        assert "Webhooks:" in output
+        assert "Webhooks:" not in output
 
     def test_summary_panel_shows_disabled_features(self) -> None:
         """Test that disabled features show appropriate indicators."""
@@ -133,7 +131,6 @@ class TestSummaryPanelGeneration:
             },
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         panel = generate_summary_panel(state)
@@ -161,7 +158,6 @@ class TestSummaryPanelGeneration:
             "ship": {"enabled": True, "commands": {}, "pr": {}},
             "llm_retry": {},
             "security": {},
-            "webhooks": {},
         }
 
         panel = generate_summary_panel(state)
@@ -191,7 +187,6 @@ class TestProjectYamlGeneration:
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -217,7 +212,6 @@ class TestProjectYamlGeneration:
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -239,7 +233,6 @@ class TestProjectYamlGeneration:
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -257,7 +250,6 @@ class TestProjectYamlGeneration:
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -281,7 +273,6 @@ class TestProjectYamlGeneration:
             },
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -301,7 +292,6 @@ class TestProjectYamlGeneration:
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -321,7 +311,6 @@ class TestProjectYamlGeneration:
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -345,7 +334,6 @@ class TestProjectYamlGeneration:
                 "retry_multiplier": 3.0,
             },
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -383,7 +371,6 @@ class TestProjectYamlGeneration:
             },
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -415,46 +402,12 @@ class TestProjectYamlGeneration:
             },
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
         config = yaml.safe_load(yaml_content)
 
         assert "ship" not in config
-
-    def test_generate_project_yaml_with_webhooks(self) -> None:
-        """Test project.yaml includes webhooks when enabled."""
-        state = WizardState()
-        state.collected_config = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
-            "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
-            "security": {},
-            "webhooks": {
-                "enabled": True,
-                "port": 9000,
-                "host": "127.0.0.1",
-                "providers": {
-                    "linear": {
-                        "enabled": True,
-                        "secret_env": "LINEAR_SECRET",
-                        "command_prefix": "/run",
-                        "trigger_label": "ai",
-                    }
-                },
-            },
-        }
-
-        yaml_content = generate_project_yaml(state)
-        config = yaml.safe_load(yaml_content)
-
-        assert config["webhook"]["port"] == 9000
-        assert config["webhook"]["host"] == "127.0.0.1"
-        assert config["webhook"]["providers"]["linear"]["enabled"] is True
-        assert config["webhook"]["providers"]["linear"]["secret_env"] == "LINEAR_SECRET"
 
     def test_generate_project_yaml_includes_header_comment(self) -> None:
         """Test project.yaml includes header comment with date."""
@@ -466,7 +419,6 @@ class TestProjectYamlGeneration:
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "security": {},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(state)
@@ -733,7 +685,6 @@ class TestRunSummaryStep:
                 "phases": {"customized": False, "phases": {}},
                 "llm_retry": {"retry_custom": False},
                 "security": {},
-                "webhooks": {"enabled": False},
             }
 
             with patch("adw.cli.wizard.summary.Confirm.ask", return_value=True):
@@ -760,7 +711,6 @@ class TestRunSummaryStep:
             "phases": {},
             "llm_retry": {},
             "security": {},
-            "webhooks": {},
         }
 
         with (
@@ -785,7 +735,6 @@ class TestRunSummaryStep:
             "phases": {},
             "llm_retry": {},
             "security": {},
-            "webhooks": {},
         }
 
         with (
@@ -816,7 +765,6 @@ class TestSummaryStepHandler:
                 "phases": {"customized": False, "phases": {}},
                 "llm_retry": {"retry_custom": False},
                 "security": {},
-                "webhooks": {"enabled": False},
             }
 
             with patch("adw.cli.wizard.summary.Confirm.ask", return_value=True):

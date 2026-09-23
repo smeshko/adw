@@ -180,7 +180,6 @@ def generate_summary_panel(state: WizardState) -> Panel:
     ship = state.get_step_config("ship")
     llm_retry = state.get_step_config("llm_retry")
     security = state.get_step_config("security")
-    webhooks = state.get_step_config("webhooks")
 
     # Basics section
     lines.append("[bold]Basics:[/]")
@@ -270,20 +269,6 @@ def generate_summary_panel(state: WizardState) -> Panel:
         )
     else:
         lines.append("[dim]Security:[/] Default")
-
-    # Webhooks section
-    if webhooks.get("enabled", False):
-        providers = webhooks.get("providers", {})
-        enabled_providers = [
-            p for p, cfg in providers.items() if cfg.get("enabled", False)
-        ]
-        if enabled_providers:
-            provider_str = ", ".join(f"{p.title()} \u2713" for p in enabled_providers)
-            lines.append(f"[cyan]Webhooks:[/] {provider_str}")
-        else:
-            lines.append("[dim]Webhooks:[/] Enabled (no providers)")
-    else:
-        lines.append("[dim]Webhooks:[/] Disabled")
 
     lines.append("")
 

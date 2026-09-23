@@ -23,8 +23,6 @@ Exports:
     run_security_step: Function to execute the security step.
     TaskManagerStepHandler: Handler for the task manager configuration step.
     run_task_manager_step: Function to execute the task manager step.
-    WebhooksStepHandler: Handler for the webhooks configuration step.
-    run_webhooks_step: Function to execute the webhooks step.
     ShipStepHandler: Handler for the ship phase configuration step.
     run_ship_step: Function to execute the ship step.
     SummaryStepHandler: Handler for the summary and file generation step.
@@ -105,10 +103,6 @@ from adw.cli.wizard.task_manager import (
     run_task_manager_step,
     validate_team_key,
 )
-from adw.cli.wizard.webhooks import (
-    WebhooksStepHandler,
-    run_webhooks_step,
-)
 from adw.config.initializer import generate_gitignore
 
 __all__ = [
@@ -128,7 +122,6 @@ __all__ = [
     "StepHandler",
     "SummaryStepHandler",
     "TaskManagerStepHandler",
-    "WebhooksStepHandler",
     "WizardFlowController",
     "WizardStep",
     "atomic_write_config",
@@ -153,7 +146,6 @@ __all__ = [
     "run_ship_step",
     "run_summary_step",
     "run_task_manager_step",
-    "run_webhooks_step",
     "validate_base_delay",
     "validate_branch_prefix",
     "validate_max_delay",

@@ -27,7 +27,6 @@ class TestWizardStep:
             # Note: "ship" removed - ship config is part of phases step
             "llm_retry",
             "security",
-            "webhooks",
             "summary",
         ]
         actual_steps = [step.value for step in WizardStep]
@@ -59,7 +58,7 @@ class TestWizardFlowController:
 
     def test_step_sequence_defined(self) -> None:
         """Controller has defined step sequence."""
-        assert len(WizardFlowController.STEP_SEQUENCE) == 10  # SHIP removed
+        assert len(WizardFlowController.STEP_SEQUENCE) == 9  # SHIP removed
         assert WizardFlowController.STEP_SEQUENCE[0] == WizardStep.BASICS
         assert WizardFlowController.STEP_SEQUENCE[1] == WizardStep.GLOBAL_REGISTRY
         assert WizardFlowController.STEP_SEQUENCE[-1] == WizardStep.SUMMARY

@@ -28,7 +28,6 @@ class MockWizardState:
             "ship": {},
             "llm_retry": {},
             "security": {},
-            "webhooks": {},
             "phases": {},
         }
         if configs:
@@ -120,7 +119,7 @@ class TestYAMLWithComments:
         assert "# === Worktree & Ports ===" in yaml_content
         assert "# === LLM Configuration ===" in yaml_content
         assert "# === Security ===" in yaml_content
-        assert "# === Webhook Server ===" in yaml_content
+        assert "# === Webhook Server ===" not in yaml_content
         # Ship config is now in .adw/commands/ship/config.yaml
         assert "# === Ship Phase ===" not in yaml_content
 
@@ -515,112 +514,6 @@ class TestTaskManagerFieldEmission:
         assert "# task_manager:" in yaml_content
         assert "#   state_mapping:" in yaml_content
         assert "#   labels:" in yaml_content
-
-
-class TestWebhookFieldEmission:
-    """Tests for webhook command_prefix, trigger_label, and mappings emission."""
-
-    @pytest.fixture
-    def registry(self) -> ConfigRegistry:
-        """Create registry fixture."""
-        return ConfigRegistry()
-
-    @pytest.fixture
-    def generator(self, registry: ConfigRegistry) -> YAMLWithComments:
-        """Create generator fixture."""
-        return YAMLWithComments(registry)
-
-    def test_custom_command_prefix_emitted_active(
-        self, generator: YAMLWithComments
-    ) -> None:
-        """Test custom command_prefix is emitted as active YAML."""
-        state = MockWizardState(
-            {
-                "webhooks": {
-                    "enabled": True,
-                    "port": 8000,
-                    "providers": {
-                        "github": {
-                            "enabled": True,
-                            "command_prefix": "/mybot",
-                        }
-                    },
-                }
-            }
-        )
-        yaml_content = generator.generate_project_yaml(state)
-
-        assert "command_prefix:" in yaml_content
-        assert "/mybot" in yaml_content
-
-    def test_default_command_prefix_emitted_as_comment(
-        self, generator: YAMLWithComments
-    ) -> None:
-        """Test default command_prefix is emitted as commented YAML."""
-        state = MockWizardState(
-            {
-                "webhooks": {
-                    "enabled": True,
-                    "port": 8000,
-                    "providers": {
-                        "github": {"enabled": True, "command_prefix": "/adw"}
-                    },
-                }
-            }
-        )
-        yaml_content = generator.generate_project_yaml(state)
-
-        assert '      # command_prefix: "/adw"' in yaml_content
-
-    def test_custom_trigger_label_emitted_active(
-        self, generator: YAMLWithComments
-    ) -> None:
-        """Test custom trigger_label is emitted as active YAML."""
-        state = MockWizardState(
-            {
-                "webhooks": {
-                    "enabled": True,
-                    "port": 8000,
-                    "providers": {
-                        "github": {
-                            "enabled": True,
-                            "trigger_label": "deploy",
-                        }
-                    },
-                }
-            }
-        )
-        yaml_content = generator.generate_project_yaml(state)
-
-        assert "trigger_label: deploy" in yaml_content
-
-    def test_mappings_emitted_as_nested_structure(
-        self, generator: YAMLWithComments
-    ) -> None:
-        """Test webhook mappings emits nested YAML structure."""
-        state = MockWizardState(
-            {
-                "webhooks": {
-                    "enabled": True,
-                    "port": 8000,
-                    "mappings": {
-                        "github": {
-                            "pull_request": {
-                                "command": "validate",
-                                "auto_run": True,
-                            }
-                        }
-                    },
-                }
-            }
-        )
-        yaml_content = generator.generate_project_yaml(state)
-
-        assert "  mappings:" in yaml_content
-        assert "    github:" in yaml_content
-        assert "      pull_request:" in yaml_content
-        assert "        command: validate" in yaml_content
-        assert "        auto_run: true" in yaml_content
 
 
 class TestDocumentPhaseEmission:
