@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from adw.exceptions import PortAllocationError
+from adw.exceptions import WorktreeError
 from adw.models.worktree import PortAllocation
 from adw.worktree.ports import PortAllocator
 
@@ -192,7 +192,7 @@ class TestAllocationRetry:
             server.close()
 
     def test_allocate_raises_after_max_attempts(self) -> None:
-        """Raises PortAllocationError when all attempts exhausted."""
+        """Raises WorktreeError when all attempts exhausted."""
         # Use high ports to avoid conflicts
         allocator = PortAllocator(
             backend_start=18100,
@@ -215,7 +215,7 @@ class TestAllocationRetry:
                 servers.append(server)
 
             # Should raise after trying all 3 slots
-            with pytest.raises(PortAllocationError) as exc_info:
+            with pytest.raises(WorktreeError) as exc_info:
                 allocator.allocate(run_id, max_attempts=3)
 
             assert exc_info.value.code == "PORT_ALLOCATION_FAILED"

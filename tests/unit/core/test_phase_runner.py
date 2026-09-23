@@ -17,7 +17,7 @@ from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
 from adw.core.artifact_manager import ArtifactManager
 from adw.core.phase_runner import PhaseRunner
-from adw.exceptions import CommandError, ConfigError, HookError, LLMError
+from adw.exceptions import ConfigError, HookError, LLMError
 from adw.hooks.runner import HookRunner
 from adw.models import (
     HookResult,
@@ -534,19 +534,19 @@ class TestPhaseRunnerErrorHandling:
             "PhaseResult.duration_ms should be logged"
         )
 
-    def test_command_error_adds_phase_context(
+    def test_resolution_error_propagates_unchanged(
         self,
         phase_runner: PhaseRunner,
         sample_context: RunContext,
         mock_command_resolver: MagicMock,
     ) -> None:
-        """Test that CommandError gets phase context added."""
-        mock_command_resolver.resolve.side_effect = CommandError(
+        """A command-resolution ConfigError propagates as raised."""
+        mock_command_resolver.resolve.side_effect = ConfigError(
             code="COMMAND_NOT_FOUND",
             message="Command not found",
         )
 
-        with pytest.raises(CommandError) as exc_info:
+        with pytest.raises(ConfigError) as exc_info:
             phase_runner.run("missing", sample_context)
 
         # The error should be raised as-is

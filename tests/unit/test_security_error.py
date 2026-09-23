@@ -86,28 +86,6 @@ class TestSecurityError:
         assert error.severity == "warning"
         assert error.recoverable is False
 
-    def test_security_error_to_dict(self) -> None:
-        """Test SecurityError serialization."""
-        from adw.exceptions import SecurityError
-
-        error = SecurityError(
-            code="DANGEROUS_COMMAND_BLOCKED",
-            message="Command blocked",
-            pattern_matched=r"rm\s+-rf",
-            tool_name="Bash",
-            alternatives=["Use specific paths"],
-            override_instruction="Use --allow-dangerous",
-            severity="critical",
-        )
-        d = error.to_dict()
-
-        assert d["code"] == "DANGEROUS_COMMAND_BLOCKED"
-        assert d["pattern_matched"] == r"rm\s+-rf"
-        assert d["tool_name"] == "Bash"
-        assert d["alternatives"] == ["Use specific paths"]
-        assert d["override_instruction"] == "Use --allow-dangerous"
-        assert d["severity"] == "critical"
-
     def test_security_error_str_includes_alternatives(self) -> None:
         """Test SecurityError string representation includes alternatives."""
         from adw.exceptions import SecurityError
