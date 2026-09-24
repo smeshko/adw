@@ -3,21 +3,18 @@
 #
 # This hook:
 # 1. Parses LLM output for deployment status markers
-# 2. Extracts ship report and release notes
+# 2. Saves the ship report and release notes
 # 3. Executes deploy commands (version_bump → build → publish)
 # 4. Commits and pushes any file changes from deploy commands
 # 5. Merges the PR (squash) if LLM approves
 # 6. Deletes remote branch after successful merge
-# 7. Updates task manager status (if configured)
 #
 # Environment variables provided by ADW:
-#   ADW_FEATURE      - The feature description for this run
-#   ADW_RUN_ID       - The unique run identifier
-#   ADW_PHASE        - Current phase (should be "ship")
 #   ADW_LLM_OUTPUT   - Full LLM output (post-hook only)
 #   ADW_ARTIFACTS_DIR - Artifacts directory for this phase
-#   ADW_PR_NUMBER    - PR number (from pre-hook)
-#   ADW_TASK_ID      - Task ID from task manager (if configured)
+#   ADW_PR_URL       - The run's PR URL; its number is used when the LLM
+#                      output has no PR_NUMBER
+#   ADW_BRANCH_NAME  - The run's branch, deleted on the remote after a merge
 #
 # Ship configuration (from project config):
 #   ADW_SHIP_BYPASS_CI        - Bypass CI checks using --admin (true/false, default: true)
@@ -45,6 +42,10 @@ merge_reason=""
 pr_number=""
 merge_succeeded=false  # Track if PR merge succeeded for exit code
 
+# PR number from the run's PR URL, if it ends in one
+url_number="${ADW_PR_URL##*/}"
+[[ "$url_number" =~ ^[0-9]+$ ]] || url_number=""
+
 if [[ -n "$ADW_LLM_OUTPUT" ]]; then
     # Extract status markers using sed -E for extended regex (portable on macOS and Linux)
     # Format expected: KEY: value (on its own line or within a code block)
@@ -61,9 +62,9 @@ if [[ -n "$ADW_LLM_OUTPUT" ]]; then
     merge_reason=$(echo "$ADW_LLM_OUTPUT" | sed -E -n 's/.*MERGE_REASON:[[:space:]]*(.*)/\1/p' | head -1)
     [[ -z "$merge_reason" ]] && merge_reason="No reason provided"
 
-    # Also extract PR_NUMBER from LLM output if available (fallback to env var)
+    # Also extract PR_NUMBER from LLM output if available (fallback to the PR URL)
     pr_number_from_output=$(echo "$ADW_LLM_OUTPUT" | sed -E -n 's/.*PR_NUMBER:[[:space:]]*([0-9]+).*/\1/p' | head -1)
-    pr_number="${pr_number_from_output:-$ADW_PR_NUMBER}"
+    pr_number="${pr_number_from_output:-$url_number}"
 
     echo "Parsed status:"
     echo "  Deployment Status: $deployment_status"
@@ -77,7 +78,7 @@ else
     pr_merge_approved="false"
     version_deployed="N/A"
     merge_reason="No LLM output to parse"
-    pr_number="$ADW_PR_NUMBER"
+    pr_number="$url_number"
 fi
 
 # Validate required fields
@@ -109,39 +110,6 @@ if [[ -n "$ADW_LLM_OUTPUT" ]] && [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
         echo "$ADW_LLM_OUTPUT" | sed -n '/[Rr]elease [Nn]otes/,$p' > "$release_notes_file"
         echo "Release notes saved to: $release_notes_file"
     fi
-
-    # Save parsed status as JSON for programmatic access
-    status_file="$ADW_ARTIFACTS_DIR/ship_status.json"
-
-    # Helper function to escape strings for JSON
-    json_escape() {
-        local str="$1"
-        # Escape backslashes, quotes, and control characters
-        str="${str//\\/\\\\}"
-        str="${str//\"/\\\"}"
-        str="${str//$'\n'/\\n}"
-        str="${str//$'\r'/\\r}"
-        str="${str//$'\t'/\\t}"
-        echo "$str"
-    }
-
-    # Escape strings that may contain special characters
-    merge_reason_escaped=$(json_escape "$merge_reason")
-
-    # Convert string booleans to JSON booleans safely
-    pr_merge_approved_json="false"
-    [[ "$pr_merge_approved" == "true" ]] && pr_merge_approved_json="true"
-
-    cat > "$status_file" <<EOF
-{
-  "deployment_status": "$deployment_status",
-  "pr_merge_approved": $pr_merge_approved_json,
-  "version_deployed": "$version_deployed",
-  "merge_reason": "$merge_reason_escaped",
-  "pr_number": ${pr_number:-null}
-}
-EOF
-    echo "Status saved to: $status_file"
 fi
 
 # =============================================================================
@@ -415,37 +383,6 @@ else
     if [[ -n "$pr_number" ]]; then
         echo "PR #$pr_number will not be merged."
         echo "Please review the ship report and merge manually if appropriate."
-    fi
-fi
-
-# =============================================================================
-# STEP 6: Task Manager Integration (if configured)
-# =============================================================================
-
-# Check if task manager integration is available via ADW_TASK_ID
-if [[ -n "$ADW_TASK_ID" ]] && [[ "$pr_merge_approved" == "true" ]] && [[ $merge_exit_code -eq 0 ]]; then
-    echo ""
-    echo "Updating task manager status..."
-
-    # Task manager update is best-effort - don't fail the whole hook
-    # The SDK handles task manager updates via Python code, but we log intent here
-    if [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
-        task_update_file="$ADW_ARTIFACTS_DIR/task_update_request.json"
-        if cat > "$task_update_file" <<EOF
-{
-  "task_id": "$ADW_TASK_ID",
-  "status": "done",
-  "pr_merged": true,
-  "pr_number": $pr_number,
-  "version": "$version_deployed"
-}
-EOF
-        then
-            echo "Task update request saved to: $task_update_file"
-            echo "Note: Task manager status update will be handled by ADW SDK"
-        else
-            echo "Warning: Failed to save task update request (non-fatal)"
-        fi
     fi
 fi
 

@@ -22,10 +22,10 @@ jobs:
         run: uv sync --locked
 
       - name: Run ruff linting
-        run: uv run ruff check src/
+        run: uv run ruff check src/ tests/
 
       - name: Run ruff format check
-        run: uv run ruff format --check src/
+        run: uv run ruff format --check src/ tests/
 
   typecheck:
     runs-on: ubuntu-latest
@@ -59,4 +59,4 @@ jobs:
         run: uv sync --locked
 
       - name: Run pytest with coverage
-        run: uv run pytest --cov=adw --cov-report=term-missing --cov-fail-under=80
+        run: uv run pytest

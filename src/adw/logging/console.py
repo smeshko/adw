@@ -84,7 +84,7 @@ class ConsoleTransport:
     """Console transport for log events.
 
     Outputs log events to the console using Rich for TTY terminals
-    and plain text for non-TTY (piped/redirected) output per UX-7.
+    and plain text for non-TTY (piped/redirected) output.
 
     Attributes:
         console: Rich Console instance for TTY output

@@ -14,7 +14,7 @@ from pydantic import ValidationError
 
 from adw.models import ProjectConfig
 from adw.models.command import ShipCommandConfig
-from adw.models.config import GitConfig, PhaseConfig, WorktreeConfig
+from adw.models.config import GitConfig, PhaseConfig
 
 
 def _from_yaml(text: str) -> ProjectConfig:
@@ -23,7 +23,7 @@ def _from_yaml(text: str) -> ProjectConfig:
 
 
 class TestPhaseConfigInputFiles:
-    """Tests for PhaseConfig.input_files field (ISS-015)."""
+    """Tests for PhaseConfig.input_files field."""
 
     def test_input_files_none_by_default(self) -> None:
         """PhaseConfig.input_files should be None by default."""
@@ -50,115 +50,29 @@ class TestPhaseConfigInputFiles:
         config = PhaseConfig(input_files={"spec": "docs/specs/api/v2/openapi.yaml"})
         assert config.input_files["spec"] == "docs/specs/api/v2/openapi.yaml"
 
-    # NOTE: test_input_files_in_yaml_parsing removed in ISS-029
-    # phases field removed from ProjectConfig - use command configs instead
-
 
 class TestWorktreeConfig:
-    """Tests for WorktreeConfig validation rules."""
+    """Tests for loading the worktree section of project.yaml."""
 
-    def test_port_range_defaults(self) -> None:
-        """WorktreeConfig has default port range settings."""
-        config = WorktreeConfig()
-        assert config.port_range.backend_start == 9100
-        assert config.port_range.frontend_start == 9200
-        assert config.max_concurrent == 15
+    def test_legacy_port_range_is_ignored(self) -> None:
+        """A pre-2.2 project.yaml with worktree.port_range still loads.
 
-    def test_custom_port_range(self) -> None:
-        """WorktreeConfig accepts custom port range."""
-        from adw.models.config import PortRangeConfig
-
-        config = WorktreeConfig(
-            port_range=PortRangeConfig(
-                backend_start=8000,
-                frontend_start=8100,
-            ),
-            max_concurrent=10,
-        )
-        assert config.port_range.backend_start == 8000
-        assert config.port_range.frontend_start == 8100
-        assert config.max_concurrent == 10
-
-    def test_port_range_validation_backend_overflow(self) -> None:
-        """WorktreeConfig rejects port ranges that would exceed 65535."""
-        from adw.models.config import PortRangeConfig
-
-        with pytest.raises(ValueError) as exc_info:
-            WorktreeConfig(
-                port_range=PortRangeConfig(backend_start=65530),
-                max_concurrent=15,
-            )
-        assert "Backend port range exceeds valid ports" in str(exc_info.value)
-
-    def test_port_range_validation_frontend_overflow(self) -> None:
-        """WorktreeConfig rejects frontend port ranges that would exceed 65535."""
-        from adw.models.config import PortRangeConfig
-
-        with pytest.raises(ValueError) as exc_info:
-            WorktreeConfig(
-                port_range=PortRangeConfig(frontend_start=65530),
-                max_concurrent=15,
-            )
-        assert "Frontend port range exceeds valid ports" in str(exc_info.value)
-
-    def test_port_range_validation_edge_case_valid(self) -> None:
-        """WorktreeConfig accepts port ranges at the edge of valid range."""
-        from adw.models.config import PortRangeConfig
-
-        # 65521 + 15 - 1 = 65535, which is the max valid port
-        # Use non-overlapping ranges (backend 65506-65520, frontend 65521-65535)
-        config = WorktreeConfig(
-            port_range=PortRangeConfig(
-                backend_start=65506,
-                frontend_start=65521,
-            ),
-            max_concurrent=15,
-        )
-        assert config.port_range.backend_start == 65506
-        assert config.port_range.frontend_start == 65521
-
-    def test_port_range_overlap_rejected(self) -> None:
-        """WorktreeConfig rejects overlapping backend/frontend port ranges."""
-        from adw.models.config import PortRangeConfig
-
-        with pytest.raises(ValueError) as exc_info:
-            WorktreeConfig(
-                port_range=PortRangeConfig(
-                    backend_start=9100,
-                    frontend_start=9110,  # overlaps with 9100-9114
-                ),
-                max_concurrent=15,
-            )
-        assert "overlaps" in str(exc_info.value)
-
-    def test_port_range_adjacent_valid(self) -> None:
-        """WorktreeConfig accepts adjacent (non-overlapping) port ranges."""
-        from adw.models.config import PortRangeConfig
-
-        # Backend: 9100-9114, Frontend: 9115-9129 — adjacent, no overlap
-        config = WorktreeConfig(
-            port_range=PortRangeConfig(
-                backend_start=9100,
-                frontend_start=9115,
-            ),
-            max_concurrent=15,
-        )
-        assert config.port_range.backend_start == 9100
-        assert config.port_range.frontend_start == 9115
-
-    def test_port_range_overlap_same_start(self) -> None:
-        """WorktreeConfig rejects identical backend/frontend start ports."""
-        from adw.models.config import PortRangeConfig
-
-        with pytest.raises(ValueError) as exc_info:
-            WorktreeConfig(
-                port_range=PortRangeConfig(
-                    backend_start=9100,
-                    frontend_start=9100,
-                ),
-                max_concurrent=15,
-            )
-        assert "overlaps" in str(exc_info.value)
+        Phase 2.2 removed port allocation. This file is the one intended
+        match of that plan's port_range grep. The overlapping range below
+        was rejected by the old validator, so loading it shows the key is
+        ignored rather than still validated.
+        """
+        yaml_content = """
+name: legacy
+language: python
+worktree:
+  max_concurrent: 3
+  port_range:
+    backend_start: 9100
+    frontend_start: 9100
+"""
+        config = _from_yaml(yaml_content)
+        assert config.worktree.max_concurrent == 3
 
 
 class TestGitConfig:
@@ -188,11 +102,11 @@ git:
 
 
 class TestShipCommandConfig:
-    """Tests for ShipCommandConfig validation (ISS-031 refactored from Story 15.1).
+    """Tests for ShipCommandConfig validation.
 
-    Note: Ship configuration has been moved from ProjectConfig.ship to
-    phase-specific config at .adw/commands/ship/config.yaml. These tests
-    now validate the ShipCommandConfig class directly.
+    Ship configuration lives in the phase-specific config at
+    .adw/commands/ship/config.yaml, so these tests validate the
+    ShipCommandConfig class directly.
     """
 
     def test_ship_command_config_defaults(self) -> None:
@@ -304,6 +218,3 @@ git:
 """
         config = _from_yaml(yaml_content)
         assert config.git.branch_prefix == "feat/"
-
-    # NOTE: test_with_phase_config removed in ISS-029
-    # phases field removed from ProjectConfig - use command configs instead

@@ -1,6 +1,6 @@
 """Tests for CLI bootstrap module.
 
-Tests for create_orchestrator() task manager service wiring (ISS-033).
+Tests for create_orchestrator() task manager service wiring.
 Focuses on business logic: StatusSyncService and LabelManager creation.
 
 Per ADR-001: Tests focus on validation logic and integration points,
@@ -13,12 +13,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from adw.models.config import LLMConfig, TaskManagerConfig, TaskManagerLabelsConfig
+from adw.models.config import (
+    HookConfig,
+    LLMConfig,
+    TaskManagerConfig,
+    TaskManagerLabelsConfig,
+)
 from adw.models.task import TaskInfo
 
 
 class TestBootstrapTaskManagerWiring:
-    """Tests for task manager service wiring in create_orchestrator (ISS-033)."""
+    """Tests for task manager service wiring in create_orchestrator."""
 
     @pytest.fixture
     def mock_task_manager(self) -> MagicMock:
@@ -65,7 +70,7 @@ class TestBootstrapTaskManagerWiring:
         """StatusSyncService is instantiated when task_manager is provided.
 
         This is a critical business logic test - StatusSyncService must be
-        created for phase comment posting to work (ISS-033 fix).
+        created for phase comment posting to work.
         """
         from adw.cli.bootstrap import create_orchestrator
         from adw.models.config import ProjectConfig
@@ -74,10 +79,10 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_project_config.llm = LLMConfig()
         mock_project_config.build_command = None
+        mock_project_config.hooks = HookConfig()
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with task manager
@@ -87,7 +92,7 @@ class TestBootstrapTaskManagerWiring:
                 task_info=mock_task_info,
             )
 
-        # Verify StatusSyncService was created with correct arguments (ISS-039: now includes task_info)
+        # Verify StatusSyncService was created with correct arguments (including task_info)
         mock_sync_service_class.assert_called_once_with(
             mock_task_manager,
             mock_config_with_labels,
@@ -132,8 +137,8 @@ class TestBootstrapTaskManagerWiring:
     ) -> None:
         """LabelManager is created with task_info.id (UUID), not identifier.
 
-        This is the critical fix for ISS-033 - the Linear API requires
-        internal UUID for label operations, not the public identifier.
+        The Linear API requires the internal UUID for label operations, not
+        the public identifier.
         """
         from adw.cli.bootstrap import create_orchestrator
         from adw.models.config import ProjectConfig
@@ -146,10 +151,10 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_project_config.llm = LLMConfig()
         mock_project_config.build_command = None
+        mock_project_config.hooks = HookConfig()
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with task_info
@@ -181,7 +186,7 @@ class TestBootstrapTaskManagerWiring:
         """LabelManager is None when task_info is not available.
 
         Even with task_manager and task_id, LabelManager requires task_info
-        to get the internal UUID. This is intentional (ISS-033).
+        to get the internal UUID. This is intentional.
         """
         from adw.cli.bootstrap import create_orchestrator
         from adw.models.config import ProjectConfig
@@ -190,10 +195,10 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_project_config.llm = LLMConfig()
         mock_project_config.build_command = None
+        mock_project_config.hooks = HookConfig()
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with task_manager but WITHOUT task_info
@@ -227,10 +232,10 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_without_labels
         mock_project_config.llm = LLMConfig()
         mock_project_config.build_command = None
+        mock_project_config.hooks = HookConfig()
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with labels disabled
@@ -269,10 +274,10 @@ class TestBootstrapRetryWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = None
         mock_project_config.llm = llm_config
         mock_project_config.build_command = None
+        mock_project_config.hooks = HookConfig()
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         orchestrator = create_orchestrator()
@@ -304,10 +309,10 @@ class TestBootstrapRetryWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = None
         mock_project_config.llm = custom_llm
         mock_project_config.build_command = None
+        mock_project_config.hooks = HookConfig()
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         with patch("adw.cli.bootstrap.Orchestrator"):
@@ -343,3 +348,24 @@ class TestBootstrapShipWiring:
 
         env = registry.get_hook_env("ship", context)
         assert env["ADW_SHIP_BUILD_CMD"] == "echo built"
+
+
+class TestBootstrapHookWiring:
+    """Tests for hook runner wiring in create_orchestrator."""
+
+    def test_runner_uses_project_hook_config(self, tmp_path: Path) -> None:
+        """The hook runner uses hooks: from .adw/project.yaml (B10)."""
+        from adw.cli.bootstrap import create_orchestrator
+
+        adw_dir = tmp_path / ".adw"
+        adw_dir.mkdir()
+        (adw_dir / "project.yaml").write_text(
+            "name: demo\nlanguage: python\n"
+            "hooks:\n  timeout_seconds: 5\n  shell: /bin/sh\n"
+        )
+
+        orchestrator = create_orchestrator(with_progress=False)
+
+        assert orchestrator._phase_runner.hook_runner.config == HookConfig(
+            timeout_seconds=5, shell="/bin/sh"
+        )

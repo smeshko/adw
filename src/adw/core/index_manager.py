@@ -104,7 +104,7 @@ class IndexManager:
         # Append to index (JSONL format)
         self._append_entry(entry)
 
-        # Check if archive is needed (AC5: archive when >10,000 entries)
+        # Archive old entries once the index exceeds the threshold (default 10,000)
         self._archive_old_entries()
 
     def update_run(self, run_id: str, **updates: Any) -> None:

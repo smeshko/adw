@@ -169,3 +169,24 @@ language: python
         # Each load should return a fresh config
         assert config1 is not config2
         assert config1.name == config2.name
+
+    def test_load_ignores_legacy_security_section(self, tmp_path) -> None:
+        """A security: section from before its removal loads and is dropped."""
+        config_dir = tmp_path / ".adw"
+        config_dir.mkdir(exist_ok=True)
+        (config_dir / "project.yaml").write_text("""
+name: legacy-project
+language: python
+security:
+  blocked_patterns:
+    - pattern: "rm -rf"
+      description: "Recursive delete"
+      category: destructive
+  blocked_env_files:
+    - '\\.secrets$'
+        """)
+
+        config = ConfigLoader(project_root=tmp_path).load()
+
+        assert config.name == "legacy-project"
+        assert "security" not in config.model_dump()

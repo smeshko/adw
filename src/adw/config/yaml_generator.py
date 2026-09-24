@@ -7,16 +7,16 @@ as comments with their default values.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import date
 from typing import TYPE_CHECKING, Any
 
 from pydantic_core import PydanticUndefined
 
-from adw.models.config import DEFAULT_STATE_MAPPING
+from adw.models.config import DEFAULT_STATE_MAPPING, RetryConfig
 
 if TYPE_CHECKING:
     from adw.config.registry import ConfigRegistry, SettingDefinition
-    from adw.models.wizard import WizardState
 
 
 def _format_yaml_value(value: Any) -> str:
@@ -85,7 +85,7 @@ class YAMLWithComments:
         >>> from adw.config.registry import ConfigRegistry
         >>> registry = ConfigRegistry()
         >>> generator = YAMLWithComments(registry)
-        >>> yaml_content = generator.generate_project_yaml(state)
+        >>> yaml_content = generator.generate_project_yaml({"basics": {...}})
     """
 
     def __init__(self, registry: ConfigRegistry) -> None:
@@ -96,14 +96,14 @@ class YAMLWithComments:
         """
         self.registry = registry
 
-    def generate_project_yaml(self, state: WizardState) -> str:
+    def generate_project_yaml(self, cfg: Mapping[str, dict[str, Any]]) -> str:
         """Generate project.yaml content with all settings.
 
         User-configured values are written as active YAML, while
         non-configured settings appear as comments with defaults.
 
         Args:
-            state: WizardState containing collected configuration.
+            cfg: The init wizard's answers, keyed by section (basics, git, ...).
 
         Returns:
             Complete project.yaml content as string.
@@ -118,12 +118,10 @@ class YAMLWithComments:
         lines.append("# Uncomment and modify to customize behavior.")
         lines.append("")
 
-        # Get configs from wizard state (ship config is now in phase config file)
-        basics = state.get_step_config("basics")
-        git = state.get_step_config("git")
-        ports = state.get_step_config("ports")
-        task_manager = state.get_step_config("task_manager")
-        llm_retry = state.get_step_config("llm_retry")
+        # Ship config lives in the phase config file, not here
+        basics = cfg.get("basics", {})
+        git = cfg.get("git", {})
+        task_manager = cfg.get("task_manager", {})
 
         # === Core Settings ===
         lines.append("# === Core Settings ===")
@@ -174,57 +172,25 @@ class YAMLWithComments:
 
         lines.append("")
 
-        # === Worktree & Ports ===
-        lines.append("# === Worktree & Ports ===")
-        backend_port = ports.get("backend_port_start", 9100)
-        frontend_port = ports.get("frontend_port_start", 9200)
-        ports_customized = backend_port != 9100 or frontend_port != 9200
-
-        if ports_customized:
-            # Active worktree section when ports are customized
-            lines.append("worktree:")
-            lines.append("  # enabled: true  # Use worktree isolation")
-            lines.append('  # base_dir: "trees"  # Directory for worktrees')
-            lines.append("  # max_concurrent: 15  # Maximum concurrent runs")
-            lines.append("  port_range:")
-            lines.append(f"    backend_start: {backend_port}")
-            lines.append(f"    frontend_start: {frontend_port}")
-        else:
-            lines.append("# worktree:")
-            lines.append("#   enabled: true  # Use worktree isolation")
-            lines.append('#   base_dir: "trees"  # Directory for worktrees')
-            lines.append("#   max_concurrent: 15  # Maximum concurrent runs")
-            lines.append("#   port_range:")
-            lines.append("#     backend_start: 9100  # Backend port base")
-            lines.append("#     frontend_start: 9200  # Frontend port base")
+        # === Worktree ===
+        lines.append("# === Worktree ===")
+        lines.append("# worktree:")
+        lines.append("#   enabled: true  # Use worktree isolation")
+        lines.append('#   base_dir: "trees"  # Directory for worktrees')
+        lines.append("#   max_concurrent: 15  # Maximum concurrent runs")
 
         lines.append("")
 
         # === LLM Configuration ===
         lines.append("# === LLM Configuration ===")
-        retry_custom = llm_retry.get("retry_custom", False)
-
-        if retry_custom:
-            lines.append("llm:")
-            lines.append('  # path: "claude"  # Path to Claude Code executable')
-            lines.append("  retry:")
-            lines.append(f"    max_retries: {llm_retry.get('retry_max_retries', 3)}")
-            base_delay = llm_retry.get("retry_base_delay", 1.0)
-            lines.append(f"    base_delay_seconds: {base_delay}")
-            max_delay = llm_retry.get("retry_max_delay", 60.0)
-            lines.append(f"    max_delay_seconds: {max_delay}")
-            lines.append(f"    multiplier: {llm_retry.get('retry_multiplier', 2.0)}")
-        else:
-            lines.append("# llm:")
-            lines.append('#   path: "claude"  # Path to Claude Code executable')
-
-        lines.append("")
-
-        # === Security ===
-        lines.append("# === Security ===")
-        lines.append("# security:")
-        lines.append("#   blocked_patterns: []  # Additional patterns to block")
-        lines.append("#   blocked_env_files: []  # Additional file patterns to block")
+        lines.append("# llm:")
+        lines.append('#   path: "claude"  # Path to Claude Code executable')
+        lines.append("#   retry:")
+        for field_name, field in RetryConfig.model_fields.items():
+            lines.append(
+                f"#     {field_name}: {_format_yaml_value(field.default)}"
+                f"  # {field.description}"
+            )
 
         lines.append("")
 
@@ -237,7 +203,7 @@ class YAMLWithComments:
 
         Args:
             lines: List of output lines to append to.
-            git: Git configuration dict from wizard state.
+            git: Git configuration dict from the wizard's answers.
         """
         lines.append("# === Git Integration ===")
         lines.append("git:")
@@ -262,7 +228,7 @@ class YAMLWithComments:
 
         Args:
             lines: List of output lines to append to.
-            task_manager: Task manager configuration dict from wizard state.
+            task_manager: Task manager configuration dict from the wizard's answers.
         """
         lines.append("# === Task Manager ===")
         tm_enabled = task_manager.get("enabled", False)
@@ -501,7 +467,7 @@ class YAMLWithComments:
 
 
 def generate_all_phase_configs(
-    state: WizardState,
+    cfg: Mapping[str, dict[str, Any]],
     registry: ConfigRegistry,
 ) -> dict[str, str]:
     """Generate config.yaml files for ALL phases.
@@ -509,11 +475,8 @@ def generate_all_phase_configs(
     Unlike the previous implementation that only generated configs for
     phases with customized=True, this generates for all phases.
 
-    Ship phase config is merged from both the phases step and the
-    dedicated ship step (which collects commands, pr).
-
     Args:
-        state: WizardState containing collected configuration.
+        cfg: The init wizard's answers, keyed by section.
         registry: ConfigRegistry instance.
 
     Returns:
@@ -524,24 +487,12 @@ def generate_all_phase_configs(
     generator = YAMLWithComments(registry)
     files: dict[str, str] = {}
 
-    # Get phase configs from state (if any customization was done)
-    phases = state.get_step_config("phases")
-    phases_dict = phases.get("phases", {})
-
-    # Get ship-specific config from the ship step (ISS-031)
-    ship_step_config = state.get_step_config("ship")
+    # Phase configs the user customized, if any
+    phases_dict = cfg.get("phases", {}).get("phases", {})
 
     # Generate config for ALL phases, not just customized ones
     for phase in PHASE_SEQUENCE:
         phase_config = phases_dict.get(phase, {})
-
-        # For ship phase, merge in the ship step config
-        if phase == "ship" and ship_step_config:
-            # Merge ship step settings (commands)
-            phase_config = {**phase_config}  # Shallow copy to avoid mutation
-            if ship_step_config.get("commands"):
-                phase_config["commands"] = ship_step_config["commands"]
-
         content = generator.generate_phase_yaml(phase, phase_config)
         files[f"commands/{phase}/config.yaml"] = content
 

@@ -36,8 +36,8 @@ from adw.dashboard.dependencies import (
     get_stats_aggregator,
     resolve_project_filter,
 )
+from adw.dashboard.settings import settings_context
 from adw.exceptions import StateError
-from adw.models.config import DEFAULT_STATE_MAPPING
 from adw.models.stats import TokenUsage
 
 if TYPE_CHECKING:
@@ -916,7 +916,7 @@ async def phase_detail(
     """
     templates: Jinja2Templates = request.app.state.templates
 
-    # Validate phase against known phases (NFR10: no arbitrary path access)
+    # Validate phase against known phases (no arbitrary path access)
     if phase not in PHASE_SEQUENCE:
         return HTMLResponse(
             content='<p class="text-error text-sm">Invalid phase</p>',
@@ -1111,14 +1111,14 @@ async def artifact_viewer(
     """
     templates: Jinja2Templates = request.app.state.templates
 
-    # Validate phase against known phases (NFR10: no arbitrary path access)
+    # Validate phase against known phases (no arbitrary path access)
     if phase not in PHASE_SEQUENCE:
         return HTMLResponse(
             content='<p class="text-error text-sm">Invalid phase</p>',
             status_code=400,
         )
 
-    # Validate filename to prevent path traversal (NFR10)
+    # Validate filename to prevent path traversal
     if ".." in filename or filename.startswith("/"):
         return HTMLResponse(
             content='<p class="text-error text-sm">Invalid filename</p>',
@@ -1159,7 +1159,7 @@ async def artifact_viewer(
         try:
             import markdown
 
-            # Escape raw HTML in source before rendering to prevent XSS (NFR10).
+            # Escape raw HTML in source before rendering to prevent XSS.
             # Only escape angle brackets and ampersand; preserve quotes for code.
             safe_content = (
                 content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -1697,382 +1697,6 @@ def _render_log_line_html(timestamp: str, level: str, message: str) -> str:
 # ── Settings Page ────────────────────────────────────────────────
 
 
-# Tab sections displayed on the settings page.
-# Maps internal section key → display label.
-_SETTINGS_TABS: list[tuple[str, str]] = [
-    ("project", "Basics"),
-    ("git", "Git"),
-    ("worktree", "Worktree"),
-    ("llm", "LLM Retry"),
-    ("task_manager", "Task Manager"),
-    ("security", "Security"),
-    ("phases", "Phases"),
-]
-
-
-def _humanize_field_name(name: str) -> str:
-    """Convert a snake_case field name to a human-readable label."""
-    return name.replace("_", " ").title()
-
-
-def _resolve_config_value(config: Any, section: str, field_name: str) -> Any:
-    """Resolve the current value of a config field from the ProjectConfig.
-
-    For nested sections (git, llm, etc.), access the sub-model attribute.
-    For the project section, access top-level attributes directly.
-    """
-    if section == "project":
-        return getattr(config, field_name, None)
-
-    # Map section keys to ProjectConfig attribute names
-    section_attr_map: dict[str, str] = {
-        "git": "git",
-        "llm": "llm",
-        "task_manager": "task_manager",
-        "worktree": "worktree",
-        "security": "security",
-    }
-    attr_name = section_attr_map.get(section)
-    if attr_name is None:
-        return None
-
-    sub_config = getattr(config, attr_name, None)
-    if sub_config is None:
-        return None
-
-    # Handle port_range fields nested under worktree.port_range
-    if section == "worktree" and field_name in ("backend_start", "frontend_start"):
-        port_range = getattr(sub_config, "port_range", None)
-        if port_range is None:
-            return None
-        return getattr(port_range, field_name, None)
-
-    # Handle retry fields nested under llm.retry
-    if section == "llm" and field_name in (
-        "max_retries",
-        "base_delay_seconds",
-        "max_delay_seconds",
-        "multiplier",
-    ):
-        retry = getattr(sub_config, "retry", None)
-        if retry is None:
-            return None
-        return getattr(retry, field_name, None)
-
-    return getattr(sub_config, field_name, None)
-
-
-def _normalize_default(value: Any) -> Any:
-    """Normalize PydanticUndefined sentinel to None.
-
-    Required fields in Pydantic have ``PydanticUndefined`` as default.
-    Templates would render this sentinel literally, so we convert it
-    to ``None`` which ``_format_display_value`` handles gracefully.
-    """
-    from pydantic_core import PydanticUndefined
-
-    if value is PydanticUndefined:
-        return None
-    return value
-
-
-def _format_display_value(value: Any) -> str:
-    """Format a config value for display in the template."""
-    if value is None:
-        return "—"
-    if isinstance(value, bool):
-        return str(value).lower()
-    if isinstance(value, list):
-        if not value:
-            return "[]"
-        return ", ".join(str(v) for v in value)
-    if isinstance(value, dict):
-        if not value:
-            return "{}"
-        return ", ".join(f"{k}: {v}" for k, v in value.items())
-    return str(value)
-
-
-def build_settings_context(
-    config: Any | None,
-    registry: Any,
-) -> dict[str, list[dict[str, Any]]]:
-    """Build settings data for all sections.
-
-    Args:
-        config: A ProjectConfig instance (or None if no project loaded).
-        registry: A ConfigRegistry instance.
-
-    Returns:
-        Dict mapping section names to lists of setting dicts.
-    """
-    sections: dict[str, list[dict[str, Any]]] = {}
-
-    for section_key, _label in _SETTINGS_TABS:
-        if section_key == "phases":
-            continue  # Phases handled separately
-
-        try:
-            settings = registry.get_all_settings(section_key)
-        except KeyError:
-            continue
-
-        section_settings = []
-        for setting in settings:
-            if setting.is_nested:
-                continue  # Skip nested config objects
-
-            current_value = None
-            if config is not None:
-                current_value = _resolve_config_value(config, section_key, setting.name)
-
-            default_value = _normalize_default(setting.default)
-            display_value = _format_display_value(current_value)
-            display_default = _format_display_value(default_value)
-
-            is_changed = False
-            if config is not None and current_value is not None:
-                is_changed = current_value != default_value
-
-            section_settings.append(
-                {
-                    "name": setting.name,
-                    "label": _humanize_field_name(setting.name),
-                    "current_value": current_value,
-                    "display_value": display_value,
-                    "default_value": default_value,
-                    "display_default": display_default,
-                    "description": setting.description,
-                    "type_hint": setting.type_hint,
-                    "is_changed": is_changed,
-                    "is_required": setting.is_required,
-                }
-            )
-
-        # For the llm section, also include retry settings
-        if section_key == "llm":
-            try:
-                retry_settings = registry.get_all_settings("retry")
-            except KeyError:
-                retry_settings = []
-            for setting in retry_settings:
-                if setting.is_nested:
-                    continue
-                current_value = None
-                if config is not None:
-                    current_value = _resolve_config_value(config, "llm", setting.name)
-                default_value = _normalize_default(setting.default)
-                display_value = _format_display_value(current_value)
-                display_default = _format_display_value(default_value)
-                is_changed = False
-                if config is not None and current_value is not None:
-                    is_changed = current_value != default_value
-                section_settings.append(
-                    {
-                        "name": setting.name,
-                        "label": _humanize_field_name(setting.name),
-                        "current_value": current_value,
-                        "display_value": display_value,
-                        "default_value": default_value,
-                        "display_default": display_default,
-                        "description": setting.description,
-                        "type_hint": setting.type_hint,
-                        "is_changed": is_changed,
-                        "is_required": setting.is_required,
-                    }
-                )
-
-        # For the worktree section, also include port_range settings
-        if section_key == "worktree":
-            try:
-                port_settings = registry.get_all_settings("ports")
-            except KeyError:
-                port_settings = []
-            for setting in port_settings:
-                if setting.is_nested:
-                    continue
-                current_value = None
-                if config is not None:
-                    current_value = _resolve_config_value(
-                        config, "worktree", setting.name
-                    )
-                default_value = _normalize_default(setting.default)
-                display_value = _format_display_value(current_value)
-                display_default = _format_display_value(default_value)
-                is_changed = False
-                if config is not None and current_value is not None:
-                    is_changed = current_value != default_value
-                section_settings.append(
-                    {
-                        "name": setting.name,
-                        "label": _humanize_field_name(setting.name),
-                        "current_value": current_value,
-                        "display_value": display_value,
-                        "default_value": default_value,
-                        "display_default": display_default,
-                        "description": setting.description,
-                        "type_hint": setting.type_hint,
-                        "is_changed": is_changed,
-                        "is_required": setting.is_required,
-                    }
-                )
-
-        sections[section_key] = section_settings
-
-    return sections
-
-
-def compute_changed_counts(
-    settings_sections: dict[str, list[dict[str, Any]]],
-    task_manager_context: dict[str, Any],
-    security_context: dict[str, Any],
-) -> dict[str, int]:
-    """Compute the number of changed-from-default fields per settings section.
-
-    Args:
-        settings_sections: Output from ``build_settings_context()``.
-        task_manager_context: Output from ``build_complex_settings_context()``.
-        security_context: Output from ``build_complex_settings_context()``.
-
-    Returns:
-        Dict mapping section key to count of changed fields.
-    """
-    counts: dict[str, int] = {}
-
-    # Standard sections from build_settings_context
-    for section_key, section_settings in settings_sections.items():
-        counts[section_key] = sum(1 for s in section_settings if s.get("is_changed"))
-
-    # Task Manager section — compare against known defaults
-    tm_defaults: dict[str, Any] = {
-        "type": "none",
-        "team_key": "",
-        "sync_comments": False,
-        "auto_close": False,
-        "labels_enabled": True,
-        "label_prefix": "adw:",
-    }
-    tm_changed = 0
-    for field, default in tm_defaults.items():
-        if task_manager_context.get(field) != default:
-            tm_changed += 1
-    counts["task_manager"] = tm_changed
-
-    # Security section — non-empty lists mean changed
-    sec_changed = 0
-    if security_context is not None:
-        if security_context.get("blocked_commands"):
-            sec_changed += 1
-        if security_context.get("blocked_env_files"):
-            sec_changed += 1
-    counts["security"] = sec_changed
-
-    return counts
-
-
-def _build_phase_settings(config: Any | None, registry: Any) -> list[dict[str, Any]]:
-    """Build phase-level settings for the Phases tab.
-
-    Returns a list of phase dicts with their settings.
-    """
-    phase_names = ["plan", "build", "validate", "document", "ship"]
-    phase_settings = registry.get_phase_settings("plan")  # Base phase settings
-
-    phases = []
-    for phase_name in phase_names:
-        settings = []
-        for setting in phase_settings:
-            settings.append(
-                {
-                    "name": setting.name,
-                    "label": _humanize_field_name(setting.name),
-                    "default_value": setting.default,
-                    "display_default": _format_display_value(setting.default),
-                    "description": setting.description,
-                    "type_hint": setting.type_hint,
-                    "current_value": None,
-                    "display_value": "—",
-                    "is_changed": False,
-                }
-            )
-        phases.append(
-            {
-                "name": phase_name,
-                "label": _humanize_field_name(phase_name),
-                "settings": settings,
-            }
-        )
-
-    return phases
-
-
-def build_complex_settings_context(
-    config: Any | None,
-) -> dict[str, Any]:
-    """Build context for complex settings fields (Task Manager, Security).
-
-    These sections have custom templates that need structured data beyond
-    the flat scalar fields handled by ``build_settings_context()``.
-
-    Args:
-        config: A ProjectConfig instance (or None if no project loaded).
-
-    Returns:
-        Dict with ``task_manager_context`` and ``security_context`` keys.
-    """
-    # Task Manager defaults
-    task_manager_context: dict[str, Any] = {
-        "type": "none",
-        "team_key": "",
-        "sync_comments": False,
-        "auto_close": False,
-        "labels_enabled": True,
-        "label_prefix": "adw:",
-        "state_mapping": dict(DEFAULT_STATE_MAPPING),
-    }
-
-    # Security defaults
-    security_context: dict[str, Any] = {
-        "blocked_commands": [],
-        "blocked_env_files": [],
-    }
-
-    if config is not None:
-        # Populate task_manager context
-        tm = getattr(config, "task_manager", None)
-        if tm is not None:
-            task_manager_context["type"] = getattr(tm, "type", "none")
-            task_manager_context["team_key"] = getattr(tm, "team_key", "") or ""
-            task_manager_context["sync_comments"] = getattr(tm, "sync_comments", False)
-            task_manager_context["auto_close"] = getattr(tm, "auto_close", False)
-            sm = getattr(tm, "state_mapping", None)
-            if sm:
-                task_manager_context["state_mapping"] = dict(sm)
-            labels = getattr(tm, "labels", None)
-            if labels:
-                task_manager_context["labels_enabled"] = getattr(
-                    labels, "enabled", True
-                )
-                task_manager_context["label_prefix"] = getattr(labels, "prefix", "adw:")
-
-        # Populate security context
-        sec = getattr(config, "security", None)
-        if sec is not None:
-            bp = getattr(sec, "blocked_patterns", [])
-            if bp:
-                security_context["blocked_commands"] = [
-                    getattr(p, "pattern", str(p)) for p in bp
-                ]
-            bef = getattr(sec, "blocked_env_files", [])
-            if bef:
-                security_context["blocked_env_files"] = list(bef)
-
-    return {
-        "task_manager_context": task_manager_context,
-        "security_context": security_context,
-    }
-
-
 @router.get("/settings", response_class=HTMLResponse)
 async def settings(
     request: Request,
@@ -2081,14 +1705,11 @@ async def settings(
     index_manager: IndexManager = Depends(get_index_manager),
     project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
-    """Render the settings page.
+    """Render the read-only settings page.
 
     Returns the full page or just the ``#settings`` partial
     depending on whether the request came from HTMX.
     """
-    from adw.config.loader import ConfigLoader
-    from adw.config.registry import ConfigRegistry
-
     templates: Jinja2Templates = request.app.state.templates
     context = _build_page_context(
         request,
@@ -2103,61 +1724,10 @@ async def settings(
     settings_projects = [{"path": str(p.path), "name": p.name} for p in all_projects]
     context["settings_projects"] = settings_projects
 
-    # Resolve selected project
-    selected_settings_project: str | None = None
-    config = None
-
-    if project:
-        # Resolve display name to path
-        project_path_str, _ = resolve_project_filter(project_registry, project)
-        if project_path_str:
-            selected_settings_project = project
-            try:
-                loader = ConfigLoader(project_root=Path(project_path_str))
-                config = loader.load()
-            except Exception:
-                logger.warning(
-                    "Failed to load config for project",
-                    extra={"project": project},
-                )
-
-    context["selected_settings_project"] = selected_settings_project
-
-    # Build settings data if project is loaded
-    registry = ConfigRegistry()
-    complex_ctx = build_complex_settings_context(config)
-    if config is not None:
-        context["settings_sections"] = build_settings_context(config, registry)
-        context["phase_settings"] = _build_phase_settings(config, registry)
-        context["has_config"] = True
-        context["has_project_config"] = ConfigLoader(
-            project_root=Path(
-                resolve_project_filter(project_registry, project)[0] or ""
-            )
-        ).has_project_config
-    else:
-        context["settings_sections"] = build_settings_context(None, registry)
-        context["phase_settings"] = _build_phase_settings(None, registry)
-        context["has_config"] = False
-        context["has_project_config"] = False
-    context.update(complex_ctx)
-
-    # Compute changed-from-default counts per section for tab badges
-    context["changed_counts"] = compute_changed_counts(
-        context["settings_sections"],
-        complex_ctx["task_manager_context"],
-        complex_ctx["security_context"],
-    )
-
-    # CSRF token for editable settings forms
-    context["csrf_token"] = generate_csrf_token(request)
-
-    # Tab state
-    valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
-    if tab not in valid_tab_keys:
-        tab = "project"
-    context["active_tab"] = tab
-    context["settings_tabs"] = _SETTINGS_TABS
+    project_path_str, _ = resolve_project_filter(project_registry, project)
+    context["selected_settings_project"] = project if project_path_str else None
+    if project_path_str:
+        context.update(settings_context(Path(project_path_str), tab))
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/settings.html", context)

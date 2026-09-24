@@ -11,11 +11,9 @@ This package contains all Pydantic models used throughout ADW:
 - hook: HookResult
 - logging: LogLevel, LogCategory, LogContext, LogEvent
 - index: IndexEntry
-- security: BlockedPattern, SecurityConfig, ToolCallLog
 - pr: PRDescription
 - task: TaskInfo
 - resume: ResumeInfo, ResumeStatus
-- wizard: WizardState
 - registry: RegisteredProject, ProjectRegistry
 - stats: TokenUsage, ProjectStatistics, GlobalStatistics
 """
@@ -34,7 +32,6 @@ from adw.models.config import (
     HookConfig,
     LLMConfig,
     PhaseConfig,
-    PortRangeConfig,
     ProjectConfig,
     RetryConfig,
     TaskManagerConfig,
@@ -64,19 +61,12 @@ from adw.models.phase import (
 from adw.models.pr import PRDescription
 from adw.models.registry import ProjectRegistry, RegisteredProject
 from adw.models.resume import ResumeInfo, ResumeStatus
-from adw.models.security import (
-    BlockedPattern,
-    SecurityConfig,
-    ToolCallLog,
-)
 from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 from adw.models.task import TaskInfo
-from adw.models.wizard import WizardState
-from adw.models.worktree import PortAllocation
 
 # Rebuild models to resolve forward references
 # This must happen after all models are imported
-# - RunContext references TaskInfo (Story 12.3)
+# - RunContext references TaskInfo
 # - StateSnapshot references PhaseResult
 RunContext.model_rebuild()
 StateSnapshot.model_rebuild()
@@ -96,7 +86,6 @@ __all__: list[str] = [
     "HookConfig",
     "LLMConfig",
     "PhaseConfig",
-    "PortRangeConfig",
     "ProjectConfig",
     "RetryConfig",
     "TaskManagerConfig",
@@ -132,14 +121,6 @@ __all__: list[str] = [
     # Resume models
     "ResumeInfo",
     "ResumeStatus",
-    # Security models
-    "BlockedPattern",
-    "SecurityConfig",
-    "ToolCallLog",
     # Task models
     "TaskInfo",
-    # Wizard models
-    "WizardState",
-    # Worktree models
-    "PortAllocation",
 ]

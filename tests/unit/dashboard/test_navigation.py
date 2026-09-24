@@ -1,4 +1,4 @@
-"""Tests for Story 1.2: Base Template, Navigation & Theme.
+"""Tests for Base Template, Navigation & Theme.
 
 Covers navigation routes, dual-response pattern, project filter,
 status bar partial, theme toggle, and error handling.
@@ -746,7 +746,7 @@ class TestClientSideNavUpdate:
         assert "nav-link" in response.text
 
 
-# ── Story 1.6: Empty States & Cost Strip ──────────────────────────
+# ── Empty States & Cost Strip ─────────────────────────────────────
 
 
 class TestOverviewWelcomeEmptyState:

@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 import pytest
+from rich.console import Console
 
 from adw.cli.list import _format_elapsed, _list_running_runs
 from adw.worktree import ConcurrentRunManager
@@ -59,8 +60,6 @@ class TestListRunningCommand:
         manager.register_run(
             run_id=run_id,
             worktree_path=worktree_path,
-            backend_port=9100,
-            frontend_port=9200,
         )
 
         # Call the list running function
@@ -69,7 +68,6 @@ class TestListRunningCommand:
         # Check output contains expected information
         captured = capsys.readouterr()
         assert run_id in captured.out
-        assert "9100/9200" in captured.out
         assert "1 of 15" in captured.out  # "Active Runs (1 of 15)"
 
     def test_list_running_json_output(
@@ -85,8 +83,6 @@ class TestListRunningCommand:
         manager.register_run(
             run_id=run_id,
             worktree_path=worktree_path,
-            backend_port=9100,
-            frontend_port=9200,
         )
 
         _list_running_runs(json_output=True)
@@ -98,9 +94,29 @@ class TestListRunningCommand:
         assert data["max_concurrent"] == 15
         assert len(data["runs"]) == 1
         assert data["runs"][0]["run_id"] == run_id
-        assert data["runs"][0]["backend_port"] == 9100
-        assert data["runs"][0]["frontend_port"] == 9200
+        assert "backend_port" not in data["runs"][0]
+        assert "frontend_port" not in data["runs"][0]
         assert data["runs"][0]["pid"] == os.getpid()
+
+    def test_list_running_has_no_ports_column(
+        self,
+        tmp_path: Path,
+        manager: ConcurrentRunManager,
+        capsys: pytest.CaptureFixture[str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The --running table has no Ports column."""
+        # Wide enough that Rich doesn't wrap or truncate the headers
+        monkeypatch.setattr("adw.cli.list.console", Console(width=200))
+        run_id = "01HQTEST123456789ABCD"
+        manager.register_run(run_id=run_id, worktree_path=tmp_path / "trees" / run_id)
+
+        _list_running_runs(json_output=False)
+
+        out = capsys.readouterr().out
+        assert "Run ID" in out
+        assert "Worktree" in out
+        assert "Ports" not in out
 
     def test_list_running_empty(
         self,
@@ -127,12 +143,10 @@ class TestListRunningCommand:
             "01HQTEST3333333333333333",
         ]
 
-        for i, run_id in enumerate(run_ids):
+        for run_id in run_ids:
             manager.register_run(
                 run_id=run_id,
                 worktree_path=tmp_path / "trees" / run_id,
-                backend_port=9100 + i,
-                frontend_port=9200 + i,
             )
 
         _list_running_runs(json_output=False)

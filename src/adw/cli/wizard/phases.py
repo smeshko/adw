@@ -6,61 +6,23 @@ individual phase settings including hooks and inputs.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from rich.rule import Rule
 
-from adw.cli.wizard.navigation import nav_confirm_ask
-
-if TYPE_CHECKING:
-    from adw.models.wizard import WizardState
-
-
 # Available phases for customization
 AVAILABLE_PHASES: list[str] = ["plan", "build", "validate", "document", "ship"]
 
 
-class PhasesStepHandler:
-    """Handler for the phases configuration wizard step.
-
-    This step:
-    - Prompts if user wants to customize phase settings
-    - If yes, allows multi-select of phases to customize
-    - For each selected phase, prompts for:
-      - Enabled/disabled
-      - Input files (key=path pairs)
-      - LLM model selection
-      - Phase-specific options (validate, document, ship)
-    """
-
-    def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
-        """Execute the phases configuration step.
-
-        Args:
-            state: Current wizard state.
-            console: Console for output.
-
-        Returns:
-            Configuration collected from this step containing:
-            - customized: Whether any customization was done
-            - phases: Dict of phase configurations
-        """
-        return run_phases_step(state, console)
-
-
-def run_phases_step(
-    state: WizardState,
-    console: Console,
-) -> dict[str, Any]:
+def run_phases_step(console: Console) -> dict[str, Any]:
     """Execute the phases configuration step.
 
     This is the main entry point for the phases step, implementing
     the full interactive flow for phase customization.
 
     Args:
-        state: Current wizard state.
         console: Console for output.
 
     Returns:
@@ -259,9 +221,9 @@ def _configure_document_phase(console: Console) -> dict[str, Any]:
 def _configure_ship_phase(console: Console) -> dict[str, Any]:
     """Configure ship phase special options.
 
-    Prompts for deployment commands and PR settings.
-    This follows the same pattern as the ship.py standalone step but integrated
-    into the common phase configuration flow.
+    Prompts for deployment commands and whether to wait for CI before merging.
+    The project's build command comes from the basics step; PhaseRunner passes
+    it to the ship phase from project.yaml.
 
     Args:
         console: Console for output.
@@ -283,14 +245,6 @@ def _configure_ship_phase(console: Console) -> dict[str, Any]:
     ).strip()
     if version_bump:
         commands["version_bump"] = version_bump
-
-    build_cmd = Prompt.ask(
-        "Build command",
-        default="",
-        console=console,
-    ).strip()
-    if build_cmd:
-        commands["build"] = build_cmd
 
     publish_cmd = Prompt.ask(
         "Publish command",
@@ -442,7 +396,7 @@ def _prompt_input_files(console: Console) -> dict[str, str]:
     Returns:
         Dictionary of variable name to file path mappings.
     """
-    add_inputs = nav_confirm_ask("Add input files?", default=False, console=console)
+    add_inputs = Confirm.ask("Add input files?", default=False, console=console)
 
     if not add_inputs:
         return {}

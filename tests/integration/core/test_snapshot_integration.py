@@ -1,4 +1,4 @@
-"""Integration tests for SnapshotManager (Story 4.3).
+"""Integration tests for SnapshotManager.
 
 These tests verify the SnapshotManager works correctly in integration
 with the RunDirectoryManager to create, list, and load snapshots
@@ -157,7 +157,7 @@ class TestSnapshotListingAcrossPhases:
 
         snapshot_manager = SnapshotManager(run_dir_manager.runs_dir)
 
-        # Create snapshots for multiple phases (Story 15.1: includes ship)
+        # Create snapshots for multiple phases (includes ship)
         phases = ["plan", "build", "validate", "document", "ship"]
         for phase in phases:
             context = sample_context.model_copy(update={"current_phase": phase})
@@ -173,7 +173,7 @@ class TestSnapshotListingAcrossPhases:
 
         snapshots = snapshot_manager.list_snapshots(sample_context.run_id)
 
-        # Story 15.1: Should have 10 snapshots (pre + post for 5 phases)
+        # Should have 10 snapshots (pre + post for 5 phases)
         assert len(snapshots) == 10
 
         # Verify sequence order

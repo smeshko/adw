@@ -25,8 +25,8 @@ from adw.dashboard.dependencies import (
     get_stats_aggregator,
     resolve_project_filter,
 )
+from adw.dashboard.settings import settings_context
 from adw.exceptions import StateError
-from adw.models.config import DEFAULT_STATE_MAPPING
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -912,7 +912,7 @@ async def abort_modal(
     return templates.TemplateResponse(request, "partials/abort_modal.html", context)
 
 
-# ── Terminal Mode & Focus Mode (Story 6.2) ─────────────────────
+# ── Terminal Mode & Focus Mode ─────────────────────
 
 
 @router.get("/terminal-mode/{run_id}", response_class=HTMLResponse)
@@ -1136,76 +1136,6 @@ async def focus_mode(
     return templates.TemplateResponse(request, "partials/focus_mode.html", context)
 
 
-# ── Task Manager Conditional Partial ────────────────────────────
-
-
-@router.get("/settings-section/task-manager", response_class=HTMLResponse)
-async def task_manager_fields(
-    request: Request,
-    type: str = Query("none", alias="type"),
-    project: str = Query("", alias="project"),
-    project_registry: ProjectRegistryManager = Depends(get_project_registry),
-) -> HTMLResponse:
-    """Return Task Manager conditional fields based on type selection.
-
-    When ``type=none``, returns only helper text.
-    When ``type=linear``, returns all Task Manager configuration fields
-    including the state_mapping key-value editor.
-    """
-    from adw.config.loader import ConfigLoader
-
-    templates: Jinja2Templates = request.app.state.templates
-    config = None
-
-    if project:
-        project_path_str, _ = resolve_project_filter(project_registry, project)
-        if project_path_str:
-            try:
-                loader = ConfigLoader(project_root=Path(project_path_str))
-                config = loader.load()
-            except Exception:
-                logger.warning(
-                    "Failed to load config for task-manager partial",
-                    extra={"project": project},
-                )
-
-    # Build context for the partial
-    task_manager_type = type
-    state_mapping = dict(DEFAULT_STATE_MAPPING)
-    team_key = ""
-    sync_comments = False
-    auto_close = False
-    labels_enabled = True
-    label_prefix = "adw:"
-
-    if config and config.task_manager:
-        tm = config.task_manager
-        if tm.state_mapping:
-            state_mapping = dict(tm.state_mapping)
-        team_key = tm.team_key or ""
-        sync_comments = tm.sync_comments
-        auto_close = tm.auto_close
-        if tm.labels:
-            labels_enabled = tm.labels.enabled
-            label_prefix = tm.labels.prefix
-
-    context = {
-        "request": request,
-        "task_manager_type": task_manager_type,
-        "state_mapping": state_mapping,
-        "team_key": team_key,
-        "sync_comments": sync_comments,
-        "auto_close": auto_close,
-        "labels_enabled": labels_enabled,
-        "label_prefix": label_prefix,
-        "selected_settings_project": project or None,
-    }
-
-    return templates.TemplateResponse(
-        request, "partials/settings_task_manager_fields.html", context
-    )
-
-
 # ── Settings Content Partial ────────────────────────────────────
 
 
@@ -1216,177 +1146,26 @@ async def settings_content(
     tab: str = Query("project", alias="tab"),
     project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
-    """Return the settings tab content fragment for a given project.
+    """Return the read-only settings tab content fragment for a project.
 
     This is the HTMX target when the user clicks a settings tab —
     it swaps out the content area without reloading the entire page.
     """
-    from adw.config.loader import ConfigLoader
-    from adw.config.registry import ConfigRegistry
-    from adw.dashboard.routes import (
-        _SETTINGS_TABS,
-        _build_phase_settings,
-        build_complex_settings_context,
-        build_settings_context,
-        compute_changed_counts,
-    )
-
     templates: Jinja2Templates = request.app.state.templates
-    config = None
 
-    if project:
-        project_path_str, _ = resolve_project_filter(project_registry, project)
-        if project_path_str:
-            try:
-                loader = ConfigLoader(project_root=Path(project_path_str))
-                config = loader.load()
-            except Exception:
-                logger.warning(
-                    "Failed to load config for settings partial",
-                    extra={"project": project},
-                )
-
-    registry = ConfigRegistry()
-    settings_sections = build_settings_context(config, registry)
-    phase_settings = _build_phase_settings(config, registry)
-    complex_ctx = build_complex_settings_context(config)
-
-    valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
-    if tab not in valid_tab_keys:
-        tab = "project"
+    project_path_str, _ = resolve_project_filter(project_registry, project)
+    if not project_path_str:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Project not found</p>',
+            status_code=404,
+        )
 
     context = {
         "request": request,
-        "active_tab": tab,
-        "settings_sections": settings_sections,
-        "phase_settings": phase_settings,
-        "has_config": config is not None,
-        "selected_settings_project": project or None,
-        "csrf_token": generate_csrf_token(request),
-        "changed_counts": compute_changed_counts(
-            settings_sections,
-            complex_ctx["task_manager_context"],
-            complex_ctx["security_context"],
-        ),
+        "selected_settings_project": project,
+        **settings_context(Path(project_path_str), tab),
     }
-    context.update(complex_ctx)
 
     return templates.TemplateResponse(
         request, "partials/settings_content.html", context
-    )
-
-
-# ── Phase Config Editor Partial ────────────────────────────────────
-
-# Phase defaults as specified in the story (independent of yaml_generator defaults)
-PHASE_DEFAULTS: dict[str, dict[str, Any]] = {
-    "plan": {"model": "opus"},
-    "build": {"model": "sonnet"},
-    "validate": {"model": "opus"},
-    "document": {"model": "haiku"},
-    "ship": {"model": "sonnet"},
-}
-
-_VALID_PHASES = frozenset(PHASE_DEFAULTS.keys())
-
-
-@router.get("/settings-phase/{phase}", response_class=HTMLResponse)
-async def phase_config_partial(
-    request: Request,
-    phase: str,
-    project: str = Query("", alias="project"),
-    project_registry: ProjectRegistryManager = Depends(get_project_registry),
-) -> HTMLResponse:
-    """Return the phase config editor partial for a specific phase.
-
-    Loads phase config from ``.adw/commands/{phase}/config.yaml`` if it exists,
-    otherwise falls back to phase defaults.
-    """
-    import yaml as _yaml
-
-    from adw.models.command import get_config_class
-
-    if phase not in _VALID_PHASES:
-        return HTMLResponse(content="Invalid phase.", status_code=400)
-
-    templates: Jinja2Templates = request.app.state.templates
-    defaults = PHASE_DEFAULTS[phase]
-
-    # Load phase config from disk if available
-    has_config = False
-    enabled = True
-    llm_model = defaults["model"]
-    input_files: dict[str, str] = {}
-    doc_mappings: list[dict[str, str]] = []
-    ship_version_bump = ""
-    ship_publish = ""
-    bypass_ci = True
-    wait_for_merge = False
-
-    if project:
-        project_path_str, _ = resolve_project_filter(project_registry, project)
-        if project_path_str:
-            config_path = (
-                Path(project_path_str) / ".adw" / "commands" / phase / "config.yaml"
-            )
-            if config_path.exists():
-                try:
-                    raw = config_path.read_text()
-                    data = _yaml.safe_load(raw) or {}
-                    config_class = get_config_class(phase)
-                    config_obj = config_class.model_validate(data)
-
-                    has_config = True
-                    enabled = config_obj.enabled
-                    if config_obj.llm and config_obj.llm.model:
-                        llm_model = config_obj.llm.model
-                    if config_obj.input_files:
-                        input_files = dict(config_obj.input_files)
-
-                    # Document-specific
-                    if phase == "document" and hasattr(config_obj, "doc_mappings"):
-                        dm = config_obj.doc_mappings
-                        if dm:
-                            doc_mappings = [
-                                {
-                                    "source_pattern": m.source_pattern,
-                                    "docs_dir": m.docs_dir,
-                                }
-                                for m in dm
-                            ]
-
-                    # Ship-specific
-                    if phase == "ship" and hasattr(config_obj, "commands"):
-                        cmds = config_obj.commands
-                        if cmds:
-                            ship_version_bump = cmds.version_bump or ""
-                            ship_publish = cmds.publish or ""
-                        bypass_ci = getattr(config_obj, "bypass_ci", True)
-                        wait_for_merge = getattr(config_obj, "wait_for_merge", False)
-
-                except Exception:
-                    logger.warning(
-                        "Failed to load phase config",
-                        extra={"phase": phase, "project": project},
-                    )
-
-    context = {
-        "request": request,
-        "phase": phase,
-        "has_config": has_config,
-        "enabled": enabled,
-        "llm_model": llm_model,
-        "input_files": input_files,
-        "doc_mappings": doc_mappings,
-        "ship_version_bump": ship_version_bump,
-        "ship_publish": ship_publish,
-        "bypass_ci": bypass_ci,
-        "wait_for_merge": wait_for_merge,
-        "default_model": defaults["model"],
-        "selected_settings_project": project or "",
-        "csrf_token": generate_csrf_token(request),
-    }
-
-    return templates.TemplateResponse(
-        request, "partials/settings_phase_editor.html", context
     )

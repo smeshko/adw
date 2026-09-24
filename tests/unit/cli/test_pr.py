@@ -1,6 +1,6 @@
 """Tests for PR CLI command.
 
-Tests for Story 9.5: Support PR Creation Command.
+Tests for the PR creation command.
 """
 
 import json
@@ -71,12 +71,12 @@ class TestDisplayManualInstructions:
 class TestGetBaseBranch:
     """Tests for _get_base_branch function.
 
-    ISS-026: Base branch is read from git.base_branch in config,
+    Base branch is read from git.base_branch in config,
     defaults to 'main' if not configured.
     """
 
     def test_returns_main_by_default(self, tmp_path: Path) -> None:
-        """Test returns 'main' when no config exists (ISS-026)."""
+        """Test returns 'main' when no config exists."""
         # Set up directory structure: project_root/.adw/runs/<run_id>
         project_root = tmp_path
         runs_dir = project_root / ".adw" / "runs"
@@ -88,7 +88,7 @@ class TestGetBaseBranch:
         assert result == "main"
 
     def test_reads_from_config(self, tmp_path: Path) -> None:
-        """Test reads base_branch from project.yaml config (ISS-026)."""
+        """Test reads base_branch from project.yaml config."""
         # Set up directory structure
         project_root = tmp_path
         runs_dir = project_root / ".adw" / "runs"

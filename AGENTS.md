@@ -5,6 +5,8 @@ ADW (Agentic Development Workflow) is a Python 3.13 CLI, `adw`, that drives Clau
 ## Commands
 
 - Setup: `uv sync`
+- Install the CLI: `uv tool install --editable .` from the main checkout — `adw --version` then matches `pyproject.toml`, and edits take effect without reinstalling.
+- Bump the version: `scripts/bump.sh [major|minor|patch]` — updates `pyproject.toml` and `uv.lock` and commits both; ship the commit through a PR like any other change.
 - Fast feedback — lint, format, types; the same gates as CI's lint and typecheck jobs: `scripts/preflight.sh`
 - Full suite: `uv run pytest` — ~3 min, enforces ≥80% coverage through `addopts`. There is no `--timeout` flag.
 - Partial run: `uv run pytest <path> -o addopts=""` — drops the coverage gate, which a partial run always fails.

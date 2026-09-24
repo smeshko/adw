@@ -6,7 +6,7 @@ The `PhaseRunner` (`src/adw/core/phase_runner.py`) executes a single phase of th
 
 | Responsibility | How |
 |----------------|-----|
-| Hook execution | Runs pre/post shell scripts via `HookRunner` |
+| Hook execution | Runs pre/post shell scripts via `HookRunner`, with the timeout and shell from `project.yaml`'s `hooks:` (defaults: 60 s, `/bin/bash`) |
 | Prompt rendering | Loads template, injects artifacts from prior phases |
 | LLM execution | Delegates to `LLMExecutor` (Claude Code or mock) |
 | Artifact capture | Stores outputs for downstream phases |
@@ -32,8 +32,7 @@ run(phase, context)
  ├── Run pre-hook → capture stdout
  ├── Load prompt template
  │    ├── Build artifacts map from prior phases
- │    ├── Validate artifact references
- │    └── Render with variables
+ │    └── Render: expand includes, then fill ADW variables (see docs/templates.md)
  ├── Execute LLM → stream response
  ├── Run post-hook (ADW_LLM_OUTPUT in env)
  ├── Auto-commit changes
@@ -50,9 +49,21 @@ run(phase, context)
 | `{{context}}` | Full `RunContext` model |
 | `{{pre_hook_output}}` | Pre-hook stdout |
 | `{{artifacts.phase.name}}` | Prior phase artifacts |
-| `{{feature_description}}` | User's feature request |
+| `{{inputs.name}}` | Files from the phase's `input_files` config |
+| `{{task.*}}` | Task-manager fields (empty when the run has no task) |
+| `{{run_id}}`, `{{phase}}` | Current run ID and phase name |
+| `{{feature}}`, `{{feature_description}}` | User's feature request |
+| `{{project_config}}` | `.adw/project.yaml` as a mapping |
+| `{{ship_config}}` | Ship settings as YAML (ship phase, with a project ship config) |
+| `{{doc_mappings}}` | Document phase `doc_mappings` from the project config |
+| `{{build_command}}`, `{{test_command}}` | `.adw/project.yaml` |
+| `{{lint_command}}` | Validate phase project config |
+| `{{version_bump_command}}`, `{{publish_command}}` | Ship phase project config |
+| Pre-hook variables | Keys from `pre_hook_vars.json`, e.g. `{{pr_number}}` |
 | `{{schema}}` | Optional JSON schema from command dir |
 | `{{worktree_path}}` | Git worktree path (if isolated) |
+
+Includes are expanded before these are filled, and only these top-level names are filled; every other placeholder reaches the LLM verbatim. See [Templates](../../templates.md) for the syntax, the render order and the fill rule.
 
 ## Artifact Access in Templates
 
@@ -71,7 +82,8 @@ Templates reference prior phase outputs via nested map:
 |------------|----------|
 | `HookError` | Fail phase, propagate to orchestrator |
 | `LLMError` | Fail phase, propagate to orchestrator |
-| `ConfigError` | Fail if `strict_artifacts=True` and artifact missing |
+| `ConfigError` | Include directive fails: path traversal, missing file, or missing root |
+| Missing artifact | Placeholder left verbatim, warning logged |
 
 ## Design Notes
 

@@ -10,10 +10,10 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 echo "==> ruff check"
-uv run ruff check src/
+uv run ruff check src/ tests/
 
 echo "==> ruff format --check"
-uv run ruff format --check src/
+uv run ruff format --check src/ tests/
 
 echo "==> mypy"
 uv run mypy src/adw

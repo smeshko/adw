@@ -19,7 +19,7 @@ small-to-medium pull request and maps to exactly one plan under
 
 | # | Epic | Phases | Dependencies | Status |
 |---|------|--------|--------------|--------|
-| 1 | [Cleanup: test safety, dead code and bug fixes](./01-cleanup-safety-dead-code-bugs.md) | 10 | — | In progress |
+| 1 | [Cleanup: test safety, dead code and bug fixes](./01-cleanup-safety-dead-code-bugs.md) | 10 | — | Done |
 | 2 | [Cleanup: remove inert features and consolidate](./02-cleanup-remove-and-consolidate.md) | 12 | Epic 01 | In progress |
 | 3 | [Cleanup: run-loop consolidation and docs](./03-cleanup-run-loop-and-docs.md) | 5 | Epic 02 | Blocked |
 | 4 | [Plan-driven runs](./04-plan-driven-runs.md) | 4 | Epic 03 | Blocked |

@@ -183,16 +183,15 @@ The build prompt uses special include syntax:
 src/adw/defaults/commands/build/
 ├── prompt.md              # Main prompt template
 ├── config.yaml            # Phase configuration
-├── post.sh                # Auto-commit hook
+├── post.sh                # Story output extraction
 └── dev-story/             # Bundled workflow files
     ├── workflow.yaml      # Workflow config
-    ├── instructions.xml   # Execution steps
-    └── checklist.md       # Definition of done
+    └── instructions.xml   # Execution steps
 ```
 
 ## Auto-Commit
 
-After LLM execution and post-hook (if any), the PhaseRunner auto-commits changes:
+After LLM execution and post-hook (if any), `PhaseRunner._auto_commit_changes` commits the phase's changes. It is the only committer: no bundled hook commits.
 
 1. Stages all changes: `git add -A`
 2. Creates commit with format: `adw(build): <feature> [run_id]`

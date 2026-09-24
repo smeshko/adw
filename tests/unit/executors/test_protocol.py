@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Protocol, get_type_hints
 
-from adw.executors import LLMExecutor
+from adw.executors.base import LLMExecutor
 from adw.models.llm import LLMResult
 
 

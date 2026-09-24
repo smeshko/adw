@@ -1,6 +1,6 @@
 """Unit tests for ProjectInitializer.
 
-Tests for the minimal mode project initialization (ISS-028 additions).
+Tests for the minimal mode project initialization.
 """
 
 from pathlib import Path

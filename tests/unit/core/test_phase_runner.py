@@ -17,7 +17,7 @@ from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
 from adw.core.artifact_manager import ArtifactManager
 from adw.core.phase_runner import PhaseRunner
-from adw.exceptions import CommandError, ConfigError, HookError, LLMError
+from adw.exceptions import ConfigError, HookError, LLMError
 from adw.hooks.runner import HookRunner
 from adw.models import (
     HookResult,
@@ -422,7 +422,7 @@ class TestPhaseRunnerArtifacts:
         mock_artifact_manager: ArtifactManager,
         mock_executor: MagicMock,
     ) -> None:
-        """Test that artifacts use final_output, not full content (ISS-023).
+        """Test that artifacts use final_output, not full content.
 
         When LLMResult has both content (full conversation) and final_output
         (last message only), the artifact should contain final_output.
@@ -534,19 +534,19 @@ class TestPhaseRunnerErrorHandling:
             "PhaseResult.duration_ms should be logged"
         )
 
-    def test_command_error_adds_phase_context(
+    def test_resolution_error_propagates_unchanged(
         self,
         phase_runner: PhaseRunner,
         sample_context: RunContext,
         mock_command_resolver: MagicMock,
     ) -> None:
-        """Test that CommandError gets phase context added."""
-        mock_command_resolver.resolve.side_effect = CommandError(
+        """A command-resolution ConfigError propagates as raised."""
+        mock_command_resolver.resolve.side_effect = ConfigError(
             code="COMMAND_NOT_FOUND",
             message="Command not found",
         )
 
-        with pytest.raises(CommandError) as exc_info:
+        with pytest.raises(ConfigError) as exc_info:
             phase_runner.run("missing", sample_context)
 
         # The error should be raised as-is
@@ -571,7 +571,7 @@ class TestPhaseRunnerErrorHandling:
 
 
 class TestPhaseRunnerGitDiffCapture:
-    """Tests for git diff artifact capture during build phase (Story 9.3).
+    """Tests for git diff artifact capture during build phase.
 
     NOTE: Git diff capture is now handled by BuildExtension (Phase Extensions).
     These tests verify the integration through the extension system.
@@ -742,7 +742,7 @@ class TestPhaseRunnerGitDiffCapture:
     ) -> None:
         """Test that diff.txt artifact is accessible as {{artifacts.build.diff}}.
 
-        Story 9.3 AC2: Given the diff artifact, when accessed by Document phase,
+        Given the diff artifact, when accessed by Document phase,
         then it's available as {{artifacts.build.diff}}.
         """
         # Store a diff artifact as the build phase would
@@ -773,7 +773,7 @@ class TestPhaseRunnerGitDiffCapture:
 
 
 class TestPhaseRunnerWorktreeContext:
-    """Tests for worktree context in template variables (Story 10.5)."""
+    """Tests for worktree context in template variables."""
 
     def test_worktree_path_available_as_template_variable(
         self,
@@ -872,7 +872,7 @@ class TestPhaseRunnerWithMockExecutor:
 
 
 class TestAutoCommitChanges:
-    """Tests for _auto_commit_changes method (ISS-009 fix)."""
+    """Tests for _auto_commit_changes method."""
 
     def test_auto_commit_stages_and_commits_changes(
         self,
@@ -1047,7 +1047,7 @@ class TestAutoCommitChanges:
 
 
 class TestLoadInputFiles:
-    """Tests for _load_input_files method (ISS-015)."""
+    """Tests for _load_input_files method."""
 
     def test_load_input_files_success(
         self,
@@ -1213,10 +1213,10 @@ class TestLoadInputFiles:
 
 
 class TestInputFilesTemplateIntegration:
-    """Tests for input files integration with template rendering (ISS-015).
+    """Tests for input files integration with template rendering.
 
-    Note: ISS-029 removed phases from ProjectConfig. Input files are now
-    configured via command configs (.adw/commands/<phase>/config.yaml).
+    Input files are configured via command configs
+    (.adw/commands/<phase>/config.yaml), not ProjectConfig.
     """
 
     def test_inputs_available_as_template_variable(
@@ -1231,7 +1231,7 @@ class TestInputFilesTemplateIntegration:
         """Inputs should be available as {{ inputs.name }} in template."""
         from adw.models.config import ProjectConfig
 
-        # Create command directory with config.yaml containing input_files (ISS-029)
+        # Create command directory with config.yaml containing input_files
         cmd_dir = tmp_path / ".adw" / "commands" / "plan"
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Test prompt")
@@ -1246,7 +1246,7 @@ class TestInputFilesTemplateIntegration:
 
         command_resolver = CommandResolver(project_root=tmp_path)
 
-        # Create minimal project config (no phases - ISS-029)
+        # Create minimal project config (no phases)
         project_config = ProjectConfig(
             name="test-project",
             language="python",
@@ -1308,10 +1308,10 @@ class TestInputFilesTemplateIntegration:
         mock_artifact_manager: ArtifactManager,
         sample_context: RunContext,
     ) -> None:
-        """Inputs should be empty when command config has no input_files (ISS-029)."""
+        """Inputs should be empty when command config has no input_files."""
         from adw.models.config import ProjectConfig
 
-        # Minimal project config without phases (ISS-029: phases removed)
+        # Minimal project config without phases
         project_config = ProjectConfig(
             name="test-project",
             language="python",
@@ -1335,15 +1335,14 @@ class TestInputFilesTemplateIntegration:
 
 
 class TestConfigMerging:
-    """Tests for _merge_configs method (ISS-016, updated for ISS-029).
+    """Tests for _merge_configs method.
 
-    Note: ISS-029 removed project phase config support. _merge_configs now
-    only accepts command_config and converts it to PhaseConfig.
+    _merge_configs accepts only command_config and converts it to PhaseConfig.
     """
 
 
 class TestProjectConfigLoading:
-    """Tests for _load_project_config method (ISS-030).
+    """Tests for _load_project_config method.
 
     Verifies that project-level config.yaml is loaded separately from
     command resolution, enabling config overrides without prompt.md.
@@ -1438,7 +1437,7 @@ class TestProjectConfigLoading:
 
 
 class TestMergeConfigsWithProject:
-    """Tests for _merge_configs_with_project method (ISS-030).
+    """Tests for _merge_configs_with_project method.
 
     Verifies that project config values override command config values.
     """
@@ -1618,7 +1617,7 @@ class TestMergeConfigsWithProject:
 
 
 class TestPhaseEnabledWithProjectConfig:
-    """Tests for is_phase_enabled with project config (ISS-030).
+    """Tests for is_phase_enabled with project config.
 
     Verifies that project config can disable phases without prompt.md.
     """

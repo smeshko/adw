@@ -1,4 +1,4 @@
-"""Integration tests for Story 2.3: LLM Interaction Viewer & Log Viewer.
+"""Integration tests for LLM Interaction Viewer & Log Viewer.
 
 Validates all acceptance criteria across the full request lifecycle,
 ensuring templates, routes, and data layer work together correctly.
@@ -88,7 +88,7 @@ def _make_client_with_mocks(
     return TestClient(app)
 
 
-# ── AC: LLM Interaction Summary (FR25) ─────────────────────────────
+# ── LLM Interaction Summary ────────────────────────────────────────
 
 
 class TestACLLMSummary:
@@ -96,7 +96,7 @@ class TestACLLMSummary:
 
     def test_summary_shows_token_counts_with_view_buttons(self) -> None:
         """Given phase accordion expanded, LLM section shows token counts
-        for prompt and response with View buttons (FR25)."""
+        for prompt and response with View buttons."""
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
@@ -123,7 +123,7 @@ class TestACLLMSummary:
         assert f"/runs/{entry.run_id}/phases/plan/response" in response.text
 
 
-# ── AC: LLM Content Viewer (FR25) ──────────────────────────────────
+# ── LLM Content Viewer ─────────────────────────────────────────────
 
 
 class TestACLLMContentViewer:
@@ -169,7 +169,7 @@ class TestACLLMContentViewer:
         assert "&lt;script&gt;" in response.text
 
 
-# ── AC: Log Viewer Pre-filtered (FR26) ─────────────────────────────
+# ── Log Viewer Pre-filtered ────────────────────────────────────────
 
 
 class TestACLogViewerPrefiltered:
@@ -177,7 +177,7 @@ class TestACLogViewerPrefiltered:
 
     def test_log_viewer_prefiltered_to_phase(self) -> None:
         """Given phase accordion expanded, log viewer is pre-filtered
-        to the current phase (FR26)."""
+        to the current phase."""
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
@@ -199,7 +199,7 @@ class TestACLogViewerPrefiltered:
 
     def test_log_controls_bar_present(self) -> None:
         """Given log viewer displayed, controls bar shows search, severity,
-        and phase filter (FR20, FR22, FR26)."""
+        and phase filter."""
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
@@ -225,7 +225,7 @@ class TestACLogViewerPrefiltered:
         assert ">ERROR<" in response.text
 
 
-# ── AC: Log Entry Display ──────────────────────────────────────────
+# ── Log Entry Display ──────────────────────────────────────────────
 
 
 class TestACLogEntryDisplay:
@@ -342,7 +342,7 @@ class TestACLogEntryDisplay:
         assert "overflow-y-auto" in response.text
 
 
-# ── AC: Log Search Debounce (FR21) ─────────────────────────────────
+# ── Log Search Debounce ────────────────────────────────────────────
 
 
 class TestACLogSearchDebounce:
@@ -387,7 +387,7 @@ class TestACLogSearchDebounce:
         assert "#log-content-plan" in response.text
 
 
-# ── AC: Severity Filter (FR22) ────────────────────────────────────
+# ── Severity Filter ───────────────────────────────────────────────
 
 
 class TestACSeverityFilter:
@@ -421,7 +421,7 @@ class TestACSeverityFilter:
         assert "Info" not in response.text
 
 
-# ── AC: Phase Filter (FR26) ───────────────────────────────────────
+# ── Phase Filter ──────────────────────────────────────────────────
 
 
 class TestACPhaseFilter:

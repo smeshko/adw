@@ -77,7 +77,7 @@ def web_command(
     console.print(f"  Port: [cyan]{port}[/]")
     console.print(f"  URL:  [cyan]http://{host}:{port}[/]")
 
-    # LAN exposure warning (NFR12)
+    # LAN exposure warning
     if host == "0.0.0.0":
         console.print()
         console.print(
@@ -88,7 +88,7 @@ def web_command(
 
     console.print()
 
-    # Auto-open browser (FR45, FR46)
+    # Auto-open browser
     if not no_browser:
         # Use 127.0.0.1 for browser even if binding to 0.0.0.0
         browser_host = "127.0.0.1" if host == "0.0.0.0" else host

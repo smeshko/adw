@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from adw.exceptions import MaxConcurrentRunsError
+from adw.exceptions import WorktreeError
 from adw.worktree.concurrent import ActiveRun, ConcurrentRunManager
 
 
@@ -30,22 +30,6 @@ class TestActiveRun:
         assert run.run_id == "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
         assert run.pid == 12345
         assert run.worktree_path == tmp_path / "trees" / "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
-        assert run.backend_port is None
-        assert run.frontend_port is None
-
-    def test_active_run_with_ports(self, tmp_path: Path) -> None:
-        """ActiveRun can be created with optional port fields."""
-        run = ActiveRun(
-            run_id="01HQXK5P3Z7V8R2M4N6T9W1Y3C",
-            pid=12345,
-            start_time=datetime.now(UTC),
-            worktree_path=tmp_path / "trees" / "01HQXK5P3Z7V8R2M4N6T9W1Y3C",
-            backend_port=9100,
-            frontend_port=9200,
-        )
-
-        assert run.backend_port == 9100
-        assert run.frontend_port == 9200
 
     def test_is_pid_running_for_current_process(self, tmp_path: Path) -> None:
         """is_pid_running returns True for current process."""
@@ -113,8 +97,6 @@ class TestConcurrentRunManager:
         manager.register_run(
             run_id=run_id,
             worktree_path=worktree_path,
-            backend_port=9100,
-            frontend_port=9200,
         )
 
         lock_file = manager.locks_dir / f"{run_id}.lock"
@@ -124,8 +106,6 @@ class TestConcurrentRunManager:
         assert data["run_id"] == run_id
         assert data["pid"] == os.getpid()
         assert data["worktree_path"] == str(worktree_path)
-        assert data["backend_port"] == 9100
-        assert data["frontend_port"] == 9200
         assert "start_time" in data
 
     def test_register_run_creates_locks_directory(
@@ -152,8 +132,6 @@ class TestConcurrentRunManager:
         manager.register_run(
             run_id=run_id,
             worktree_path=worktree_path,
-            backend_port=9100,
-            frontend_port=9200,
         )
 
         runs = manager.get_active_runs()
@@ -161,8 +139,31 @@ class TestConcurrentRunManager:
         assert len(runs) == 1
         assert runs[0].run_id == run_id
         assert runs[0].pid == os.getpid()
-        assert runs[0].backend_port == 9100
-        assert runs[0].frontend_port == 9200
+
+    def test_get_active_runs_reads_legacy_lock_with_ports(
+        self, manager: ConcurrentRunManager, tmp_path: Path
+    ) -> None:
+        """A lock file written with the old port keys still lists as active."""
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        manager.locks_dir.mkdir(parents=True, exist_ok=True)
+        lock_file = manager.locks_dir / f"{run_id}.lock"
+        lock_file.write_text(
+            json.dumps(
+                {
+                    "run_id": run_id,
+                    "pid": os.getpid(),
+                    "start_time": datetime.now(UTC).isoformat(),
+                    "worktree_path": str(tmp_path / "trees" / run_id),
+                    "backend_port": 9100,
+                    "frontend_port": 9200,
+                }
+            )
+        )
+
+        runs = manager.get_active_runs()
+
+        assert [run.run_id for run in runs] == [run_id]
+        assert lock_file.exists()
 
     def test_get_active_runs_cleans_stale_locks(
         self, manager: ConcurrentRunManager
@@ -206,7 +207,7 @@ class TestConcurrentRunManager:
         manager.check_can_start_or_raise()
 
     def test_check_can_start_or_raise_raises_at_limit(self, tmp_path: Path) -> None:
-        """check_can_start_or_raise raises MaxConcurrentRunsError at limit."""
+        """check_can_start_or_raise raises WorktreeError at limit."""
         manager = ConcurrentRunManager(tmp_path, max_concurrent=1)
 
         manager.register_run(
@@ -214,13 +215,11 @@ class TestConcurrentRunManager:
             worktree_path=tmp_path / "trees" / "01HQTEST123456789ABCD",
         )
 
-        with pytest.raises(MaxConcurrentRunsError) as exc_info:
+        with pytest.raises(WorktreeError) as exc_info:
             manager.check_can_start_or_raise()
 
         assert exc_info.value.code == "MAX_CONCURRENT_REACHED"
         assert "1" in exc_info.value.message  # max_concurrent value
-        assert exc_info.value.context["max_concurrent"] == 1
-        assert exc_info.value.context["active_count"] == 1
 
     def test_multiple_concurrent_runs(
         self, manager: ConcurrentRunManager, tmp_path: Path
@@ -331,45 +330,3 @@ class TestOrphanedWorktrees:
         assert len(orphaned) == 3
         orphaned_names = {p.name for p in orphaned}
         assert orphaned_names == set(run_ids)
-
-
-class TestMaxConcurrentRunsError:
-    """Tests for MaxConcurrentRunsError exception."""
-
-    def test_error_creation(self) -> None:
-        """MaxConcurrentRunsError can be created with required fields."""
-        error = MaxConcurrentRunsError(
-            code="MAX_CONCURRENT_REACHED",
-            message="Maximum concurrent runs reached (15)",
-        )
-
-        assert error.code == "MAX_CONCURRENT_REACHED"
-        assert error.message == "Maximum concurrent runs reached (15)"
-        assert error.context == {}
-
-    def test_error_with_context(self) -> None:
-        """MaxConcurrentRunsError stores context information."""
-        error = MaxConcurrentRunsError(
-            code="MAX_CONCURRENT_REACHED",
-            message="Maximum concurrent runs reached (15)",
-            context={"max_concurrent": 15, "active_count": 15},
-        )
-
-        assert error.context["max_concurrent"] == 15
-        assert error.context["active_count"] == 15
-
-    def test_error_to_dict(self) -> None:
-        """MaxConcurrentRunsError serializes to dict correctly."""
-        error = MaxConcurrentRunsError(
-            code="MAX_CONCURRENT_REACHED",
-            message="Maximum concurrent runs reached",
-            suggestion="Wait for a run to complete",
-            context={"max_concurrent": 15},
-        )
-
-        d = error.to_dict()
-
-        assert d["code"] == "MAX_CONCURRENT_REACHED"
-        assert d["message"] == "Maximum concurrent runs reached"
-        assert d["suggestion"] == "Wait for a run to complete"
-        assert d["context"]["max_concurrent"] == 15

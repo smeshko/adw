@@ -1,12 +1,12 @@
 # Reduced test file: Removed trivial creation tests, label tests, and serialization
 # smoke tests. Kept only validation tests and essential behavior/roundtrip tests.
 # Original: 331 lines, 16 tests -> Reduced: ~85 lines, 6 tests
-"""Tests for StateSnapshot model (Story 4.3).
+"""Tests for StateSnapshot model.
 
 StateSnapshot captures the full run state at phase boundaries for:
 - Debugging failures
 - Resuming from known-good states
-- Time-travel debugging (NFR13)
+- Time-travel debugging
 """
 
 from datetime import UTC, datetime

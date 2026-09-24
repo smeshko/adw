@@ -268,7 +268,7 @@ class TestLoadPrDescription:
 
 
 class TestGeneratePrTitle:
-    """Tests for generate_pr_title (ISS-037)."""
+    """Tests for generate_pr_title."""
 
     @staticmethod
     def _title_context(**overrides: Any) -> RunContext:

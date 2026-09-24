@@ -3,11 +3,19 @@
 This module provides a simple regex-based template engine that handles
 variable substitution and file inclusion in prompt templates.
 
-Two pattern types are supported:
+Supported patterns:
 - {{variable.path}} - Variable substitution from context
-- {{file:relative/path}} - File content inclusion
+- {{include:rel}} - File under the command directory
+- {{shared:rel}} - File under the shared commands directory
+- {{file:rel}} - File under the project root
 
-No recursive expansion is performed for security and simplicity.
+Includes are expanded first and variables substituted second, so ADW's
+names inside included files are filled. A {{variable.path}} placeholder is
+filled only when its first segment is a key of the render context, so
+placeholders meant for the LLM pass through.
+
+No recursive expansion is performed for security and simplicity: included
+text is not rescanned for directives, and variable values are never expanded.
 """
 
 import logging
@@ -27,7 +35,6 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "TemplateEngine",
     "build_task_context",
-    "validate_artifact_references",
 ]
 
 
@@ -160,128 +167,27 @@ def build_task_context(task_info: "TaskInfo | None") -> dict[str, Any]:
 # Compile patterns once at module level for efficiency
 # Matches {{variable}} or {{variable.nested.path}} or {{variable.*}} for wildcards
 VARIABLE_PATTERN = re.compile(r"\{\{([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
-# Pattern to match artifact references in templates: {{artifacts.phase.name}}
-# Also matches wildcards like {{artifacts.phase.*}} and {{artifacts.*}}
-# ISS-017: Consolidated from phase_runner.py to template.py
-ARTIFACT_REF_PATTERN = re.compile(r"\{\{artifacts\.([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
-# Matches {{file:path/to/file.txt}} - resolves relative to project root
-FILE_PATTERN = re.compile(r"\{\{file:([^}]+)\}\}")
-# Matches {{include:filename}} - resolves relative to command directory
-INCLUDE_PATTERN = re.compile(r"\{\{include:([^}]+)\}\}")
-# Matches {{shared:filename}} - resolves relative to shared commands directory
-SHARED_PATTERN = re.compile(r"\{\{shared:([^}]+)\}\}")
-
-
-def validate_artifact_references(
-    template: str,
-    artifacts_map: dict[str, dict[str, str]],
-    *,
-    strict: bool = True,
-    template_path: str | None = None,
-) -> list[str]:
-    """Validate that all artifact references in template exist.
-
-    Scans the template for {{artifacts.phase.name}} patterns and validates
-    each reference exists in the artifacts map. In strict mode, raises
-    ConfigError for missing artifacts. In lenient mode, returns the list
-    of missing artifact references.
-
-    ISS-017: Consolidated from PhaseRunner._validate_artifact_references to
-    centralize all template-related validation in the template module.
-
-    Args:
-        template: The prompt template string to validate.
-        artifacts_map: Available artifacts as {phase: {name: content}}.
-        strict: If True, raise ConfigError for missing artifacts.
-                If False, return list of missing references.
-        template_path: Optional path to template file for enhanced logging.
-
-    Returns:
-        List of missing artifact references in "phase/name" format.
-        Empty list if all references are valid.
-
-    Raises:
-        ConfigError: If strict=True and any artifact reference is missing.
-
-    Example:
-        >>> artifacts = {"plan": {"output": "Plan content"}}
-        >>> validate_artifact_references("{{artifacts.plan.output}}", artifacts)
-        []
-        >>> validate_artifact_references("{{artifacts.build.diff}}", {}, strict=False)
-        ['build/diff']
-    """
-    # Find all artifact references in the template
-    matches = ARTIFACT_REF_PATTERN.findall(template)
-    if not matches:
-        return []
-
-    missing_artifacts: list[str] = []
-
-    for ref_path in matches:
-        # Skip wildcard patterns - they don't require specific artifacts
-        if ref_path.endswith(".*") or ref_path == "*":
-            continue
-
-        # Parse the reference path (e.g., "plan.plan" or "build.diff")
-        parts = ref_path.split(".")
-        if len(parts) < 2:
-            # Single part like "plan" - accesses phase dict, not artifact
-            continue
-
-        phase_name = parts[0]
-        artifact_name = parts[1]
-
-        # Check if artifact exists
-        if phase_name not in artifacts_map:
-            missing_artifacts.append(f"{phase_name}/{artifact_name}")
-            logger.warning(
-                "Missing artifact reference in template: %s",
-                f"artifacts.{ref_path}",
-                extra={
-                    "phase": phase_name,
-                    "artifact": artifact_name,
-                    "ref": f"artifacts.{ref_path}",
-                    "template": template_path,
-                },
-            )
-        elif artifact_name not in artifacts_map[phase_name]:
-            missing_artifacts.append(f"{phase_name}/{artifact_name}")
-            logger.warning(
-                "Missing artifact reference in template: %s",
-                f"artifacts.{ref_path}",
-                extra={
-                    "phase": phase_name,
-                    "artifact": artifact_name,
-                    "ref": f"artifacts.{ref_path}",
-                    "template": template_path,
-                    "available": list(artifacts_map[phase_name].keys()),
-                },
-            )
-
-    # Raise error if strict mode and artifacts missing
-    if strict and missing_artifacts:
-        raise ConfigError(
-            code="ARTIFACT_NOT_FOUND",
-            message=f"Artifact(s) not found: {', '.join(missing_artifacts)}",
-            suggestion=(
-                "Ensure the referenced phase(s) completed successfully and "
-                "produced the expected artifacts. Check artifact naming "
-                "(e.g., plan.md -> artifacts.plan.plan)."
-            ),
-        )
-
-    return missing_artifacts
+# Matches {{include:rel}}, {{shared:rel}} and {{file:rel}} inclusion directives.
+# include resolves under the command directory, shared under the commands
+# directory and file under the project root.
+DIRECTIVE_PATTERN = re.compile(r"\{\{(include|shared|file):([^}]+)\}\}")
+# Error-code prefix for each directive kind
+DIRECTIVE_ERROR_PREFIXES: dict[str, str] = {
+    "include": "INCLUDE",
+    "shared": "SHARED",
+    "file": "TEMPLATE",
+}
 
 
 class TemplateEngine:
     """A simple regex-based template engine for prompt rendering.
 
-    Handles two pattern types:
-    - {{variable.path}} - Variable substitution from context dict
-    - {{file:relative/path}} - File content inclusion
+    Handles {{variable.path}} substitution and the {{include:...}},
+    {{shared:...}} and {{file:...}} inclusion directives.
 
-    The engine processes templates in a single pass with no recursive expansion.
-    Variables are processed first, then file inclusions.
+    The engine makes one pass per stage with no recursive expansion.
+    Inclusions are processed first, then variables. Only variables whose
+    top-level name is a context key are filled; others are left verbatim.
 
     Example:
         >>> engine = TemplateEngine(project_root=Path("/project"))
@@ -290,89 +196,58 @@ class TemplateEngine:
         >>> result = engine.render(template, context)
     """
 
-    def __init__(
-        self,
-        project_root: Path | None = None,
-        command_root: Path | None = None,
-        shared_root: Path | None = None,
-    ) -> None:
+    def __init__(self, project_root: Path | None = None) -> None:
         """Initialize the template engine.
 
         Args:
             project_root: Root directory for resolving {{file:...}} inclusions.
                          Defaults to current working directory if not provided.
-            command_root: Directory for resolving {{include:...}} inclusions.
-                         Used for files bundled with the command (e.g., SDK defaults).
-                         If not provided, {{include:...}} patterns will error.
-            shared_root: Directory for resolving {{shared:...}} inclusions.
-                        Used for files shared across all commands (e.g., commands/).
-                        If not provided, {{shared:...}} patterns will error.
         """
         self.project_root = project_root or Path.cwd()
-        self.command_root = command_root
-        self.shared_root = shared_root
 
     def render(
         self,
         template: str,
         context: dict[str, Any] | BaseModel,
         *,
-        strict: bool = True,
         command_root: Path | None = None,
         shared_root: Path | None = None,
     ) -> str:
-        """Render a template with variable substitution and file inclusion.
+        """Render a template with file inclusion and variable substitution.
 
-        Variables are processed first, then file inclusions. No recursive
-        expansion is performed - if a variable value contains template syntax,
-        it is NOT expanded.
+        Inclusions are expanded first, in one pass, then variables are
+        substituted, so variables inside included files are filled. No
+        recursive expansion is performed: included text is not rescanned for
+        directives, and if a variable value contains template syntax,
+        including an inclusion directive, it is NOT expanded.
 
-        ISS-017: Added command_root and shared_root parameters to avoid instance
-        state mutation. Pass these to override instance attributes per-render.
+        A {{name.path}} placeholder is filled only when ``name``, its first
+        segment, is a key of ``context``. Any other placeholder belongs to the
+        prompt's reader and is left verbatim without logging. A known name
+        whose path does not resolve is also left verbatim, with one warning.
 
         Args:
             template: The template string to render.
             context: Dictionary or Pydantic model providing variable values.
-            strict: If True, raise ConfigError for unknown variables.
-                   If False, leave unknown variables as-is in output.
-            command_root: Override for instance command_root. Used for
-                         resolving {{include:...}} inclusions.
-            shared_root: Override for instance shared_root. Used for
-                        resolving {{shared:...}} inclusions.
+            command_root: Directory for resolving {{include:...}} inclusions.
+            shared_root: Directory for resolving {{shared:...}} inclusions.
 
         Returns:
             The rendered template string.
 
         Raises:
-            ConfigError: If strict=True and an unknown variable is found,
-                        or if a file inclusion target doesn't exist.
+            ConfigError: If a file inclusion target cannot be read.
         """
-        # Use parameter overrides if provided, else fall back to instance attrs
-        effective_command_root = (
-            command_root if command_root is not None else self.command_root
-        )
-        effective_shared_root = (
-            shared_root if shared_root is not None else self.shared_root
-        )
-
         # Convert Pydantic models to dict for variable lookup
         context_dict = self._normalize_context(context)
 
-        # Process variables first (single pass, no recursion)
-        result = self._process_variables(template, context_dict, strict=strict)
-
-        # Process command-local includes ({{include:...}})
-        result = self._process_includes(result, command_root=effective_command_root)
-
-        # Process shared includes ({{shared:...}})
-        result = self._process_shared_inclusions(
-            result, shared_root=effective_shared_root
+        result = self._expand_directives(
+            template, command_root=command_root, shared_root=shared_root
         )
 
-        # Process project file inclusions ({{file:...}})
-        result = self._process_file_inclusions(result)
-
-        return result
+        # Substitute variables last (single pass, no recursion), so ADW names
+        # inside included files are filled and values are never expanded
+        return self._process_variables(result, context_dict)
 
     def _normalize_context(self, context: dict[str, Any] | BaseModel) -> dict[str, Any]:
         """Convert context to a dictionary for variable lookup.
@@ -507,297 +382,137 @@ class TemplateEngine:
         self,
         template: str,
         context: dict[str, Any],
-        *,
-        strict: bool,
     ) -> str:
         """Process variable substitutions in the template.
+
+        Only placeholders whose top-level name is a key of ``context`` are
+        filled; the rest pass through untouched.
 
         Args:
             template: Template string to process.
             context: Dictionary providing variable values.
-            strict: If True, raise ConfigError for unknown variables.
 
         Returns:
             Template with variables substituted.
-
-        Raises:
-            ConfigError: If strict=True and a variable is not found.
         """
-        unknown_vars: list[str] = []
 
         def replace_variable(match: re.Match[str]) -> str:
             var_path = match.group(1)
+            if var_path.split(".", 1)[0] not in context:
+                return match.group(0)
             try:
                 value = self._resolve_variable(var_path, context)
-                # Convert None to empty string, otherwise str() convert
-                return "" if value is None else str(value)
             except KeyError:
-                if strict:
-                    unknown_vars.append(var_path)
-                    # Return placeholder for now, will raise after collecting all
-                    return match.group(0)
-                else:
-                    # Log warning in lenient mode
-                    logger.warning(
-                        "Unknown template variable left as-is: {{%s}}",
-                        var_path,
-                        extra={"variable": var_path},
-                    )
-                    return match.group(0)
-
-        result = VARIABLE_PATTERN.sub(replace_variable, template)
-
-        # Raise error after processing all variables (to report all unknowns)
-        if strict and unknown_vars:
-            raise ConfigError(
-                code="UNKNOWN_VARIABLE",
-                message=f"Unknown template variable(s): {', '.join(unknown_vars)}",
-                suggestion="Check the variable names match the context keys",
-            )
-
-        return result
-
-    def _process_file_inclusions(self, template: str) -> str:
-        """Process file inclusion patterns in the template.
-
-        Args:
-            template: Template string to process.
-
-        Returns:
-            Template with file contents included.
-
-        Raises:
-            ConfigError: If a file inclusion target doesn't exist.
-        """
-
-        def replace_file(match: re.Match[str]) -> str:
-            file_path = match.group(1).strip()
-            full_path = self.project_root / file_path
-
-            # Security: Prevent path traversal attacks
-            try:
-                resolved_path = full_path.resolve()
-                project_resolved = self.project_root.resolve()
-                if not resolved_path.is_relative_to(project_resolved):
-                    raise ConfigError(
-                        code="TEMPLATE_PATH_TRAVERSAL",
-                        message=f"Path traversal not allowed: {file_path}",
-                        suggestion="Use paths relative to project root, not '..'",
-                    )
-            except ValueError:
-                # is_relative_to raises ValueError on Python < 3.9 or invalid paths
-                raise ConfigError(
-                    code="TEMPLATE_PATH_TRAVERSAL",
-                    message=f"Invalid file path: {file_path}",
-                    suggestion="Use valid paths relative to the project root",
-                ) from None
-
-            if not resolved_path.exists():
-                raise ConfigError(
-                    code="TEMPLATE_FILE_NOT_FOUND",
-                    message=f"Template file not found: {file_path}",
-                    suggestion=f"Create the file at {full_path} or fix the path",
+                logger.warning(
+                    "Template variable not found, left as-is: {{%s}}",
+                    var_path,
+                    extra={"variable": var_path},
                 )
+                return match.group(0)
+            # Convert None to empty string, otherwise str() convert
+            return "" if value is None else str(value)
 
-            try:
-                return resolved_path.read_text(encoding="utf-8")
-            except PermissionError as err:
-                raise ConfigError(
-                    code="TEMPLATE_FILE_PERMISSION",
-                    message=f"Permission denied reading file: {file_path}",
-                    suggestion="Check file permissions and ownership",
-                ) from err
-            except IsADirectoryError as err:
-                raise ConfigError(
-                    code="TEMPLATE_FILE_IS_DIRECTORY",
-                    message=f"Path is a directory, not a file: {file_path}",
-                    suggestion="Provide a path to a file, not a directory",
-                ) from err
-            except UnicodeDecodeError as err:
-                raise ConfigError(
-                    code="TEMPLATE_FILE_ENCODING",
-                    message=f"File is not valid UTF-8: {file_path}",
-                    suggestion="Ensure the file is saved with UTF-8 encoding",
-                ) from err
+        return VARIABLE_PATTERN.sub(replace_variable, template)
 
-        return FILE_PATTERN.sub(replace_file, template)
-
-    def _process_includes(
+    def _expand_directives(
         self,
         template: str,
         *,
-        command_root: Path | None = None,
+        command_root: Path | None,
+        shared_root: Path | None,
     ) -> str:
-        """Process command-local include patterns in the template.
+        """Replace every inclusion directive with its file's contents.
 
-        Resolves {{include:filename}} relative to command_root (the command directory).
-        This is used for files bundled with commands (e.g., SDK defaults).
-
-        ISS-017: Added command_root parameter to support per-render override.
+        The replacement text is not rescanned, so directives inside an
+        included file stay literal.
 
         Args:
             template: Template string to process.
-            command_root: Root directory for resolving includes. Falls back to
-                         instance attribute if not provided.
+            command_root: Root for {{include:...}}.
+            shared_root: Root for {{shared:...}}.
 
         Returns:
-            Template with included file contents.
+            Template with every directive replaced.
 
         Raises:
-            ConfigError: If command_root is not set, file doesn't exist,
-                        or path traversal is attempted.
+            ConfigError: If a directive's root is missing or its file cannot
+                        be read.
         """
-        if not INCLUDE_PATTERN.search(template):
-            return template  # No includes, skip processing
+        roots = {
+            "include": command_root,
+            "shared": shared_root,
+            "file": self.project_root,
+        }
 
-        # Use provided command_root or fall back to instance attribute
-        effective_root = command_root if command_root is not None else self.command_root
-
-        if effective_root is None:
-            raise ConfigError(
-                code="INCLUDE_NO_COMMAND_ROOT",
-                message="Cannot process {{include:...}} without command_root",
-                suggestion="Set command_root when initializing TemplateEngine "
-                "or pass to render()",
+        def replace_directive(match: re.Match[str]) -> str:
+            kind = match.group(1)
+            return self._read_under(
+                roots[kind], match.group(2).strip(), DIRECTIVE_ERROR_PREFIXES[kind]
             )
 
-        def replace_include(match: re.Match[str]) -> str:
-            file_path = match.group(1).strip()
-            full_path = effective_root / file_path  # type: ignore[operator]
+        return DIRECTIVE_PATTERN.sub(replace_directive, template)
 
-            # Security: Prevent path traversal attacks
-            try:
-                resolved_path = full_path.resolve()
-                root_resolved = effective_root.resolve()  # type: ignore[union-attr]
-                if not resolved_path.is_relative_to(root_resolved):
-                    raise ConfigError(
-                        code="INCLUDE_PATH_TRAVERSAL",
-                        message=f"Path traversal not allowed: {file_path}",
-                        suggestion="Use paths relative to command directory, not '..'",
-                    )
-            except ValueError:
-                raise ConfigError(
-                    code="INCLUDE_PATH_TRAVERSAL",
-                    message=f"Invalid include path: {file_path}",
-                    suggestion="Use valid paths relative to the command directory",
-                ) from None
-
-            if not resolved_path.exists():
-                raise ConfigError(
-                    code="INCLUDE_FILE_NOT_FOUND",
-                    message=f"Include file not found: {file_path}",
-                    suggestion=f"Create the file at {full_path} or fix the path",
-                )
-
-            try:
-                return resolved_path.read_text(encoding="utf-8")
-            except PermissionError as err:
-                raise ConfigError(
-                    code="INCLUDE_FILE_PERMISSION",
-                    message=f"Permission denied reading file: {file_path}",
-                    suggestion="Check file permissions and ownership",
-                ) from err
-            except IsADirectoryError as err:
-                raise ConfigError(
-                    code="INCLUDE_FILE_IS_DIRECTORY",
-                    message=f"Path is a directory, not a file: {file_path}",
-                    suggestion="Provide a path to a file, not a directory",
-                ) from err
-            except UnicodeDecodeError as err:
-                raise ConfigError(
-                    code="INCLUDE_FILE_ENCODING",
-                    message=f"File is not valid UTF-8: {file_path}",
-                    suggestion="Ensure the file is saved with UTF-8 encoding",
-                ) from err
-
-        return INCLUDE_PATTERN.sub(replace_include, template)
-
-    def _process_shared_inclusions(
-        self,
-        template: str,
-        *,
-        shared_root: Path | None = None,
-    ) -> str:
-        """Process shared include patterns in the template.
-
-        Resolves {{shared:filename}} relative to shared_root (the commands directory).
-        This is used for files shared across all commands.
-
-        ISS-017: Added shared_root parameter to support per-render override.
+    @staticmethod
+    def _read_under(root: Path | None, rel: str, error_prefix: str) -> str:
+        """Read ``rel`` as UTF-8, refusing any path that leaves ``root``.
 
         Args:
-            template: Template string to process.
-            shared_root: Root directory for resolving shared includes. Falls back to
-                        instance attribute if not provided.
+            root: Directory the path must stay inside.
+            rel: Path relative to ``root``.
+            error_prefix: Prefix for error codes, e.g. "INCLUDE".
 
         Returns:
-            Template with included file contents.
+            The file's contents.
 
         Raises:
-            ConfigError: If shared_root is not set, file doesn't exist,
-                        or path traversal is attempted.
+            ConfigError: ``<prefix>_NO_ROOT``, ``_PATH_TRAVERSAL``,
+                        ``_FILE_NOT_FOUND``, ``_FILE_PERMISSION``,
+                        ``_FILE_IS_DIRECTORY`` or ``_FILE_ENCODING``.
         """
-        if not SHARED_PATTERN.search(template):
-            return template  # No shared includes, skip processing
-
-        # Use provided shared_root or fall back to instance attribute
-        effective_root = shared_root if shared_root is not None else self.shared_root
-
-        if effective_root is None:
+        if root is None:
             raise ConfigError(
-                code="SHARED_NO_ROOT",
-                message="Cannot process {{shared:...}} without shared_root",
-                suggestion="Set shared_root when initializing TemplateEngine "
-                "or pass to render()",
+                code=f"{error_prefix}_NO_ROOT",
+                message=f"No root directory to resolve {rel} against",
+                suggestion="Pass command_root and shared_root to render()",
             )
 
-        def replace_shared(match: re.Match[str]) -> str:
-            file_path = match.group(1).strip()
-            full_path = effective_root / file_path  # type: ignore[operator]
+        # Security: Prevent path traversal attacks. resolve() can itself raise
+        # ValueError, e.g. on an embedded NUL byte.
+        try:
+            resolved_path = (root / rel).resolve()
+            if not resolved_path.is_relative_to(root.resolve()):
+                raise ValueError(rel)
+        except ValueError:
+            raise ConfigError(
+                code=f"{error_prefix}_PATH_TRAVERSAL",
+                message=f"Path traversal not allowed: {rel}",
+                suggestion=f"Use a path inside {root}",
+            ) from None
 
-            # Security: Prevent path traversal attacks
-            try:
-                resolved_path = full_path.resolve()
-                root_resolved = effective_root.resolve()  # type: ignore[union-attr]
-                if not resolved_path.is_relative_to(root_resolved):
-                    raise ConfigError(
-                        code="SHARED_PATH_TRAVERSAL",
-                        message=f"Path traversal not allowed: {file_path}",
-                        suggestion="Use paths relative to shared directory, not '..'",
-                    )
-            except ValueError:
-                raise ConfigError(
-                    code="SHARED_PATH_TRAVERSAL",
-                    message=f"Invalid shared path: {file_path}",
-                    suggestion="Use valid paths relative to the shared directory",
-                ) from None
+        if not resolved_path.exists():
+            raise ConfigError(
+                code=f"{error_prefix}_FILE_NOT_FOUND",
+                message=f"File not found: {rel}",
+                suggestion=f"Create the file under {root} or fix the path",
+            )
 
-            if not resolved_path.exists():
-                raise ConfigError(
-                    code="SHARED_FILE_NOT_FOUND",
-                    message=f"Shared file not found: {file_path}",
-                    suggestion=f"Create the file at {full_path} or fix the path",
-                )
-
-            try:
-                return resolved_path.read_text(encoding="utf-8")
-            except PermissionError as err:
-                raise ConfigError(
-                    code="SHARED_FILE_PERMISSION",
-                    message=f"Permission denied reading file: {file_path}",
-                    suggestion="Check file permissions and ownership",
-                ) from err
-            except IsADirectoryError as err:
-                raise ConfigError(
-                    code="SHARED_FILE_IS_DIRECTORY",
-                    message=f"Path is a directory, not a file: {file_path}",
-                    suggestion="Provide a path to a file, not a directory",
-                ) from err
-            except UnicodeDecodeError as err:
-                raise ConfigError(
-                    code="SHARED_FILE_ENCODING",
-                    message=f"File is not valid UTF-8: {file_path}",
-                    suggestion="Ensure the file is saved with UTF-8 encoding",
-                ) from err
-
-        return SHARED_PATTERN.sub(replace_shared, template)
+        try:
+            return resolved_path.read_text(encoding="utf-8")
+        except PermissionError as err:
+            raise ConfigError(
+                code=f"{error_prefix}_FILE_PERMISSION",
+                message=f"Permission denied reading file: {rel}",
+                suggestion=f"Check permissions of {resolved_path}",
+            ) from err
+        except IsADirectoryError as err:
+            raise ConfigError(
+                code=f"{error_prefix}_FILE_IS_DIRECTORY",
+                message=f"Path is a directory, not a file: {rel}",
+                suggestion=f"Point to a file under {root}",
+            ) from err
+        except UnicodeDecodeError as err:
+            raise ConfigError(
+                code=f"{error_prefix}_FILE_ENCODING",
+                message=f"File is not valid UTF-8: {rel}",
+                suggestion=f"Save {resolved_path} with UTF-8 encoding",
+            ) from err

@@ -1,15 +1,9 @@
 """ADW commands module - command resolution and templates.
 
-This package provides command resolution using a three-tier hierarchy:
+``resolver.CommandResolver`` resolves commands through a three-tier hierarchy:
 1. Project level: .adw/commands/{name}/
 2. User level: ~/.adw/commands/{name}/
 3. Bundled level: Package defaults
+
+``template.TemplateEngine`` renders their prompt templates.
 """
-
-from adw.commands.resolver import CommandResolver
-from adw.commands.template import TemplateEngine
-
-__all__: list[str] = [
-    "CommandResolver",
-    "TemplateEngine",
-]

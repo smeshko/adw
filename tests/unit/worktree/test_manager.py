@@ -339,7 +339,7 @@ class TestArtifactPreservation:
 class TestWorktreeLifecycleIntegration:
     """Tests for worktree lifecycle integration."""
 
-    # Uses shared git_repo fixture from conftest.py (ISS-024)
+    # Uses shared git_repo fixture from conftest.py
 
     def test_create_worktree_calls_ensure_trees_directory(self, git_repo: Path) -> None:
         """create_worktree sets up trees directory with gitignore."""
@@ -367,7 +367,7 @@ class TestWorktreeLifecycleIntegration:
 
         # ADW structure should exist in worktree
         adw_run_dir = worktree / ".adw" / "runs" / run_id
-        # Branch name should be returned (ISS-025)
+        # Branch name should be returned
         assert branch_name == f"adw/{run_id}"
         assert adw_run_dir.exists()
         assert (adw_run_dir / "artifacts").exists()
@@ -419,7 +419,7 @@ class TestWorktreeLifecycleIntegration:
 class TestWorktreeManagerCreation:
     """Tests for WorktreeManager.create_worktree()."""
 
-    # Uses shared git_repo fixture from conftest.py (ISS-024)
+    # Uses shared git_repo fixture from conftest.py
 
     def test_create_worktree_success(self, git_repo: Path) -> None:
         """Worktree is created at expected path with correct branch."""
@@ -435,7 +435,7 @@ class TestWorktreeManagerCreation:
         assert worktree_path.is_dir()
         assert worktree_path == git_repo / "trees" / run_id
 
-        # Verify branch name is returned (ISS-025)
+        # Verify branch name is returned
         assert branch_name == f"adw/{run_id}"
 
         # Verify the worktree has a .git file (not directory - worktrees use gitfile)
@@ -641,7 +641,7 @@ class TestWorktreeManagerCreation:
 class TestWorktreeManagerRemoval:
     """Tests for WorktreeManager.remove_worktree()."""
 
-    # Uses shared git_repo fixture from conftest.py (ISS-024)
+    # Uses shared git_repo fixture from conftest.py
 
     def test_remove_worktree_success(self, git_repo: Path) -> None:
         """Worktree is removed successfully."""
@@ -849,7 +849,7 @@ class TestWorktreeManagerRemoval:
 class TestWorktreeManagerBranchIntegration:
     """Tests for WorktreeManager branch manager integration."""
 
-    # Uses shared git_repo fixture from conftest.py (ISS-024)
+    # Uses shared git_repo fixture from conftest.py
 
     def test_branch_manager_property_returns_manager(self, git_repo: Path) -> None:
         """branch_manager property returns WorktreeBranchManager instance."""
@@ -896,16 +896,16 @@ class TestWorktreeManagerBranchIntegration:
 
 
 class TestWorktreeForceCleanup:
-    """Tests for worktree cleanup with force flag (ISS-008).
+    """Tests for worktree cleanup with force flag.
 
     These tests verify that force=True allows cleanup even when
     the worktree contains uncommitted changes.
     """
 
-    # Uses shared git_repo fixture from conftest.py (ISS-024)
+    # Uses shared git_repo fixture from conftest.py
 
     def test_force_removes_worktree_with_untracked_files(self, git_repo: Path) -> None:
-        """force=True removes worktree even with untracked files (ISS-008)."""
+        """force=True removes worktree even with untracked files."""
         from adw.worktree.manager import WorktreeManager
 
         manager = WorktreeManager(project_root=git_repo)

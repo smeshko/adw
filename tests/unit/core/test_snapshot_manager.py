@@ -3,12 +3,12 @@
 # - test_init_sequence_cache_empty (trivial init verification)
 # - test_sequence_uses_zero_padding (covered by test_snapshots_numbered_sequentially)
 # - test_get_next_sequence_nonexistent_dir (internal implementation test)
-"""Tests for SnapshotManager (Story 4.3).
+"""Tests for SnapshotManager.
 
 SnapshotManager creates, lists, and loads state snapshots at phase boundaries for:
 - Debugging failures
 - Resuming from known-good states
-- Time-travel debugging (NFR13)
+- Time-travel debugging
 """
 
 import time
@@ -323,7 +323,7 @@ class TestSnapshotLoading:
 
 
 class TestPerformance:
-    """Tests for performance requirements (NFR4)."""
+    """Tests for performance requirements."""
 
     @pytest.fixture
     def setup_run_dir(self, tmp_path: Path) -> Path:
@@ -337,7 +337,7 @@ class TestPerformance:
     def test_snapshot_creation_under_500ms(
         self, setup_run_dir: Path, sample_context: RunContext
     ) -> None:
-        """Snapshot creation completes within 500ms (NFR4)."""
+        """Snapshot creation completes within 500ms."""
         manager = SnapshotManager(setup_run_dir)
 
         start = time.monotonic()

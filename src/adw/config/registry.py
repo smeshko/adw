@@ -57,9 +57,8 @@ class ConfigRegistry:
         "project",  # name, language, platform, commands
         "git",
         "task_manager",
-        "ports",
+        "worktree",
         "llm",
-        "security",
         "ship",
     ]
 
@@ -86,7 +85,6 @@ class ConfigRegistry:
             GitConfig,
             LLMConfig,
             PhaseConfig,
-            PortRangeConfig,
             ProjectConfig,
             RetryConfig,
             TaskManagerConfig,
@@ -106,12 +104,8 @@ class ConfigRegistry:
         self._settings["task_manager_labels"] = self._extract_from_model(
             TaskManagerLabelsConfig
         )
-        self._settings["worktree"] = self._extract_from_model(
-            WorktreeConfig, skip_nested=["port_range"]
-        )
-        self._settings["ports"] = self._extract_from_model(PortRangeConfig)
+        self._settings["worktree"] = self._extract_from_model(WorktreeConfig)
         self._settings["retry"] = self._extract_from_model(RetryConfig)
-        self._settings["security"] = self._extract_security_settings()
         self._settings["ship"] = self._extract_from_model(
             ShipCommandConfig, skip_nested=["commands"]
         )
@@ -178,16 +172,6 @@ class ConfigRegistry:
             settings.append(setting)
 
         return settings
-
-    def _extract_security_settings(self) -> list[SettingDefinition]:
-        """Extract security settings with custom descriptions.
-
-        Returns:
-            List of security-related setting definitions.
-        """
-        from adw.models.security import SecurityConfig
-
-        return self._extract_from_model(SecurityConfig)
 
     def _field_to_setting(
         self, field_name: str, field_info: FieldInfo

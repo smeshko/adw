@@ -7,7 +7,6 @@ and overall progress bar.
 
 from datetime import UTC
 from io import StringIO
-from pathlib import Path
 
 from rich.console import Console
 
@@ -108,7 +107,7 @@ class TestPhaseStart:
         progress.on_phase_start("validate")
 
         output_text = output.getvalue()
-        # Story 15.1: validate is the 3rd phase (index 2), so "Phase 3/5"
+        # validate is the 3rd phase (index 2), so "Phase 3/5"
         assert "3/5" in output_text
 
     def test_on_phase_start_uses_phase_color(self) -> None:
@@ -399,7 +398,7 @@ class TestPipelineSummary:
         )
 
         output_text = output.getvalue()
-        # Should have pending indicator for uncompleted phases (ISS-019: verify removed)
+        # Should have pending indicator for uncompleted phases
         assert "validate" in output_text
         assert "document" in output_text
 
@@ -457,7 +456,7 @@ class TestProgressBar:
         progress.on_phase_complete("plan", result)
 
         output_text = output.getvalue()
-        # Rich adds escape codes around percentage (Story 15.1: 1 of 5 phases = 20%)
+        # Rich adds escape codes around percentage (1 of 5 phases = 20%)
         assert "20" in output_text and "%" in output_text  # 1 of 5 phases = 20%
 
     def test_show_progress_bar_shows_current_phase_indicator(self) -> None:
@@ -554,16 +553,16 @@ class TestErrorDisplay:
 
     def test_on_phase_error_shows_phase_name(self) -> None:
         """Test that error display includes phase name."""
-        from adw.exceptions import CommandError
+        from adw.exceptions import LLMError
 
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=80)
         progress = ProgressDisplay(console)
 
-        error = CommandError(
-            code="COMMAND_NOT_FOUND",
-            message="Command not found",
-            suggestion="Check command configuration",
+        error = LLMError(
+            code="LLM_EXECUTION_FAILED",
+            message="Claude Code exited with an error",
+            suggestion="Check the phase log",
             recoverable=False,
         )
 
@@ -644,7 +643,7 @@ class TestPipelineSummaryPR:
 
 
 class TestEnabledPhasesFiltering:
-    """Tests for enabled phases filtering (ISS-036).
+    """Tests for enabled phases filtering.
 
     When ship or other phases are disabled via config, the progress bar should:
     1. Only display enabled phases

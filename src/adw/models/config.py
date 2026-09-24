@@ -9,7 +9,6 @@ from typing import Any, Literal, Self
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from adw.models.command import PhaseLLMConfig
-from adw.models.security import SecurityConfig
 
 # NOTE: ValidationConfig removed - validation settings now in ValidateCommandConfig
 # NOTE: ShipConfig classes moved to command.py as ShipCommandConfig
@@ -186,36 +185,6 @@ class LoggingConfig(BaseModel):
     )
 
 
-class PortRangeConfig(BaseModel):
-    """Configuration for port ranges used in concurrent run isolation.
-
-    Defines the starting port numbers for backend and frontend services
-    in each concurrent run. Ports are allocated as base + slot_number.
-
-    Attributes:
-        backend_start: Starting port for backend services (default: 9100)
-        frontend_start: Starting port for frontend services (default: 9200)
-
-    Example:
-        >>> config = PortRangeConfig(backend_start=8000, frontend_start=8100)
-        >>> config.backend_start
-        8000
-    """
-
-    backend_start: int = Field(
-        default=9100,
-        gt=0,
-        lt=65536,
-        description="Starting port for backend services",
-    )
-    frontend_start: int = Field(
-        default=9200,
-        gt=0,
-        lt=65536,
-        description="Starting port for frontend services",
-    )
-
-
 class WorktreeConfig(BaseModel):
     """Configuration for git worktree isolation.
 
@@ -226,8 +195,7 @@ class WorktreeConfig(BaseModel):
     Attributes:
         enabled: Whether worktree isolation is enabled (default: True)
         base_dir: Directory for storing worktrees, relative to project root
-        port_range: Configuration for port allocation ranges
-        max_concurrent: Maximum number of concurrent runs (determines slot count)
+        max_concurrent: Maximum number of concurrent runs
 
     Example:
         >>> config = WorktreeConfig(enabled=True, base_dir=".worktrees")
@@ -240,9 +208,6 @@ class WorktreeConfig(BaseModel):
         worktree:
           enabled: true
           base_dir: "trees"
-          port_range:
-            backend_start: 9100
-            frontend_start: 9200
           max_concurrent: 15
     """
 
@@ -254,64 +219,12 @@ class WorktreeConfig(BaseModel):
         default="trees",
         description="Directory for storing worktrees (relative to project root)",
     )
-    port_range: PortRangeConfig = Field(
-        default_factory=PortRangeConfig,
-        description="Port range configuration for concurrent runs",
-    )
     max_concurrent: int = Field(
         default=15,
         gt=0,
         le=100,
-        description="Maximum number of concurrent runs (slot count)",
+        description="Maximum number of concurrent runs",
     )
-
-    @model_validator(mode="after")
-    def validate_port_ranges(self) -> Self:
-        """Validate that port ranges don't exceed valid port numbers.
-
-        Ensures that backend_start + max_concurrent - 1 and
-        frontend_start + max_concurrent - 1 don't exceed 65535.
-
-        Returns:
-            Self if validation passes.
-
-        Raises:
-            ValueError: If port range would exceed valid port numbers.
-        """
-        max_backend = self.port_range.backend_start + self.max_concurrent - 1
-        max_frontend = self.port_range.frontend_start + self.max_concurrent - 1
-
-        if max_backend > 65535:
-            msg = (
-                f"Backend port range exceeds valid ports: "
-                f"{self.port_range.backend_start} + {self.max_concurrent} - 1 "
-                f"= {max_backend} > 65535"
-            )
-            raise ValueError(msg)
-
-        if max_frontend > 65535:
-            msg = (
-                f"Frontend port range exceeds valid ports: "
-                f"{self.port_range.frontend_start} + {self.max_concurrent} - 1 "
-                f"= {max_frontend} > 65535"
-            )
-            raise ValueError(msg)
-
-        # Check for overlap between backend and frontend port ranges
-        backend_end = max_backend
-        frontend_end = max_frontend
-        backend_start = self.port_range.backend_start
-        frontend_start = self.port_range.frontend_start
-
-        if backend_start <= frontend_end and frontend_start <= backend_end:
-            msg = (
-                f"Backend port range ({backend_start}-{backend_end}) "
-                f"overlaps with frontend port range "
-                f"({frontend_start}-{frontend_end})"
-            )
-            raise ValueError(msg)
-
-        return self
 
 
 class TaskManagerLabelsConfig(BaseModel):
@@ -426,9 +339,8 @@ class TaskManagerConfig(BaseModel):
     )
 
 
-# NOTE: ShipCommandsConfig, ShipCommandConfig classes are in command.py
-# as part of ISS-031 phase-specific config refactoring. Use ShipCommandConfig
-# from adw.models.command instead.
+# NOTE: ShipCommandsConfig and ShipCommandConfig live in adw.models.command
+# with the other phase-specific config.
 
 
 class GitConfig(BaseModel):
@@ -491,9 +403,8 @@ class ProjectConfig(BaseModel):
     project metadata and LLM settings.
 
     Note:
-        Phase-specific configuration (input_files, hooks) is now
-        delegated to command configs (.adw/commands/<phase>/config.yaml).
-        See ISS-029 for details.
+        Phase-specific configuration (input_files, hooks) lives in
+        command configs (.adw/commands/<phase>/config.yaml).
 
     Attributes:
         name: Project name
@@ -505,7 +416,6 @@ class ProjectConfig(BaseModel):
         llm: LLM configuration section
         hooks: Hook configuration
         logging: Logging configuration (includes redaction settings)
-        security: Security configuration (blocked patterns, blocked env files)
         git: Git integration configuration (branch management)
         task_manager: Task manager integration configuration (Linear, Jira, etc.)
         ship: Ship phase configuration (version bump, build, publish, PR merge)
@@ -530,16 +440,11 @@ class ProjectConfig(BaseModel):
         default=None, description="Command to build the project"
     )
     llm: LLMConfig = Field(default_factory=LLMConfig, description="LLM configuration")
-    # NOTE: phases field removed in ISS-029. Phase configuration is now delegated
-    # entirely to command configs (.adw/commands/<phase>/config.yaml).
     hooks: HookConfig = Field(
         default_factory=HookConfig, description="Hook configuration"
     )
     logging: LoggingConfig = Field(
         default_factory=LoggingConfig, description="Logging configuration"
-    )
-    security: SecurityConfig | None = Field(
-        default=None, description="Security configuration"
     )
     git: GitConfig = Field(
         default_factory=GitConfig, description="Git integration configuration"
@@ -547,8 +452,8 @@ class ProjectConfig(BaseModel):
     worktree: WorktreeConfig = Field(
         default_factory=WorktreeConfig, description="Worktree isolation configuration"
     )
-    # NOTE: validation and ship fields removed in ISS-031. Configuration is now
-    # delegated to phase configs (.adw/commands/{validate,ship}/config.yaml).
+    # Validate and ship settings live in their phase configs
+    # (.adw/commands/{validate,ship}/config.yaml).
     task_manager: TaskManagerConfig = Field(
         default_factory=TaskManagerConfig,
         description="Task manager integration configuration",

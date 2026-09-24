@@ -199,7 +199,7 @@ def _cleanup_worktrees(repo_path: Path) -> None:
             )
 
 
-# NOTE: Session-scoped cleanup_orphaned_worktrees was removed (ISS-024 review).
+# NOTE: There is deliberately no session-scoped cleanup of orphaned worktrees.
 # The git_repo fixture already cleans up worktrees via yield/finally.
 # A session-scoped cleanup that scans the real project's trees/ directory
 # is dangerous because it would delete legitimate developer worktrees

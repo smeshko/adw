@@ -49,27 +49,7 @@ if [[ -n "$ADW_LLM_OUTPUT" ]] && [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
     fi
 
     # =============================================================================
-    # STEP 2: Extract PR description from the end of the output
-    # =============================================================================
-    # The PR description should be at the end after the documentation report
-    # Look for "## Summary" which starts the PR description
-
-    if echo "$ADW_LLM_OUTPUT" | grep -q "^## Summary"; then
-        echo "Extracting PR description from LLM response..."
-
-        # Extract from ## Summary to end of output
-        # This assumes the PR description is the final section
-        pr_desc=$(echo "$ADW_LLM_OUTPUT" | sed -n '/^## Summary$/,$p')
-
-        if [[ -n "$pr_desc" ]]; then
-            pr_output_file="$ADW_ARTIFACTS_DIR/pr_description.md"
-            echo "$pr_desc" > "$pr_output_file"
-            echo "PR description extracted to: $pr_output_file"
-        fi
-    fi
-
-    # =============================================================================
-    # STEP 3: Save full output as document_output.md
+    # STEP 2: Save full output as document_output.md
     # =============================================================================
     doc_output_file="$ADW_ARTIFACTS_DIR/document_output.md"
     echo "$ADW_LLM_OUTPUT" > "$doc_output_file"

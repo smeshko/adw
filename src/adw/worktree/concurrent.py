@@ -13,7 +13,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from adw.exceptions import MaxConcurrentRunsError
+from adw.exceptions import WorktreeError
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +29,6 @@ class ActiveRun(BaseModel):
         pid: Process ID of the running ADW instance.
         start_time: When the run was started.
         worktree_path: Absolute path to the worktree directory.
-        backend_port: Allocated backend port (if any).
-        frontend_port: Allocated frontend port (if any).
 
     Example:
         >>> run = ActiveRun(
@@ -47,10 +45,6 @@ class ActiveRun(BaseModel):
     pid: int = Field(description="Process ID of the running ADW instance")
     start_time: datetime = Field(description="When the run was started")
     worktree_path: Path = Field(description="Absolute path to the worktree directory")
-    backend_port: int | None = Field(default=None, description="Allocated backend port")
-    frontend_port: int | None = Field(
-        default=None, description="Allocated frontend port"
-    )
 
     def is_pid_running(self) -> bool:
         """Check if the process for this run is still running.
@@ -73,7 +67,7 @@ class ConcurrentRunManager:
 
     Tracks active runs via lock files in the `trees/.locks/` directory.
     Each lock file contains JSON metadata about the run including PID,
-    start time, worktree path, and allocated ports.
+    start time, and worktree path.
 
     Automatically cleans up stale locks (where the PID is no longer running)
     when querying active runs.
@@ -157,8 +151,6 @@ class ConcurrentRunManager:
                     pid=data["pid"],
                     start_time=datetime.fromisoformat(data["start_time"]),
                     worktree_path=Path(data["worktree_path"]),
-                    backend_port=data.get("backend_port"),
-                    frontend_port=data.get("frontend_port"),
                 )
 
                 if active_run.is_pid_running():
@@ -200,35 +192,23 @@ class ConcurrentRunManager:
         """Check if a new run can be started, raising if not.
 
         Raises:
-            MaxConcurrentRunsError: If at or over the max_concurrent limit.
+            WorktreeError: If at or over the max_concurrent limit.
         """
         active_runs = self.get_active_runs()
 
         if len(active_runs) >= self.max_concurrent:
-            # Build a list of active run IDs for the error message
-            active_ids = [run.run_id for run in active_runs[:5]]
-            if len(active_runs) > 5:
-                active_ids.append(f"... and {len(active_runs) - 5} more")
-
-            raise MaxConcurrentRunsError(
+            raise WorktreeError(
                 code="MAX_CONCURRENT_REACHED",
                 message=f"Maximum concurrent runs reached ({self.max_concurrent})",
                 suggestion="Use `adw list --running` to see active runs. "
                 "Wait for a run to complete or abort one with `adw abort <run_id>`.",
                 recoverable=False,
-                context={
-                    "max_concurrent": self.max_concurrent,
-                    "active_count": len(active_runs),
-                    "active_runs": active_ids,
-                },
             )
 
     def register_run(
         self,
         run_id: str,
         worktree_path: Path,
-        backend_port: int | None = None,
-        frontend_port: int | None = None,
     ) -> None:
         """Register a new active run by creating a lock file.
 
@@ -238,8 +218,6 @@ class ConcurrentRunManager:
         Args:
             run_id: ULID identifier for the run.
             worktree_path: Absolute path to the worktree directory.
-            backend_port: Allocated backend port (if any).
-            frontend_port: Allocated frontend port (if any).
 
         Raises:
             OSError: If the lock file cannot be created.
@@ -251,8 +229,6 @@ class ConcurrentRunManager:
             "pid": os.getpid(),
             "start_time": datetime.now(UTC).isoformat(),
             "worktree_path": str(worktree_path),
-            "backend_port": backend_port,
-            "frontend_port": frontend_port,
         }
 
         lock_path = self._lock_path(run_id)

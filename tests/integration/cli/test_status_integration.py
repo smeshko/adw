@@ -3,7 +3,7 @@
 Tests the full status command execution including:
 - Status of running run
 - Status of completed run
-- Status of failed run with resume hint (UX-3)
+- Status of failed run with resume hint
 - Output formatting verification
 """
 
@@ -135,7 +135,7 @@ class TestStatusCommandIntegration:
         assert "4m 27s" in result.output or "Duration" in result.output
 
     def test_status_failed_run_shows_resume_hint(self, mock_runs_dir: Path) -> None:
-        """Test status of failed run shows resume command (UX-3)."""
+        """Test status of failed run shows resume command."""
         run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
         create_test_run_context(
             mock_runs_dir,
@@ -151,7 +151,7 @@ class TestStatusCommandIntegration:
         assert result.exit_code == 0
         assert run_id in result.output
         assert "failed" in result.output.lower()
-        # UX-3: Should show resume command
+        # Should show resume command
         assert "adw resume" in result.output
         assert run_id in result.output
 

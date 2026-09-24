@@ -4,7 +4,7 @@ Tests for the `adw resume [RUN_ID]` command including:
 - Phase validation
 - Resume header display
 - Error handling for non-existent runs
-- StateError for corrupted context (AC4)
+- StateError for corrupted context
 
 Help text verification tests removed per TEST_REDUCTION_PLAN.md
 """
@@ -67,7 +67,7 @@ class TestResumeNoRuns:
 
 
 class TestResumeCorruptedState:
-    """Tests for StateError on corrupted context (AC4)."""
+    """Tests for StateError on corrupted context."""
 
     def test_corrupted_context_raises_state_error(self, tmp_path: Path) -> None:
         """Test corrupted context.json raises StateError with snapshot suggestion."""

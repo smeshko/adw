@@ -1,4 +1,4 @@
-"""Tests for Story 2.3: LLM Interaction Viewer.
+"""Tests for LLM Interaction Viewer.
 
 Covers LLM interaction summary in phase detail, prompt/response
 content endpoints, and token display.
@@ -96,7 +96,7 @@ def _make_client_with_mocks(
 
 
 class TestLLMInteractionSummary:
-    """Tests for LLM interaction summary line in phase detail (FR25)."""
+    """Tests for LLM interaction summary line in phase detail."""
 
     def test_phase_detail_shows_llm_section(self) -> None:
         """Phase detail includes an LLM Interaction section."""

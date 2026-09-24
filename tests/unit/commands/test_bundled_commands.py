@@ -12,7 +12,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from adw.commands import CommandResolver
+from adw.commands.resolver import CommandResolver
 from adw.core.constants import PHASE_SEQUENCE
 from adw.models.command import get_config_class
 

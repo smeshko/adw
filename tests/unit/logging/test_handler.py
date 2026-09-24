@@ -198,7 +198,7 @@ class TestLogManagerHandler:
     def test_handler_extracts_phase_from_extra_dict(self) -> None:
         """Verify phase context is extracted from Python logging extra dict.
 
-        This test validates ISS-034 fix: when Python logging calls include
+        When Python logging calls include
         extra={"phase": "..."},  the phase should appear in LogContext.phase,
         not be lost or show as "[phase]" placeholder.
         """

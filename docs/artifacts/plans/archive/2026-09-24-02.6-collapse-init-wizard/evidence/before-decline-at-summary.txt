@@ -1,0 +1,106 @@
+
+Starting guided setup wizard...
+
+
+╭────────────────────────────── ADW Setup Wizard ──────────────────────────────╮
+│ Welcome to the ADW Configuration Wizard!                                     │
+│                                                                              │
+│ This wizard will guide you through setting up your project.                  │
+│ You can navigate using:                                                      │
+│   • n or Enter - Next step                                                   │
+│   • b - Go back                                                              │
+│   • c - Cancel wizard                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+Step 1/8: Project Basics
+──────────────────────────────────────────────────
+
+Available languages:
+  1. python
+  2. javascript
+  3. go
+  4. rust
+  5. java
+  6. ruby
+  7. php
+  Or type a custom language name
+
+Language (python): 
+Available platforms:
+  1. cli
+  2. web
+  3. api
+  Or type a custom platform name
+
+Platform (cli): 
+Test command (detected: pytest) (pytest): 
+Build command (Enter to skip) (): 
+Step 2/8: Web Dashboard Registration
+──────────────────────────────────────────────────
+
+The ADW web dashboard tracks runs across all your projects.
+Registering allows this project to appear in cross-project views.
+
+Register this project in the ADW web dashboard? [y/n] (y): 
+Custom display name (repo): 
+Project will be registered as 'repo'
+
+Step 3/8: Git Configuration
+──────────────────────────────────────────────────
+
+Branch prefix (feature/): Skip pre-commit hooks? [y/n] (n): PR base branch (empty for default) (): 
+Step 4/8: Task Manager Integration
+──────────────────────────────────────────────────
+
+Set up task manager integration? [y/n] (n): 
+Step 5/8: Phase Configuration
+──────────────────────────────────────────────────
+Customize phase settings? [y/n] (n): 
+Step 6/8: LLM Retry Settings
+──────────────────────────────────────────────────
+
+ADW uses exponential backoff when LLM calls fail transiently.
+Defaults: 3 retries, 1.0s base, 60.0s max, 2.0x multiplier
+
+Configure LLM retry behavior? [y/n] (n): 
+Step 7/8: Webhook Configuration
+──────────────────────────────────────────────────
+Set up webhook server? [y/n] (n): 
+Step 8/8: Configuration Summary
+──────────────────────────────────────────────────
+
+╭─────────────────────────── Configuration Summary ────────────────────────────╮
+│ Basics:                                                                      │
+│   Name: repo                                                                 │
+│   Language: python                                                           │
+│   Platform: cli                                                              │
+│   Test: pytest                                                               │
+│   Build: none                                                                │
+│                                                                              │
+│ Web Dashboard: ✓ Registered as 'repo'                                        │
+│ Git: ✓ Enabled (feature/)                                                    │
+│ Task Manager: None                                                           │
+│ Phases: Default                                                              │
+│ Ship: Default (no commands, manual merge)                                    │
+│ LLM Retry: Default                                                           │
+│ Webhooks: Disabled                                                           │
+│                                                                              │
+│ Files to create:                                                             │
+│   .adw/.env.template                                                         │
+│   .adw/.gitignore                                                            │
+│   .adw/commands/build/config.yaml                                            │
+│   .adw/commands/document/config.yaml                                         │
+│   .adw/commands/plan/config.yaml                                             │
+│   .adw/commands/ship/config.yaml                                             │
+│   .adw/commands/validate/config.yaml                                         │
+│   .adw/project.yaml                                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+Create configuration? [y/n] (y): 
+Start over or cancel? [s/c] (c): 
+╭─────────────────────────────── Setup Complete ───────────────────────────────╮
+│ Wizard Complete!                                                             │
+│                                                                              │
+│ Your project has been configured and files have been written.                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+exit=0

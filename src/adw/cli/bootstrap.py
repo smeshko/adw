@@ -44,7 +44,6 @@ from adw.models.config import (
 )
 from adw.models.logging import VERBOSITY_LEVEL_MAP, LogLevel, Verbosity
 from adw.models.task import TaskInfo
-from adw.security import SecurityInterceptor
 from adw.task_managers.base import TaskManager
 from adw.task_managers.labels import LabelManager
 from adw.task_managers.sync import StatusSyncService
@@ -90,7 +89,7 @@ def create_log_manager(
 
     IMPORTANT: This function also wires up Python's standard logging to flow
     through the LogManager, so calls to logging.getLogger().info() will write
-    to logs.jsonl (Story ISS-006 fix).
+    to logs.jsonl.
 
     Args:
         console: Rich console for output. If None, creates a new one.
@@ -133,7 +132,7 @@ def create_log_manager(
         live_transport = LiveStreamTransport(run_dir / LIVE_LOG)
         log_manager.register(live_transport)
 
-    # Wire Python's standard logging to flow through LogManager (ISS-006 fix)
+    # Wire Python's standard logging to flow through LogManager
     # This ensures all logging.getLogger(__name__).info() calls in ADW modules
     # are captured in logs.jsonl for debugging via `adw logs show`
     handler = LogManagerHandler(log_manager)
@@ -171,7 +170,6 @@ def create_orchestrator(
     console: Console | None = None,
     *,
     with_progress: bool = True,
-    allow_dangerous: bool = False,
     run_id: str | None = None,
     task_manager: TaskManager | None = None,
     task_info: TaskInfo | None = None,
@@ -185,14 +183,12 @@ def create_orchestrator(
     - RunDirectoryManager for directory structure
     - InterruptionHandler for graceful shutdown
     - ProgressDisplay for CLI output (optional)
-    - SecurityInterceptor for tool call validation
     - PhaseRunner with CommandResolver, TemplateEngine, HookRunner, LLMExecutor
-    - LabelManager for task label operations (optional, Story 12.7)
+    - LabelManager for task label operations (optional)
 
     Args:
         console: Rich console for output. If None, creates a new one.
         with_progress: Whether to include progress display.
-        allow_dangerous: If True, log warnings instead of blocking dangerous operations.
         run_id: Optional run ID. Used for live log directory setup.
         task_manager: Optional task manager for label/sync operations.
         task_info: Optional TaskInfo with internal UUID for label operations.
@@ -210,7 +206,6 @@ def create_orchestrator(
     console = console or Console()
 
     # Load project configuration for worktree, git, task manager, and LLM settings
-    # (Story 10.1, ISS-011, Story 12.7, Story 12.8)
     worktree_config: WorktreeConfig | None = None
     git_config: GitConfig | None = None
     task_manager_config: TaskManagerConfig | None = None
@@ -235,22 +230,10 @@ def create_orchestrator(
     run_directory_manager = RunDirectoryManager(project_root)
     interruption_handler = InterruptionHandler(context_manager, snapshot_manager)
 
-    # Create PhaseRunner dependencies (Epic 2 & 3)
+    # Create PhaseRunner dependencies
     command_resolver = CommandResolver(project_root=project_root)
     template_engine = TemplateEngine(project_root=project_root)
-    hook_runner = HookRunner(config=HookConfig())
-
-    # Create security components (Story 3.6)
-    # Wire user-configured blocked patterns from project config security section
-    additional_patterns = None
-    additional_file_patterns = None
-    if config and config.security:
-        additional_patterns = config.security.blocked_patterns or None
-        additional_file_patterns = config.security.blocked_env_files or None
-    security_interceptor = SecurityInterceptor(
-        additional_patterns=additional_patterns,
-        additional_file_patterns=additional_file_patterns,
-    )
+    hook_runner = HookRunner(config=config.hooks if config else HookConfig())
 
     # Set up live stream transport for LLM output logging
     live_stream = None
@@ -269,8 +252,6 @@ def create_orchestrator(
     else:
         llm_executor = ClaudeCodeExecutor(
             config=llm_config,
-            security_interceptor=security_interceptor,
-            allow_dangerous=allow_dangerous,
             live_stream=live_stream,
         )
 
@@ -278,7 +259,7 @@ def create_orchestrator(
     # This registers BuildExtension (diff capture), DocumentExtension (PR creation),
     # and ShipExtension (skip logic and hook env vars)
     # NOTE: Must be created BEFORE PhaseRunner so extensions are available for
-    # artifact capture during phase execution (ISS-043)
+    # artifact capture during phase execution
     extension_registry = create_default_registry(
         git_config,
         runs_dir,
@@ -286,7 +267,7 @@ def create_orchestrator(
         build_command=config.build_command if config else None,
     )
 
-    # Create PhaseRunner first (without progress_display) (Story 5.2)
+    # Create PhaseRunner first (without progress_display)
     # so we can compute enabled phases using is_phase_enabled()
     phase_runner = PhaseRunner(
         command_resolver=command_resolver,
@@ -300,7 +281,7 @@ def create_orchestrator(
         git_config=git_config,
     )
 
-    # Progress display for CLI feedback (ISS-036: filter to enabled phases)
+    # Progress display for CLI feedback (filter to enabled phases)
     progress_display = None
     if with_progress:
         # Compute enabled phases using PhaseRunner's is_phase_enabled()
@@ -310,7 +291,7 @@ def create_orchestrator(
         # Update PhaseRunner with the progress display
         phase_runner.progress_display = progress_display
 
-    # Create StatusSyncService if task manager is provided (Story 12.3)
+    # Create StatusSyncService if task manager is provided
     # Pass task_info so methods use stored value instead of context
     # Default task_manager_config if not set (e.g., config has task_manager: null)
     status_sync_service: StatusSyncService | None = None
@@ -329,7 +310,7 @@ def create_orchestrator(
         if labels_config and labels_config.enabled:
             label_manager = LabelManager(task_manager, labels_config, task_info.id)
 
-    # Create orchestrator (ISS-039: pass task_info to populate RunContext)
+    # Create orchestrator (pass task_info to populate RunContext)
     orchestrator = Orchestrator(
         runs_dir=runs_dir,
         context_manager=context_manager,

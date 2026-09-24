@@ -4,6 +4,7 @@ These tests verify the orchestrator works correctly with real file I/O
 and actual dependency implementations (ContextManager, SnapshotManager, etc.).
 """
 
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -23,11 +24,24 @@ from adw.models.phase import PhaseResult, PhaseStatus
 
 
 @pytest.fixture
-def project_root(tmp_path: Path) -> Path:
-    """Create a temporary project root with .adw structure."""
-    adw_dir = tmp_path / ".adw" / "runs"
+def project_root(git_repo: Path) -> Path:
+    """Create a git project root with .adw structure.
+
+    Run start switches non-worktree runs to their feature branch, which needs
+    a clean git tree, so HOME (``home/``) and the run directories are
+    gitignored.
+    """
+    adw_dir = git_repo / ".adw" / "runs"
     adw_dir.mkdir(parents=True)
-    return tmp_path
+    (git_repo / ".gitignore").write_text("home/\n.adw/runs/\n")
+    subprocess.run(["git", "add", "."], cwd=git_repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "Ignore ADW runtime state"],
+        cwd=git_repo,
+        check=True,
+        capture_output=True,
+    )
+    return git_repo
 
 
 @pytest.fixture
@@ -95,8 +109,8 @@ def orchestrator(
 ) -> Orchestrator:
     """Create an Orchestrator with real dependencies.
 
-    Note: Worktree is disabled for integration tests since tmp_path
-    is not a git repository. ISS-025 makes worktree creation errors fatal.
+    Note: Worktree is disabled: these tests exercise the non-worktree path,
+    and worktree creation would fetch from a remote the repo lacks.
     """
     from adw.models import WorktreeConfig
 
@@ -107,7 +121,7 @@ def orchestrator(
         artifact_manager=artifact_manager,
         run_directory_manager=run_directory_manager,
         phase_runner=mock_phase_runner,
-        worktree_config=WorktreeConfig(enabled=False),  # ISS-025
+        worktree_config=WorktreeConfig(enabled=False),
     )
 
 
@@ -187,7 +201,7 @@ class TestFullRunIntegration:
             assert phase in context.phase_tokens
             assert context.phase_tokens[phase] == 100
 
-        assert context.total_tokens == 500  # 100 tokens * 5 phases (Story 15.1)
+        assert context.total_tokens == 500  # 100 tokens * 5 phases
 
 
 class TestSnapshotIntegration:
@@ -288,7 +302,7 @@ class TestContextPersistenceIntegration:
 
         orchestrator.run("Test feature")
 
-        # Context should have been persisted multiple times (5 phases per Story 15.1)
+        # Context should have been persisted multiple times (5 phases)
         assert persist_count >= 5  # At least once per phase
 
     def test_final_context_has_completed_status(

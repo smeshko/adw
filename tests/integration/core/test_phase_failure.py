@@ -57,7 +57,7 @@ def retry_project(
     """Set up a committed ADW project with a non-default retry config.
 
     HOME (``home/``) and the run directories live inside the repository, so
-    they are gitignored: ``plan/pre.sh`` refuses to run on a dirty tree.
+    they are gitignored: run start refuses to switch branches on a dirty tree.
 
     Yields:
         The patched orchestrator ``time.sleep``.

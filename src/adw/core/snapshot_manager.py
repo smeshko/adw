@@ -7,7 +7,7 @@ Key features:
 - Atomic writes using temp file + rename pattern
 - Sequential numbering (001, 002, etc.)
 - Pre-phase and post-phase snapshot creation
-- Performance monitoring (NFR4: <500ms)
+- Performance monitoring (<500ms)
 """
 
 import json
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 __all__ = ["SnapshotManager"]
 
-# Performance threshold for snapshot creation (NFR4)
+# Performance threshold for snapshot creation
 _SNAPSHOT_THRESHOLD_MS: int = 500
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class SnapshotManager:
     Creates snapshots before and after each phase for:
     - Debugging failures by examining pre-failure state
     - Resuming from known-good states
-    - Time-travel debugging (NFR13)
+    - Time-travel debugging
 
     Attributes:
         runs_dir: Path to the .adw/runs directory.
@@ -144,7 +144,7 @@ class SnapshotManager:
     ) -> Path:
         """Internal method to create a snapshot.
 
-        Must complete within 500ms (NFR4).
+        Must complete within 500ms.
 
         Args:
             context: Current run context.
@@ -208,7 +208,7 @@ class SnapshotManager:
                 recoverable=False,
             ) from e
 
-        # Check performance requirement (NFR4)
+        # Check performance requirement
         elapsed_ms = (time.monotonic() - start_time) * 1000
         if elapsed_ms > _SNAPSHOT_THRESHOLD_MS:
             logger.warning(

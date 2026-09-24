@@ -1,4 +1,4 @@
-"""Tests for ListDisplay class (Story 6.4).
+"""Tests for ListDisplay class.
 
 # TEST REDUCTION: Removed 19 tests (from 21 to 2)
 # Deleted:

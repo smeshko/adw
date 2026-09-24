@@ -129,7 +129,7 @@ def main(
     ),
 ) -> None:
     """Agentic Development Workflow SDK CLI."""
-    # Load environment from .adw/.env before any command runs (ISS-028)
+    # Load environment from .adw/.env before any command runs
     _load_env_file()
 
     # Handle mutual exclusivity of verbosity flags
@@ -188,15 +188,10 @@ def run(
         "--dry-run",
         help="Show what would happen without executing",
     ),
-    allow_dangerous: bool = typer.Option(
-        False,
-        "--allow-dangerous",
-        help="Allow dangerous LLM tool calls (log warnings instead of blocking)",
-    ),
     no_worktree: bool = typer.Option(
         False,
         "--no-worktree",
-        help="Run in current directory instead of isolated worktree (Story 10.1)",
+        help="Run in current directory instead of isolated worktree",
     ),
     task_id: bool = typer.Option(
         False,
@@ -229,16 +224,13 @@ def run(
         # Dry run to see what would happen
         adw run "Add login" --dry-run
 
-        # Allow dangerous operations (log warnings instead of blocking)
-        adw run "Add login" --allow-dangerous
-
         # View real-time LLM output (run in separate terminal)
         adw logs follow <run_id>
 
         # Run without worktree isolation (in current directory)
         adw run "Quick fix" --no-worktree
 
-        # Task manager integration (Story 12.4)
+        # Task manager integration
         adw run RULE-123                    # Auto-detect as task ID
         adw run RULE-123 --task-id          # Force task ID interpretation
         adw run RULE-123 --no-task-manager  # Force feature string
@@ -256,12 +248,12 @@ def run(
             console.print(f"[red]Error:[/] Could not load source run '{from_run}': {e}")
             raise typer.Exit(code=1) from None
 
-    # Validate feature description is provided and not empty (Story 6.1)
+    # Validate feature description is provided and not empty
     if feature is None or not feature.strip():
         console.print("[red]Error:[/] Feature description cannot be empty")
         raise typer.Exit(code=1)
 
-    # Validate mutually exclusive task manager flags (Story 12.4)
+    # Validate mutually exclusive task manager flags
     if task_id and no_task_manager:
         console.print(
             "[red]Error:[/] --task-id and --no-task-manager are mutually exclusive"
@@ -280,7 +272,7 @@ def run(
         # No config or invalid - use defaults
         pass
 
-    # Resolve input: task ID vs feature string (Story 12.4 Task 4)
+    # Resolve input: task ID vs feature string
     # Creates a task manager with config and uses InputResolver to auto-detect
     # When --no-task-manager is used, bypass config entirely to avoid initialization
     # errors (e.g., missing LINEAR_API_KEY) even when user doesn't want task manager
@@ -309,7 +301,7 @@ def run(
         )
         raise typer.Exit(code=1) from None
 
-    # Fetch task info for the run context and labels (ISS-033)
+    # Fetch task info for the run context and labels
     task_info: TaskInfo | None = None
     if resolved.type == InputType.TASK_ID and resolved.task_id:
         console.print(f"[dim]Resolved as task ID:[/] {resolved.task_id}")
@@ -337,7 +329,7 @@ def run(
     run_id = from_run if from_run is not None else str(ULID())
     started_at = datetime.now(UTC)
 
-    # Show run header using RunDisplay (UX-12, Story 6.1)
+    # Show run header using RunDisplay
     run_display = RunDisplay(console)
     run_display.show_run_header(
         run_id=run_id,
@@ -346,7 +338,7 @@ def run(
     )
 
     if dry_run:
-        # Load config for dry-run preview (Story UX-FIX-ISS-002)
+        # Load config for dry-run preview
         dry_run_config: ProjectConfig | None
         try:
             dry_run_config = ConfigLoader().load()
@@ -367,7 +359,7 @@ def run(
         )
         return
 
-    # Get verbosity from context (Story 7.2)
+    # Get verbosity from context
     verbosity = Verbosity.NORMAL
     if ctx.obj:
         verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
@@ -376,7 +368,7 @@ def run(
     runs_dir = Path.cwd() / ".adw" / "runs"
     run_dir = runs_dir / run_id
 
-    # Create log manager with file transports (Story 7.2, ISS-003, ISS-006 fix)
+    # Create log manager with file transports
     # This wires up Python logging to LogManager, so all logging.getLogger() calls
     # in ADW modules flow through to live.log for debugging via `adw logs follow`
     create_log_manager(
@@ -390,7 +382,6 @@ def run(
         # Pass task_manager and task_info for StatusSyncService/LabelManager
         orchestrator = create_orchestrator(
             console,
-            allow_dangerous=allow_dangerous,
             run_id=run_id,
             task_manager=task_manager,
             task_info=task_info,
@@ -403,7 +394,7 @@ def run(
             )
             console.print(f"[green]✓[/] Phase '{phase}' completed: {context.run_id}")
         elif phase:
-            # Validate --from-run requirement for non-plan phases (Story 5.4)
+            # Validate --from-run requirement for non-plan phases
             if phase != "plan":
                 console.print(
                     f"[red]Error:[/] Phase '{phase}' requires artifacts "
@@ -414,7 +405,7 @@ def run(
                 )
                 raise typer.Exit(1)
 
-            # Single phase execution (Story 5.4, Story 10.1: pass use_worktree flag)
+            # Single phase execution (pass use_worktree flag)
             context = orchestrator.run_single_phase(
                 phase, feature, run_id=run_id, use_worktree=not no_worktree
             )
@@ -422,7 +413,7 @@ def run(
                 f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}"
             )
         else:
-            # Full pipeline execution (Story 10.1: pass use_worktree flag)
+            # Full pipeline execution (pass use_worktree flag)
             context = orchestrator.run(
                 feature,
                 run_id=run_id,
@@ -480,35 +471,35 @@ def abort(
         raise typer.Exit(1) from None
 
 
-# Register the resume command (Story 6.2)
+# Register the resume command
 app.command()(resume_command)
 
-# Register the status command (Story 6.3)
+# Register the status command
 app.command()(status_command)
 
-# Register the list command (Story 6.4)
+# Register the list command
 # Note: We use name="list" since list_runs avoids Python keyword conflict
 app.command(name="list")(list_runs)
 
-# Register the logs subapp (Story 7.5)
+# Register the logs subapp
 app.add_typer(logs_app, name="logs")
 
-# Register the pr command (Story 9.5)
+# Register the pr command
 app.command()(pr_command)
 
-# Register the register command (Story 16.1)
+# Register the register command
 app.command()(register_command)
 
-# Register the unregister command (Story 16.1)
+# Register the unregister command
 app.command()(unregister_command)
 
-# Register the projects command (Story 16.1)
+# Register the projects command
 app.command()(projects_command)
 
-# Register the dashboard subapp (Story ADW-6)
+# Register the dashboard subapp
 app.add_typer(dashboard_web_app, name="dashboard")
 
-# Register the global subapp (Story 16.2)
+# Register the global subapp
 app.add_typer(global_app, name="global")
 
 # Register the validate command (config validation)

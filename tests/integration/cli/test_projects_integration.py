@@ -1,4 +1,4 @@
-"""Integration tests for project registry CLI commands (Story 16-1).
+"""Integration tests for project registry CLI commands.
 
 These tests verify the register, unregister, and projects commands work
 correctly with real file system operations and the global registry.

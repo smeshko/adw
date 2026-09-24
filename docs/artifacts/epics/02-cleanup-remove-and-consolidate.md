@@ -42,7 +42,7 @@ It then consolidates what remains, so each shared concern has one implementation
 
 ## Phase 2.1 — Remove the security package
 
-**Plan**: _not yet created_
+**Plan**: [02.1-remove-the-security-package](../plans/archive/2026-09-24-02.1-remove-the-security-package/PLAN.md) · status: done
 
 **Linear**: ADW-17 (https://linear.app/ivo-tsonev/issue/ADW-17)
 
@@ -64,11 +64,11 @@ It then consolidates what remains, so each shared concern has one implementation
 
 ### Acceptance criteria
 
-- [ ] `grep -rn "SecurityInterceptor\|SecurityConfig\|SecurityError\|allow_dangerous\|adw.security" src tests` returns nothing.
-- [ ] A `project.yaml` that still has a `security:` section loads without error.
-- [ ] `adw init --wizard` asks no security questions.
-- [ ] The dashboard settings page renders without a security section.
-- [ ] Lint and tests pass.
+- [x] `grep -rn "SecurityInterceptor\|SecurityConfig\|SecurityError\|allow_dangerous\|adw.security" src tests` returns nothing.
+- [x] A `project.yaml` that still has a `security:` section loads without error.
+- [x] `adw init --wizard` asks no security questions.
+- [x] The dashboard settings page renders without a security section.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -78,7 +78,7 @@ Include `adw validate` against a copy of a `project.yaml` that has a `security:`
 
 ## Phase 2.2 — Remove port allocation
 
-**Plan**: _not yet created_
+**Plan**: [02.2-remove-port-allocation](../plans/archive/2026-09-24-02.2-remove-port-allocation/PLAN.md) · status: done
 
 **Linear**: ADW-18 (https://linear.app/ivo-tsonev/issue/ADW-18)
 
@@ -96,11 +96,13 @@ Include `adw validate` against a copy of a `project.yaml` that has a `security:`
 
 ### Acceptance criteria
 
-- [ ] `grep -rn "PortAlloc\|port_range\|ports.env" src tests` returns nothing.
-- [ ] `adw list --running` shows no port columns.
-- [ ] A `project.yaml` that still has `worktree.port_range` loads without error.
-- [ ] `max_concurrent` is still enforced: a second run past the limit is refused.
-- [ ] Lint and tests pass.
+- [x] `grep -rn "PortAlloc\|port_range\|ports.env" src tests` returns nothing.
+  - `src` returns nothing. In `tests`, it matches only `tests/unit/models/test_config.py`, the regression test for the next criterion, which has to contain the key.
+- [x] `adw list --running` shows no port columns.
+- [x] A `project.yaml` that still has `worktree.port_range` loads without error.
+- [x] `max_concurrent` is still enforced: a second run past the limit is refused.
+  - This covers sequential starts. Simultaneous starts can race past the check (pre-existing, ADW-64).
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -145,7 +147,7 @@ Include `adw --help`, a curl of the dashboard overview, and a screenshot of a ru
 
 ## Phase 2.4 — Remove the terminal dashboard
 
-**Plan**: [02.4-remove-terminal-dashboard](../plans/02.4-remove-terminal-dashboard/PLAN.md) · status: done
+**Plan**: [02.4-remove-terminal-dashboard](../plans/archive/2026-09-23-02.4-remove-terminal-dashboard/PLAN.md) · status: done
 
 **Linear**: ADW-20 (https://linear.app/ivo-tsonev/issue/ADW-20)
 
@@ -172,7 +174,7 @@ Include `adw global --help` and a full-suite pass in the PR.
 
 ## Phase 2.5 — Make dashboard settings read-only
 
-**Plan**: _not yet created_
+**Plan**: [02.5-make-dashboard-settings-read-only](../plans/archive/2026-09-23-02.5-make-dashboard-settings-read-only/PLAN.md) · status: done
 
 **Linear**: ADW-21 (https://linear.app/ivo-tsonev/issue/ADW-21)
 
@@ -192,11 +194,11 @@ Include `adw global --help` and a full-suite pass in the PR.
 
 ### Acceptance criteria
 
-- [ ] The settings page renders every remaining section for this repo's `.adw` config.
-- [ ] The only POST routes left are run start and abort. List them from `app.routes`.
-- [ ] Visiting every settings view leaves `.adw/project.yaml` and `.adw/commands/*/config.yaml` byte-identical.
-- [ ] `tests/dashboard/` no longer exists.
-- [ ] Lint and tests pass.
+- [x] The settings page renders every remaining section for this repo's `.adw` config.
+- [x] The only POST routes left are run start and abort. List them from `app.routes`.
+- [x] Visiting every settings view leaves `.adw/project.yaml` and `.adw/commands/*/config.yaml` byte-identical.
+- [x] `tests/dashboard/` no longer exists.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -206,7 +208,7 @@ Include screenshots of the settings page, the route list from `app.routes`, and 
 
 ## Phase 2.6 — Collapse the init wizard into a straight sequence
 
-**Plan**: _not yet created_
+**Plan**: [02.6-collapse-init-wizard](../plans/archive/2026-09-24-02.6-collapse-init-wizard/PLAN.md) · status: done
 
 **Linear**: ADW-22 (https://linear.app/ivo-tsonev/issue/ADW-22)
 
@@ -226,10 +228,10 @@ Include screenshots of the settings page, the route list from `app.routes`, and 
 
 ### Acceptance criteria
 
-- [ ] `adw init --wizard` in a scratch repo, accepting the defaults, produces files that `adw validate` accepts.
-- [ ] Cancelling at the summary writes no files, prints that nothing was written, and exits non-zero.
-- [ ] `grep -rn "WizardFlowController\|WizardState\|StepHandler\|nav_prompt_ask" src tests` returns nothing.
-- [ ] Lint and tests pass.
+- [x] `adw init --wizard` in a scratch repo, accepting the defaults, produces files that `adw validate` accepts.
+- [x] Cancelling at the summary writes no files, prints that nothing was written, and exits non-zero.
+- [x] `grep -rn "WizardFlowController\|WizardState\|StepHandler\|nav_prompt_ask" src tests` returns nothing.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -284,12 +286,12 @@ Include the greps, the timeout test, and `adw list` / `adw status` output showin
   - `PhaseRunner._load_project_config`
   - the ship extension's loader
   - `cli/dry_run.py`, which uses the base class and drops phase-specific fields
-  - `dashboard/partials.py`
+  - `dashboard/settings.py` (`_phase`), which also copies `PhaseRunner`'s tier-merge rules (moved there by phase 2.5)
 - `PhaseRunner` caches loaded configs per instance. Project config is parsed once per run, not 3 times per phase plus 5 more in bootstrap.
 - Fold `PhaseConfig` into `CommandConfig`. Its docstring documents a `phases:` key that doesn't exist. Merge `lint_command`, `doc_mappings` and the ship commands by the same rule as `enabled`, `input_files` and `llm`, and document that rule.
 - Replace the `ConfigLoader` class with a `load_project_config(root)` function.
 - `config/yaml_generator.py`: drop the registry parameter it never reads and `_format_setting_as_comment`, and read defaults from the models rather than hard-coding them.
-- Rename `config/registry.py` to `settings_catalog.py`, and drop the sections and methods nothing reads.
+- Rename `config/registry.py` to `settings_catalog.py`, and drop the sections and methods nothing reads. Since phase 2.5, only tests call `get_all_settings` and `get_phase_settings`.
 - `config/checker.py`: one helper replaces the 6 copies of the "executable on PATH" check.
 
 ### Acceptance criteria
@@ -298,6 +300,7 @@ Include the greps, the timeout test, and `adw list` / `adw status` output showin
 - [ ] `adw run --dry-run` shows phase-specific fields, such as the validate phase's `lint_command`, that it drops today.
 - [ ] A malformed phase config still fails with `INVALID_CONFIG`, and a malformed `project.yaml` with `INVALID_PROJECT_CONFIG`.
 - [ ] `grep -rn "PhaseConfig\b\|class ConfigLoader" src` returns nothing.
+- [ ] `dashboard/settings.py` reads phase configs through `load_command_config`. `grep -rn "yaml.safe_load\|model_validate" src/adw/dashboard` returns nothing.
 - [ ] Lint and tests pass.
 
 ### Validation

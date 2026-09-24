@@ -86,51 +86,9 @@ class TestBuildHookEnvironment:
             assert isinstance(key, str), f"Key {key} is not a string"
             assert isinstance(value, str), f"Value for {key} is not a string"
 
-    def test_includes_port_variables_when_allocation_provided(
-        self, run_context: RunContext
-    ) -> None:
-        """Test that port variables are included when port_allocation is provided."""
-        from adw.models.worktree import PortAllocation
-
-        allocation = PortAllocation(
-            slot=3,
-            backend_port=9103,
-            frontend_port=9203,
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-        )
-        env = build_hook_environment(run_context, "plan", port_allocation=allocation)
-        assert env["ADW_BACKEND_PORT"] == "9103"
-        assert env["ADW_FRONTEND_PORT"] == "9203"
-        assert env["ADW_SLOT"] == "3"
-
-    def test_no_port_variables_without_allocation(
-        self, run_context: RunContext
-    ) -> None:
-        """Test that port variables are not set when no allocation is provided."""
-        env = build_hook_environment(run_context, "plan")
-        assert "ADW_BACKEND_PORT" not in env
-        assert "ADW_FRONTEND_PORT" not in env
-        assert "ADW_SLOT" not in env
-
-    def test_port_variables_are_strings(self, run_context: RunContext) -> None:
-        """Test that port values are converted to strings."""
-        from adw.models.worktree import PortAllocation
-
-        allocation = PortAllocation(
-            slot=0,
-            backend_port=9100,
-            frontend_port=9200,
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-        )
-        env = build_hook_environment(run_context, "plan", port_allocation=allocation)
-        # Environment variables must be strings
-        assert isinstance(env["ADW_BACKEND_PORT"], str)
-        assert isinstance(env["ADW_FRONTEND_PORT"], str)
-        assert isinstance(env["ADW_SLOT"], str)
-
 
 class TestWorktreePathEnvironment:
-    """Tests for ADW_WORKTREE_PATH environment variable (Story 10.5)."""
+    """Tests for ADW_WORKTREE_PATH environment variable."""
 
     @pytest.fixture
     def run_context(self) -> RunContext:
@@ -199,7 +157,7 @@ class TestWorktreePathEnvironment:
 
 
 class TestBranchNameEnvironmentVariable:
-    """Tests for ADW_BRANCH_NAME environment variable (ISS-025)."""
+    """Tests for ADW_BRANCH_NAME environment variable."""
 
     @pytest.fixture
     def run_context(self) -> RunContext:
@@ -224,123 +182,15 @@ class TestBranchNameEnvironmentVariable:
         assert "ADW_BRANCH_NAME" not in env
 
     def test_branch_name_available_in_hooks(self, run_context: RunContext) -> None:
-        """Test that branch_name is correctly formatted for hooks (ISS-025)."""
+        """Test that branch_name is correctly formatted for hooks."""
         run_context = run_context.model_copy(update={"branch_name": "feature/add-auth"})
         env = build_hook_environment(run_context, "build")
         # Branch name should be exactly as set, without modification
         assert env["ADW_BRANCH_NAME"] == "feature/add-auth"
 
 
-class TestPortsEnvAutoSourcing:
-    """Tests for auto-sourcing .ports.env file (Story 10.5 Task 6)."""
-
-    @pytest.fixture
-    def run_context(self) -> RunContext:
-        """Create a sample RunContext for testing."""
-        return RunContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            feature_description="Test feature description",
-            current_phase="plan",
-            started_at=datetime.now(),
-        )
-
-    def test_ports_file_adds_adw_ports_file_env(
-        self, run_context: RunContext, tmp_path: Path
-    ) -> None:
-        """Test that ADW_PORTS_FILE is set when ports_file is provided."""
-        ports_file = tmp_path / ".ports.env"
-        ports_file.write_text("BACKEND_PORT=9100\n")
-
-        env = build_hook_environment(run_context, "plan", ports_file=ports_file)
-
-        assert env["ADW_PORTS_FILE"] == str(ports_file)
-
-    def test_ports_file_auto_sources_variables(
-        self, run_context: RunContext, tmp_path: Path
-    ) -> None:
-        """Test that .ports.env variables are auto-sourced into environment."""
-        ports_file = tmp_path / ".ports.env"
-        ports_file.write_text("BACKEND_PORT=9100\nFRONTEND_PORT=9200\nADW_SLOT=0\n")
-
-        env = build_hook_environment(run_context, "plan", ports_file=ports_file)
-
-        assert env["BACKEND_PORT"] == "9100"
-        assert env["FRONTEND_PORT"] == "9200"
-        assert env["ADW_SLOT"] == "0"
-
-    def test_ports_file_ignores_comments(
-        self, run_context: RunContext, tmp_path: Path
-    ) -> None:
-        """Test that comments in .ports.env are ignored."""
-        ports_file = tmp_path / ".ports.env"
-        ports_file.write_text(
-            "# This is a comment\n"
-            "BACKEND_PORT=9100\n"
-            "# Another comment\n"
-            "FRONTEND_PORT=9200\n"
-        )
-
-        env = build_hook_environment(run_context, "plan", ports_file=ports_file)
-
-        assert env["BACKEND_PORT"] == "9100"
-        assert env["FRONTEND_PORT"] == "9200"
-        assert "This is a comment" not in str(env)
-
-    def test_ports_file_auto_detected_from_worktree(
-        self, run_context: RunContext, tmp_path: Path
-    ) -> None:
-        """Test that .ports.env is auto-detected from worktree_path."""
-        worktree_path = tmp_path / "worktree"
-        worktree_path.mkdir()
-        ports_file = worktree_path / ".ports.env"
-        ports_file.write_text("BACKEND_PORT=9101\n")
-
-        run_context = run_context.model_copy(update={"worktree_path": worktree_path})
-        env = build_hook_environment(run_context, "plan")
-
-        assert env["ADW_PORTS_FILE"] == str(ports_file)
-        assert env["BACKEND_PORT"] == "9101"
-
-    def test_ports_file_not_added_when_missing(
-        self, run_context: RunContext, tmp_path: Path
-    ) -> None:
-        """Test that ADW_PORTS_FILE is not set when file doesn't exist."""
-        worktree_path = tmp_path / "worktree"
-        worktree_path.mkdir()
-        # .ports.env does NOT exist
-
-        run_context = run_context.model_copy(update={"worktree_path": worktree_path})
-        env = build_hook_environment(run_context, "plan")
-
-        assert "ADW_PORTS_FILE" not in env
-
-    def test_explicit_ports_file_takes_precedence(
-        self, run_context: RunContext, tmp_path: Path
-    ) -> None:
-        """Test that explicit ports_file takes precedence over auto-detected."""
-        worktree_path = tmp_path / "worktree"
-        worktree_path.mkdir()
-
-        # Auto-detected file
-        auto_ports_file = worktree_path / ".ports.env"
-        auto_ports_file.write_text("BACKEND_PORT=9101\n")
-
-        # Explicit file
-        explicit_ports_file = tmp_path / "explicit.ports.env"
-        explicit_ports_file.write_text("BACKEND_PORT=9200\n")
-
-        run_context = run_context.model_copy(update={"worktree_path": worktree_path})
-        env = build_hook_environment(
-            run_context, "plan", ports_file=explicit_ports_file
-        )
-
-        # Should use explicit file's values
-        assert env["ADW_PORTS_FILE"] == str(explicit_ports_file)
-        assert env["BACKEND_PORT"] == "9200"
-
-
 class TestPRURLEnvironmentVariable:
-    """Tests for ADW_PR_URL environment variable (ISS-031)."""
+    """Tests for ADW_PR_URL environment variable."""
 
     @pytest.fixture
     def run_context(self) -> RunContext:
@@ -355,7 +205,7 @@ class TestPRURLEnvironmentVariable:
     def test_includes_pr_url_when_set(self, run_context: RunContext) -> None:
         """Test that ADW_PR_URL is included when pr_url is set in context.
 
-        ISS-031: Ship phase hooks need access to the PR URL for merge operations.
+        Ship phase hooks need access to the PR URL for merge operations.
         """
         context_with_pr = run_context.model_copy(
             update={"pr_url": "https://github.com/test/repo/pull/123"}
@@ -367,7 +217,7 @@ class TestPRURLEnvironmentVariable:
     def test_excludes_pr_url_when_not_set(self, run_context: RunContext) -> None:
         """Test that ADW_PR_URL is not included when pr_url is None.
 
-        ISS-031: When no PR was created, ADW_PR_URL should not be in env.
+        When no PR was created, ADW_PR_URL should not be in env.
         """
         # run_context has pr_url=None by default
         env = build_hook_environment(run_context, "ship")

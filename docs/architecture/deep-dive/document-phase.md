@@ -54,7 +54,7 @@ The Document phase is the fourth phase in the ADW pipeline (`plan → build → 
 │  6. Run Post-Hook (post.sh)                                     │
 │     Extracts from LLM output:                                   │
 │       - feature_doc.md (between # FEATURE DOC OUTPUT markers)   │
-│       - pr_description.md (from ## Summary to end)              │
+│       - document_output.md (full LLM output)                    │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -188,8 +188,9 @@ comment and the pipeline summary read `context.pr_url` and
 The `post.sh` script extracts structured content from LLM output:
 
 1. **Feature Doc** - Content between `# FEATURE DOC OUTPUT` markers
-2. **PR Description** - Content from `## Summary` to end of output
-3. **Full Output** - Saved as `document_output.md`
+2. **Full Output** - Saved as `document_output.md`
+
+It leaves `pr_description.md` alone: `DocumentExtension` is its only writer.
 
 ## Default Document Command Structure
 

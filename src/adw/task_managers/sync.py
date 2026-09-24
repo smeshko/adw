@@ -2,10 +2,8 @@
 
 This module provides the StatusSyncService class that handles synchronization
 of ADW run status with external task management systems (Linear, Jira, etc.)
-at phase transitions.
-
-Story 12.3: Status Synchronization at Phase Transitions
-Story 12.6: Post Status Update Comments
+at phase transitions, and posts status-update comments when sync_comments
+is enabled.
 """
 
 import logging
@@ -252,7 +250,7 @@ class StatusSyncService:
         if not task_info:
             return
 
-        # Check sync_comments config (Story 12.6)
+        # Check sync_comments config
         if not self._config.sync_comments:
             return
 
@@ -304,7 +302,7 @@ class StatusSyncService:
         if not task_info:
             return
 
-        # Check sync_comments config (Story 12.6)
+        # Check sync_comments config
         if not self._config.sync_comments:
             return
 
@@ -353,7 +351,7 @@ class StatusSyncService:
         if not task_info:
             return
 
-        # Check sync_comments config (Story 12.6)
+        # Check sync_comments config
         if not self._config.sync_comments:
             return
 

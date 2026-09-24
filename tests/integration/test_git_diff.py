@@ -1,4 +1,4 @@
-"""Integration tests for git diff capture (Story 9.3).
+"""Integration tests for git diff capture.
 
 These tests use actual git operations to verify diff capture behavior
 in real git repositories.

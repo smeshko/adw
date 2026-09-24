@@ -21,7 +21,6 @@ from adw.models.llm import LLMResult, ToolCall
 
 if TYPE_CHECKING:
     from adw.logging.live_stream import LiveStreamTransport
-    from adw.security.interceptor import SecurityInterceptor
 
 logger = logging.getLogger(__name__)
 
@@ -49,24 +48,16 @@ class ClaudeCodeExecutor:
         self,
         config: LLMConfig,
         *,
-        security_interceptor: "SecurityInterceptor | None" = None,
-        allow_dangerous: bool = False,
         live_stream: "LiveStreamTransport | None" = None,
     ) -> None:
         """Initialize the ClaudeCodeExecutor.
 
         Args:
             config: LLM configuration containing path and retry settings.
-            security_interceptor: Optional SecurityInterceptor for checking tool
-                        calls against security patterns (Story 3.6).
-            allow_dangerous: If True, log warnings instead of blocking dangerous
-                        commands (Story 3.6).
             live_stream: Optional LiveStreamTransport for writing LLM tokens
                         to live.log for real-time tailing.
         """
         self.config = config
-        self.security_interceptor = security_interceptor
-        self.allow_dangerous = allow_dangerous
         self.live_stream = live_stream
 
     def execute(
@@ -88,7 +79,7 @@ class ClaudeCodeExecutor:
             phase: Optional phase name for log context.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
-                 Used for worktree isolation support (Story 10.5).
+                 Used for worktree isolation support.
             model: Optional model identifier to use for this call.
                  If None, no --model flag is passed.
 
@@ -179,7 +170,7 @@ class ClaudeCodeExecutor:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             limit=10 * 1024 * 1024,  # 10MB buffer limit for large tool results
-            cwd=cwd,  # Set working directory for worktree support (Story 10.5)
+            cwd=cwd,  # Set working directory for worktree support
             start_new_session=True,  # Own process group for clean kill
         )
 
@@ -206,8 +197,8 @@ class ClaudeCodeExecutor:
     ) -> dict[str, Any]:
         """Read stdout and stderr concurrently to prevent deadlocks.
 
-        Uses asyncio.create_task() for concurrent processing as required
-        by NFR3 (artifact writes don't block stream). LLM tokens are
+        Uses asyncio.create_task() for concurrent processing, so artifact
+        writes never block the stream. LLM tokens are
         written to live.log when a live_stream transport is configured.
 
         Args:
@@ -406,7 +397,7 @@ class ClaudeCodeExecutor:
         - Text content from assistant messages
         - Tool calls from tool_use messages
         - Token usage from result message
-        - Final output (last assistant message text only) - ISS-023
+        - Final output (last assistant message text only)
 
         Args:
             raw_output: The raw output from Claude Code subprocess.
@@ -427,7 +418,7 @@ class ClaudeCodeExecutor:
         cache_read_input_tokens = 0
         total_cost_usd = 0.0
         error_result = ""
-        # Track the last assistant message text separately (ISS-023)
+        # Track the last assistant message text separately
         last_assistant_text: list[str] = []
         current_message_text: list[str] = []
         in_assistant_message = False

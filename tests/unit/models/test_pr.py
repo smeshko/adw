@@ -1,4 +1,4 @@
-"""Unit tests for PR description model (Story 9.4).
+"""Unit tests for PR description model.
 
 Tests PRDescription model validation, serialization, and markdown conversion.
 """

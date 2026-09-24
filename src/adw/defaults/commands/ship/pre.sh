@@ -2,21 +2,14 @@
 # ADW Pre-Hook: Validate PR Exists for Ship Phase
 #
 # This hook:
-# 1. Verifies a PR exists for the current branch
+# 1. Verifies the run's PR exists (by ADW_PR_URL, else the current branch)
 # 2. Checks the PR is in a mergeable state
-# 3. Exports PR information for the LLM context
+# 3. Writes pre_hook_vars.json (pr_number, pr_url, pr_state, pr_mergeable)
+#    to the artifacts dir for template rendering
 #
 # Environment variables provided by ADW:
-#   ADW_FEATURE      - The feature description for this run
-#   ADW_RUN_ID       - The unique run identifier
-#   ADW_PHASE        - Current phase (should be "ship")
+#   ADW_PR_URL       - The run's PR URL (if the document phase opened one)
 #   ADW_ARTIFACTS_DIR - Artifacts directory for this phase
-#
-# Environment variables exported by this hook:
-#   ADW_PR_NUMBER    - The PR number for the current branch
-#   ADW_PR_URL       - The PR URL
-#   ADW_PR_STATE     - The PR state (OPEN, MERGED, CLOSED)
-#   ADW_PR_MERGEABLE - Whether the PR is mergeable
 #
 # Exit codes:
 #   0 - Success (PR exists and is ready)
@@ -69,14 +62,15 @@ fi
 echo "Current branch: $current_branch"
 
 # =============================================================================
-# STEP 4: Check if PR exists for this branch
+# STEP 4: Check the run's PR exists (by URL, falling back to the branch)
 # =============================================================================
 
-echo "Checking for PR on branch: $current_branch"
+pr_ref="${ADW_PR_URL:-$current_branch}"
+echo "Checking for PR: $pr_ref"
 
 # Try to get PR info (this will fail if no PR exists)
-pr_info=$(gh pr view "$current_branch" --json number,url,state,mergeable,title 2>&1) || {
-    echo "Error: No pull request found for branch '$current_branch'"
+pr_info=$(gh pr view "$pr_ref" --json number,url,state,mergeable,title 2>&1) || {
+    echo "Error: No pull request found for '$pr_ref'"
     echo "Create a PR first with: gh pr create"
     exit 1
 }
@@ -143,15 +137,6 @@ fi
 if [[ "$pr_mergeable" == "UNKNOWN" ]]; then
     echo "Note: PR mergeability is still being calculated by GitHub"
 fi
-
-# =============================================================================
-# STEP 8: Export environment variables for LLM context
-# =============================================================================
-
-export ADW_PR_NUMBER="$pr_number"
-export ADW_PR_URL="$pr_url"
-export ADW_PR_STATE="$pr_state"
-export ADW_PR_MERGEABLE="$pr_mergeable"
 
 echo ""
 echo "Ship phase pre-hook complete"

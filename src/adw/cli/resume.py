@@ -63,7 +63,7 @@ def resume(
         adw resume 01HQXK5P3Z...     # Resume specific run
         adw resume --from-phase build # Restart from build phase
     """
-    # Get verbosity from context (Story 7.2)
+    # Get verbosity from context
     verbosity = Verbosity.NORMAL
     if ctx.obj:
         verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
@@ -120,7 +120,7 @@ def resume(
         context.current_phase,
     )
 
-    # Show resume header (Story 6.2 Task 6)
+    # Show resume header
     run_display = RunDisplay(console)
     run_display.show_resume_header(
         run_id=context.run_id,
@@ -132,7 +132,7 @@ def resume(
     try:
         logger.debug("Creating orchestrator and starting resume")
 
-        # Create log manager with verbosity (Story 7.2)
+        # Create log manager with verbosity
         log_manager = create_log_manager(console, verbosity=verbosity)
         _ = log_manager  # Log manager created, integration with orchestrator pending
 

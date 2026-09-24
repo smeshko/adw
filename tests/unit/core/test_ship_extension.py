@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 import yaml
 from ulid import ULID
 
-from adw.commands import CommandResolver
+from adw.commands.resolver import CommandResolver
 from adw.core.extensions.ship import ShipExtension
 from adw.models import PhaseResult, RunContext
 from adw.models.command import ResolvedCommand, ShipCommandConfig, ShipCommandsConfig
