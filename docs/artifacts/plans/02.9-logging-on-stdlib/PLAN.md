@@ -1,6 +1,6 @@
 # Plan: Logging on stdlib with a redaction filter
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-25
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -82,7 +82,7 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Add a redacting logging filter and drop the test-only dict redaction
+- [x] TASK-001: Add a redacting logging filter and drop the test-only dict redaction
 - [ ] TASK-002: Add setup_logging with a Rich console handler and one live.log handler (depends on TASK-001)
 - [ ] TASK-003: Route run, resume and the executor through setup_logging and delete LogManager (depends on TASK-002)
 - [ ] TASK-004: Show DEBUG lines for adw -v run --dry-run (depends on TASK-003)

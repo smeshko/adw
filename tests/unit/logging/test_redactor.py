@@ -1,9 +1,15 @@
 """Tests for the secret redaction module."""
 
+import logging
+from collections.abc import Iterator
+
+import pytest
+
 from adw.logging.redactor import (
     DEFAULT_REDACTION_PATTERNS,
     REDACTED_PLACEHOLDER,
     SENSITIVE_ENV_PATTERNS,
+    RedactingFilter,
     Redactor,
     configure_redactor,
     get_redactor,
@@ -244,83 +250,62 @@ class TestRedactorEnvDict:
         assert result is not env
 
 
-class TestRedactorDeepRedaction:
-    """Tests for Redactor.redact_dict() method (deep redaction)."""
+class _Capture(logging.Handler):
+    """Stores each record as its handler formats it."""
 
-    def test_redacts_string_values(self) -> None:
-        """String values containing secrets are redacted."""
-        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
-        data = {"config": "Bearer secret123"}
-        result = redactor.redact_dict(data)
-        assert "secret123" not in result["config"]
-        assert REDACTED_PLACEHOLDER in result["config"]
+    def __init__(self) -> None:
+        super().__init__()
+        self.lines: list[str] = []
 
-    def test_redacts_nested_dicts(self) -> None:
-        """Nested dictionaries are recursively redacted."""
-        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
-        data = {"config": {"nested": {"api_key": "sk-" + "a" * 50}}}
-        result = redactor.redact_dict(data)
-        assert "sk-" not in str(result)
-        assert REDACTED_PLACEHOLDER in result["config"]["nested"]["api_key"]
+    def emit(self, record: logging.LogRecord) -> None:
+        self.lines.append(self.format(record))
 
-    def test_redacts_lists(self) -> None:
-        """Lists containing secrets are redacted."""
-        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
-        data = {"tokens": ["Bearer abc", "Bearer xyz"]}
-        result = redactor.redact_dict(data)
-        for item in result["tokens"]:
-            assert REDACTED_PLACEHOLDER in item
 
-    def test_redacts_nested_dicts_in_lists(self) -> None:
-        """Nested dictionaries within lists are recursively redacted."""
-        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
-        data = {
-            "items": [
-                {"api_key": "secret1", "name": "item1"},
-                {"password": "secret2", "name": "item2"},
-            ]
-        }
-        result = redactor.redact_dict(data)
-        assert result["items"][0]["api_key"] == REDACTED_PLACEHOLDER
-        assert result["items"][0]["name"] == "item1"
-        assert result["items"][1]["password"] == REDACTED_PLACEHOLDER
-        assert result["items"][1]["name"] == "item2"
+class TestRedactingFilter:
+    """Tests for RedactingFilter on a logging handler."""
 
-    def test_preserves_non_string_values(self) -> None:
-        """Non-string values are preserved."""
-        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
-        data = {"count": 42, "enabled": True, "ratio": 3.14}
-        result = redactor.redact_dict(data)
-        assert result["count"] == 42
-        assert result["enabled"] is True
-        assert result["ratio"] == 3.14
+    @pytest.fixture
+    def capture(self) -> Iterator[tuple[logging.Logger, _Capture]]:
+        logger = logging.getLogger("adw.test.redacting_filter")
+        handler = _Capture()
+        handler.addFilter(RedactingFilter(Redactor(DEFAULT_REDACTION_PATTERNS)))
+        logger.addHandler(handler)
+        try:
+            yield logger, handler
+        finally:
+            logger.removeHandler(handler)
 
-    def test_redacts_sensitive_keys(self) -> None:
-        """Keys matching sensitive env patterns have values redacted."""
-        redactor = Redactor([])
-        data = {"api_key": "any_value", "debug": "normal"}
-        result = redactor.redact_dict(data)
-        assert result["api_key"] == REDACTED_PLACEHOLDER
-        assert result["debug"] == "normal"
+    def test_redacts_formatted_message(
+        self, capture: tuple[logging.Logger, _Capture]
+    ) -> None:
+        """A secret passed as a %-arg is redacted after formatting."""
+        logger, handler = capture
+        logger.warning("key=%s", "sk-" + "a" * 24)
+        assert REDACTED_PLACEHOLDER in handler.lines[0]
+        assert "sk-aaaa" not in handler.lines[0]
 
-    def test_handles_mixed_nested_structure(self) -> None:
-        """Complex mixed structures are handled correctly."""
-        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
-        data = {
-            "settings": {
-                "api_key": "secret123",
-                "endpoints": ["https://api.example.com"],
-                "headers": {
-                    "Authorization": "Bearer token123",
-                },
-            },
-            "count": 5,
-        }
-        result = redactor.redact_dict(data)
-        assert result["settings"]["api_key"] == REDACTED_PLACEHOLDER
-        assert result["settings"]["endpoints"] == ["https://api.example.com"]
-        assert REDACTED_PLACEHOLDER in result["settings"]["headers"]["Authorization"]
-        assert result["count"] == 5
+    def test_redacts_exception_text(
+        self, capture: tuple[logging.Logger, _Capture]
+    ) -> None:
+        """A secret in a logged exception's traceback is redacted."""
+        logger, handler = capture
+        try:
+            raise ValueError("token=abcdefgh1234")
+        except ValueError:
+            logger.exception("failed")
+        assert "ValueError" in handler.lines[0]
+        assert REDACTED_PLACEHOLDER in handler.lines[0]
+        assert "abcdefgh1234" not in handler.lines[0]
+
+    def test_is_idempotent(self) -> None:
+        """Filtering a record twice changes nothing the second time."""
+        redacting = RedactingFilter(Redactor(DEFAULT_REDACTION_PATTERNS))
+        record = logging.makeLogRecord({"msg": "auth %s", "args": ("Bearer abc.def",)})
+        redacting.filter(record)
+        first = record.getMessage()
+        redacting.filter(record)
+        assert record.getMessage() == first
+        assert first.count(REDACTED_PLACEHOLDER) == 1
 
 
 class TestModuleFunctions:
