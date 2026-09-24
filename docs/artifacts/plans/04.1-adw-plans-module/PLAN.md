@@ -1,6 +1,6 @@
 # Plan: adw.plans: plan files in ADW
 
-Status: in-progress
+Status: done
 Branch: feature/adw-39
 Risk: medium
 Epic: 04 — Plan-driven runs ([epic](../../epics/04-plan-driven-runs.md))
@@ -90,12 +90,12 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 
 ## Acceptance Criteria
 
-- [ ] For the same title, risk and task list, `adw plan init/add-task/add-final` and the skill scripts produce identical trees once dates are normalised (and the final-validation link command mapped; see Decisions). Evidence: the golden CLI test, RED then GREEN, plus the fixture README's regeneration commands.
-- [ ] `adw plan tasks <slug>` and `mark_task_done` round-trip on a plan written by `/create-plan` in this repo. Evidence: the round-trip test on `tests/fixtures/plans/04.1-adw-plans-module/`, RED then GREEN.
-- [ ] `adw plan list` prints slug, status and title for every plan, archived ones excluded. Evidence: the list test, and the scratch-repo transcript.
-- [ ] `grep -rn "\.claude/skills" src/adw` returns nothing. Evidence: the grep output.
-- [ ] Lint and tests pass. Evidence: `scripts/preflight.sh` and the tail of `uv run pytest`, with coverage ≥ 80%.
-- [ ] A scratch-repo transcript of `adw plan init` → `add-task` ×2 → `add-final` → `tasks` → `list`, run with the worktree's `.venv/bin/adw`, is saved under `evidence/` and goes into the PR. Evidence: the transcript file.
+- [x] For the same title, risk and task list, `adw plan init/add-task/add-final` and the skill scripts produce identical trees once dates are normalised (and the final-validation link command mapped; see Decisions). Evidence: the golden CLI test, RED then GREEN, plus the fixture README's regeneration commands.
+- [x] `adw plan tasks <slug>` and `mark_task_done` round-trip on a plan written by `/create-plan` in this repo. Evidence: the round-trip test on `tests/fixtures/plans/04.1-adw-plans-module/`, RED then GREEN.
+- [x] `adw plan list` prints slug, status and title for every plan, archived ones excluded. Evidence: the list test, and the scratch-repo transcript.
+- [x] `grep -rn "\.claude/skills" src/adw` returns nothing. Evidence: the grep output.
+- [x] Lint and tests pass. Evidence: `scripts/preflight.sh` and the tail of `uv run pytest`, with coverage ≥ 80%.
+- [x] A scratch-repo transcript of `adw plan init` → `add-task` ×2 → `add-final` → `tasks` → `list`, run with the worktree's `.venv/bin/adw`, is saved under `evidence/` and goes into the PR. Evidence: the transcript file.
 
 ## Tasks
 
@@ -108,4 +108,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-004: Port epic linking and status, and add adw plan link (depends on TASK-001)
 - [x] TASK-005: Archive a plan and repair its relative links (depends on TASK-001)
 - [x] TASK-006: Document adw.plans for agents (depends on TASK-001,TASK-002,TASK-003,TASK-004,TASK-005)
-- [ ] TASK-007: Final Validation
+- [x] TASK-007: Final Validation

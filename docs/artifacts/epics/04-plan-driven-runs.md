@@ -51,7 +51,7 @@ No prompt changes here; Epic 05 rewrites the prompts. Runs stay fully autonomous
 
 ## Phase 4.1 — adw.plans: plan files in ADW
 
-**Plan**: [04.1-adw-plans-module](../plans/04.1-adw-plans-module/PLAN.md) · status: in-progress
+**Plan**: [04.1-adw-plans-module](../plans/04.1-adw-plans-module/PLAN.md) · status: done
 
 **Linear**: ADW-39 (https://linear.app/ivo-tsonev/issue/ADW-39)
 
@@ -73,11 +73,11 @@ No prompt changes here; Epic 05 rewrites the prompts. Runs stay fully autonomous
 
 ### Acceptance criteria
 
-- [ ] For the same title, risk and task list, `adw plan init/add-task/add-final` and the skill scripts produce identical trees once dates are normalised (golden-file test).
-- [ ] `adw plan tasks <slug>` and `mark_task_done` round-trip on a plan written by `/create-plan` in this repo.
-- [ ] `adw plan list` prints slug, status and title for every plan, archived ones excluded.
-- [ ] `grep -rn "\.claude/skills" src/adw` returns nothing.
-- [ ] Lint and tests pass.
+- [x] For the same title, risk and task list, `adw plan init/add-task/add-final` and the skill scripts produce identical trees once dates are normalised (golden-file test).
+- [x] `adw plan tasks <slug>` and `mark_task_done` round-trip on a plan written by `/create-plan` in this repo.
+- [x] `adw plan list` prints slug, status and title for every plan, archived ones excluded.
+- [x] `grep -rn "\.claude/skills" src/adw` returns nothing.
+- [x] Lint and tests pass.
 
 ### Validation
 
