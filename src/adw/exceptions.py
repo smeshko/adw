@@ -134,14 +134,13 @@ class WorktreeError(ADWError):
     """Exception for worktree operation failures.
 
     Used when git worktree creation, removal, or management fails, and when
-    a run cannot get ports or a concurrent-run slot.
+    a run cannot get a concurrent-run slot.
 
     Common error codes:
     - BRANCH_EXISTS: The target branch already exists
     - WORKTREE_PATH_EXISTS: The worktree directory already exists
     - WORKTREE_NOT_FOUND: The worktree doesn't exist
     - WORKTREE_HAS_CHANGES: Worktree has uncommitted changes
-    - PORT_ALLOCATION_FAILED: No free port slot after the allowed attempts
     - MAX_CONCURRENT_REACHED: The concurrent-run limit is reached
     """
 
