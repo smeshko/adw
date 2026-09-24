@@ -44,7 +44,6 @@ class WizardStep(Enum):
     TASK_MANAGER = "task_manager"
     PHASES = "phases"
     # Note: SHIP step removed - ship phase config is now part of PHASES step
-    LLM_RETRY = "llm_retry"
     WEBHOOKS = "webhooks"
     SUMMARY = "summary"
 
@@ -70,7 +69,6 @@ class WizardFlowController:
         WizardStep.TASK_MANAGER,
         WizardStep.PHASES,
         # Note: SHIP removed - ship config is part of PHASES step
-        WizardStep.LLM_RETRY,
         WizardStep.WEBHOOKS,
         WizardStep.SUMMARY,
     ]
@@ -82,7 +80,6 @@ class WizardFlowController:
         WizardStep.TASK_MANAGER: "Task Manager Integration",
         WizardStep.PHASES: "Phase Configuration",
         # Note: SHIP removed - ship config is part of PHASES step
-        WizardStep.LLM_RETRY: "LLM Retry Settings",
         WizardStep.WEBHOOKS: "Webhook Configuration",
         WizardStep.SUMMARY: "Configuration Summary",
     }

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic_core import PydanticUndefined
 
-from adw.models.config import DEFAULT_STATE_MAPPING
+from adw.models.config import DEFAULT_STATE_MAPPING, RetryConfig
 
 if TYPE_CHECKING:
     from adw.config.registry import ConfigRegistry, SettingDefinition
@@ -122,7 +122,6 @@ class YAMLWithComments:
         basics = state.get_step_config("basics")
         git = state.get_step_config("git")
         task_manager = state.get_step_config("task_manager")
-        llm_retry = state.get_step_config("llm_retry")
         webhooks = state.get_step_config("webhooks")
 
         # === Core Settings ===
@@ -185,21 +184,14 @@ class YAMLWithComments:
 
         # === LLM Configuration ===
         lines.append("# === LLM Configuration ===")
-        retry_custom = llm_retry.get("retry_custom", False)
-
-        if retry_custom:
-            lines.append("llm:")
-            lines.append('  # path: "claude"  # Path to Claude Code executable')
-            lines.append("  retry:")
-            lines.append(f"    max_retries: {llm_retry.get('retry_max_retries', 3)}")
-            base_delay = llm_retry.get("retry_base_delay", 1.0)
-            lines.append(f"    base_delay_seconds: {base_delay}")
-            max_delay = llm_retry.get("retry_max_delay", 60.0)
-            lines.append(f"    max_delay_seconds: {max_delay}")
-            lines.append(f"    multiplier: {llm_retry.get('retry_multiplier', 2.0)}")
-        else:
-            lines.append("# llm:")
-            lines.append('#   path: "claude"  # Path to Claude Code executable')
+        lines.append("# llm:")
+        lines.append('#   path: "claude"  # Path to Claude Code executable')
+        lines.append("#   retry:")
+        for field_name, field in RetryConfig.model_fields.items():
+            lines.append(
+                f"#     {field_name}: {_format_yaml_value(field.default)}"
+                f"  # {field.description}"
+            )
 
         lines.append("")
 

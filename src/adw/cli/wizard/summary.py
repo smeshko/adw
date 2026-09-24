@@ -177,7 +177,6 @@ def generate_summary_panel(state: WizardState) -> Panel:
     task_manager = state.get_step_config("task_manager")
     phases = state.get_step_config("phases")
     ship = state.get_step_config("ship")
-    llm_retry = state.get_step_config("llm_retry")
     webhooks = state.get_step_config("webhooks")
 
     # Basics section
@@ -237,17 +236,6 @@ def generate_summary_panel(state: WizardState) -> Panel:
         lines.append(f"[cyan]Ship:[/] {'; '.join(parts)}")
     else:
         lines.append("[dim]Ship:[/] Default (no commands, manual merge)")
-
-    # LLM Retry section
-    # Retry step returns: retry_custom, retry_max_retries, retry_base_delay, etc.
-    if llm_retry.get("retry_custom", False):
-        max_retries = llm_retry.get("retry_max_retries", 3)
-        base_delay = llm_retry.get("retry_base_delay", 1.0)
-        lines.append(
-            f"[cyan]LLM Retry:[/] Custom ({max_retries} retries, {base_delay}s base)"
-        )
-    else:
-        lines.append("[dim]LLM Retry:[/] Default")
 
     # Webhooks section
     if webhooks.get("enabled", False):

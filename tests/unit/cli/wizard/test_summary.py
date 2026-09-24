@@ -40,7 +40,6 @@ class TestSummaryPanelGeneration:
             "git": {},
             "task_manager": {},
             "phases": {},
-            "llm_retry": {},
             "webhooks": {},
         }
 
@@ -78,11 +77,6 @@ class TestSummaryPanelGeneration:
                     "merge_method": "squash",
                 },
             },
-            "llm_retry": {
-                "retry_custom": True,
-                "retry_max_retries": 5,
-                "retry_base_delay": 2.0,
-            },
             "webhooks": {"enabled": True, "providers": {"linear": {"enabled": True}}},
         }
 
@@ -104,7 +98,6 @@ class TestSummaryPanelGeneration:
         assert "Linear" in output.title() or "linear" in output.lower()
         assert "Phases:" in output
         assert "Ship:" in output
-        assert "LLM Retry:" in output
         assert "Security:" not in output
         assert "Webhooks:" in output
 
@@ -125,7 +118,6 @@ class TestSummaryPanelGeneration:
                     "merge_method": "squash",
                 },
             },
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
@@ -151,7 +143,6 @@ class TestSummaryPanelGeneration:
                 "phases": {"plan": {"enabled": True}, "build": {"enabled": True}},
             },
             "ship": {"enabled": True, "commands": {}, "pr": {}},
-            "llm_retry": {},
             "webhooks": {},
         }
 
@@ -179,7 +170,6 @@ class TestProjectYamlGeneration:
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
@@ -203,7 +193,6 @@ class TestProjectYamlGeneration:
             },
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
@@ -223,7 +212,6 @@ class TestProjectYamlGeneration:
                 "git_branch_prefix": "feat/",
             },
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
@@ -239,7 +227,6 @@ class TestProjectYamlGeneration:
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
@@ -261,7 +248,6 @@ class TestProjectYamlGeneration:
                 "team_key": "RULE",
                 "sync_comments": True,
             },
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
@@ -271,31 +257,6 @@ class TestProjectYamlGeneration:
         assert config["task_manager"]["type"] == "linear"
         assert config["task_manager"]["team_key"] == "RULE"
         assert config["task_manager"]["sync_comments"] is True
-
-    def test_generate_project_yaml_with_llm_retry(self) -> None:
-        """Test project.yaml includes LLM retry when customized."""
-        state = WizardState()
-        state.collected_config = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {
-                "retry_custom": True,
-                "retry_max_retries": 5,
-                "retry_base_delay": 2.0,
-                "retry_max_delay": 120.0,
-                "retry_multiplier": 3.0,
-            },
-            "webhooks": {"enabled": False},
-        }
-
-        yaml_content = generate_project_yaml(state)
-        config = yaml.safe_load(yaml_content)
-
-        assert config["llm"]["retry"]["max_retries"] == 5
-        assert config["llm"]["retry"]["base_delay_seconds"] == 2.0
-        assert config["llm"]["retry"]["max_delay_seconds"] == 120.0
-        assert config["llm"]["retry"]["multiplier"] == 3.0
 
     def test_generate_project_yaml_ship_moved_to_phase_config(self) -> None:
         """Test project.yaml omits ship, which lives in the phase config.
@@ -321,7 +282,6 @@ class TestProjectYamlGeneration:
                     "merge_method": "squash",
                 },
             },
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
@@ -351,7 +311,6 @@ class TestProjectYamlGeneration:
                     "merge_method": "squash",
                 },
             },
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
@@ -367,7 +326,6 @@ class TestProjectYamlGeneration:
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {
                 "enabled": True,
                 "port": 9000,
@@ -398,7 +356,6 @@ class TestProjectYamlGeneration:
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
@@ -663,7 +620,6 @@ class TestRunSummaryStep:
                 "git": {},
                 "task_manager": {"enabled": False, "type": "none"},
                 "phases": {"customized": False, "phases": {}},
-                "llm_retry": {"retry_custom": False},
                 "webhooks": {"enabled": False},
             }
 
@@ -688,7 +644,6 @@ class TestRunSummaryStep:
             "git": {},
             "task_manager": {},
             "phases": {},
-            "llm_retry": {},
             "webhooks": {},
         }
 
@@ -711,7 +666,6 @@ class TestRunSummaryStep:
             "git": {},
             "task_manager": {},
             "phases": {},
-            "llm_retry": {},
             "webhooks": {},
         }
 
@@ -740,7 +694,6 @@ class TestSummaryStepHandler:
                 "git": {},
                 "task_manager": {"enabled": False, "type": "none"},
                 "phases": {"customized": False, "phases": {}},
-                "llm_retry": {"retry_custom": False},
                 "webhooks": {"enabled": False},
             }
 
