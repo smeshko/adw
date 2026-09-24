@@ -75,7 +75,7 @@ def list_runs(
 
     Use --global to show all runs across all projects.
     Use --project to filter global view to current project.
-    Use --running to show only currently executing runs with worktree and port info.
+    Use --running to show only currently executing runs with their worktree.
 
     Examples:
         adw list                       # List 10 most recent
@@ -84,7 +84,7 @@ def list_runs(
         adw list --global              # List all runs from global index
         adw list --project             # Filter to current project
         adw list --json                # JSON output for scripting
-        adw list --running             # Show active runs with ports
+        adw list --running             # Show active runs
     """
     # Validate status filter
     if status and status not in VALID_STATUSES:
@@ -335,8 +335,7 @@ def _output_json_list(runs: list[RunContext]) -> None:
 def _list_running_runs(json_output: bool) -> None:
     """List currently active runs from lock files.
 
-    Shows active runs with their worktree paths, allocated ports,
-    and elapsed time since start.
+    Shows active runs with their worktree paths and elapsed time since start.
 
     Args:
         json_output: Whether to output as JSON.
@@ -370,7 +369,6 @@ def _display_running_runs(
     table = Table(title=f"Active Runs ({len(active_runs)} of {max_concurrent})")
     table.add_column("Run ID", style="cyan", no_wrap=True)
     table.add_column("Elapsed", style="green")
-    table.add_column("Ports", style="yellow")
     table.add_column("Worktree", style="dim", max_width=40)
 
     now = datetime.now(UTC)
@@ -380,14 +378,6 @@ def _display_running_runs(
         elapsed = now - run.start_time
         elapsed_str = _format_elapsed(elapsed.total_seconds())
 
-        # Format ports
-        ports = []
-        if run.backend_port:
-            ports.append(str(run.backend_port))
-        if run.frontend_port:
-            ports.append(str(run.frontend_port))
-        ports_str = "/".join(ports) if ports else "-"
-
         # Truncate worktree path for display
         worktree_str = str(run.worktree_path)
         if len(worktree_str) > 40:
@@ -396,7 +386,6 @@ def _display_running_runs(
         table.add_row(
             run.run_id,
             elapsed_str,
-            ports_str,
             worktree_str,
         )
 
@@ -449,8 +438,6 @@ def _output_json_running(
                 "start_time": run.start_time.isoformat(),
                 "elapsed_seconds": elapsed.total_seconds(),
                 "worktree_path": str(run.worktree_path),
-                "backend_port": run.backend_port,
-                "frontend_port": run.frontend_port,
             }
         )
 

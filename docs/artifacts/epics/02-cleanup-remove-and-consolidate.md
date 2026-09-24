@@ -78,7 +78,7 @@ Include `adw validate` against a copy of a `project.yaml` that has a `security:`
 
 ## Phase 2.2 — Remove port allocation
 
-**Plan**: [02.2-remove-port-allocation](../plans/02.2-remove-port-allocation/PLAN.md) · status: planned
+**Plan**: [02.2-remove-port-allocation](../plans/02.2-remove-port-allocation/PLAN.md) · status: in-progress
 
 **Linear**: ADW-18 (https://linear.app/ivo-tsonev/issue/ADW-18)
 
