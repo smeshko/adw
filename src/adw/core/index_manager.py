@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from adw.exceptions import StateError
+from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
 
 if TYPE_CHECKING:
@@ -74,7 +75,7 @@ class IndexManager:
     def register_run(self, context: "RunContext", project_path: Path) -> None:
         """Register a new run in the index.
 
-        Creates a new index entry with status='running' and appends it
+        Creates a new RunStatus.RUNNING index entry and appends it
         to the index file. Creates the index file and parent directories
         if they don't exist. Triggers archival if index exceeds threshold.
 
@@ -96,7 +97,7 @@ class IndexManager:
             feature_description=context.feature_description,
             started_at=context.started_at,
             completed_at=None,
-            status="running",
+            status=RunStatus.RUNNING,
             phase_reached=context.current_phase,
             phases_completed=list(context.phase_history),
         )
@@ -141,8 +142,11 @@ class IndexManager:
         found = False
         for i, entry in enumerate(entries):
             if entry.run_id == run_id:
-                # Create updated entry using model_copy
-                entries[i] = entry.model_copy(update=updates)
+                # Validate, unlike model_copy: a plain "completed" becomes a
+                # RunStatus, and an unknown value raises instead of being written
+                entries[i] = IndexEntry.model_validate(
+                    {**entry.model_dump(), **updates}
+                )
                 found = True
                 break
 

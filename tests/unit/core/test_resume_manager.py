@@ -20,6 +20,7 @@ from adw.core.resume_manager import ResumeManager
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ConfigError, StateError
 from adw.models import RunContext
+from adw.models.context import RunStatus
 
 # Valid 26-character ULIDs for testing (Crockford Base32 - no I,L,O,U)
 SAMPLE_RUN_ID = "01HQTEST1234567890ABCDEF12"
@@ -122,7 +123,7 @@ class TestCanResume:
         self, resume_manager: ResumeManager, sample_context: RunContext
     ) -> None:
         """Failed run can be resumed."""
-        failed = sample_context.model_copy(update={"status": "failed"})
+        failed = sample_context.model_copy(update={"status": RunStatus.FAILED})
         assert resume_manager.can_resume(failed) is True
 
     def test_completed_cannot_resume(
@@ -285,7 +286,7 @@ class TestGetResumePhase:
             update={
                 # ship is the 5th phase
                 "phase_history": ["plan", "build", "validate", "document", "ship"],
-                "status": "running",  # Not completed status but all phases done
+                "status": RunStatus.RUNNING,  # Not completed status but all phases done
             }
         )
         assert resume_manager.get_resume_phase(all_done) is None
@@ -345,7 +346,7 @@ class TestPrepareForResume:
             update={
                 "phase_history": ["plan", "build"],
                 "current_phase": "validate",
-                "status": "failed",
+                "status": RunStatus.FAILED,
             }
         )
 

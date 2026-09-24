@@ -12,9 +12,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from adw.core.index_manager import IndexManager
-from adw.models import RunContext
+from adw.models import RunContext, RunStatus
 
 
 class TestIndexManagerInit:
@@ -129,6 +130,21 @@ class TestUpdateRun:
 
         entries = manager.get_recent_runs(limit=10)
         assert entries[0].status == "completed"
+
+    def test_update_run_validates_status(self, tmp_path: Path) -> None:
+        """A string status is stored as a RunStatus; an unknown one is refused."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        context = _create_test_context()
+        manager.register_run(context, Path("/test/project"))
+
+        manager.update_run(context.run_id, status="completed")
+        assert manager.get_recent_runs(limit=10)[0].status is RunStatus.COMPLETED
+
+        before = index_path.read_text()
+        with pytest.raises(ValidationError):
+            manager.update_run(context.run_id, status="paused")
+        assert index_path.read_text() == before
 
     def test_updates_completed_at(self, tmp_path: Path) -> None:
         """Test updating completed_at timestamp."""

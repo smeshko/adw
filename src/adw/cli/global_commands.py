@@ -16,6 +16,7 @@ from rich.table import Table
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
 from adw.core.stats_aggregator import StatsAggregator
+from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
 from adw.models.stats import GlobalStatistics
 
@@ -25,9 +26,6 @@ global_app = typer.Typer(
     name="global",
     help="Cross-project commands for viewing runs across all projects",
 )
-
-# Valid status values for filtering (consistent with list.py)
-VALID_STATUSES = frozenset({"running", "completed", "failed", "interrupted", "aborted"})
 
 
 def parse_duration(duration_str: str) -> datetime:
@@ -283,9 +281,9 @@ def list_runs(
         adw global list --json                    # JSON output
     """
     # Validate status filter
-    if status and status not in VALID_STATUSES:
+    if status and status not in RunStatus:
         console.print(f"[red]Error:[/] Invalid status: {status}")
-        console.print(f"Valid values: {', '.join(sorted(VALID_STATUSES))}")
+        console.print(f"Valid values: {', '.join(RunStatus)}")
         raise typer.Exit(code=1)
 
     # Validate --since if provided
@@ -748,7 +746,7 @@ def _is_stale_running(
     Returns:
         True if the entry is stale.
     """
-    if entry.status != "running":
+    if entry.status != RunStatus.RUNNING:
         return False
 
     elapsed = datetime.now(UTC) - entry.started_at
@@ -856,7 +854,7 @@ def clean_command(
         if stale and _is_stale_running(entry, stale_hours):
             stale_running.append(entry)
             # Mark as interrupted and keep it
-            updated_entry = entry.model_copy(update={"status": "interrupted"})
+            updated_entry = entry.model_copy(update={"status": RunStatus.INTERRUPTED})
             entries_to_keep.append(updated_entry)
             continue
 

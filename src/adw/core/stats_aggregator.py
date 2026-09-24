@@ -14,6 +14,7 @@ from typing import Any
 
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
+from adw.models.context import RunStatus
 from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 
 logger = logging.getLogger(__name__)
@@ -437,8 +438,8 @@ class StatsAggregator:
         runs_this_week = sum(1 for e in entries if e.started_at >= week_ago)
         runs_today = sum(1 for e in entries if e.started_at >= today_start)
 
-        completed_runs = sum(1 for e in entries if e.status == "completed")
-        failed_runs = sum(1 for e in entries if e.status == "failed")
+        completed_runs = sum(1 for e in entries if e.status == RunStatus.COMPLETED)
+        failed_runs = sum(1 for e in entries if e.status == RunStatus.FAILED)
 
         # Calculate success rate
         finished_runs = completed_runs + failed_runs
@@ -447,7 +448,7 @@ class StatsAggregator:
         # Calculate average duration for completed runs
         durations = []
         for e in entries:
-            if e.status == "completed" and e.completed_at:
+            if e.status == RunStatus.COMPLETED and e.completed_at:
                 elapsed = e.completed_at - e.started_at
                 duration_ms = int(elapsed.total_seconds() * 1000)
                 durations.append(duration_ms)
@@ -460,8 +461,10 @@ class StatsAggregator:
         ]
         previous_week_total_runs = len(prev_week_entries)
 
-        prev_completed = sum(1 for e in prev_week_entries if e.status == "completed")
-        prev_failed = sum(1 for e in prev_week_entries if e.status == "failed")
+        prev_completed = sum(
+            1 for e in prev_week_entries if e.status == RunStatus.COMPLETED
+        )
+        prev_failed = sum(1 for e in prev_week_entries if e.status == RunStatus.FAILED)
         prev_finished = prev_completed + prev_failed
         previous_week_success_rate = (
             round(prev_completed / prev_finished, 3) if prev_finished > 0 else 0.0
@@ -469,7 +472,7 @@ class StatsAggregator:
 
         prev_durations = []
         for e in prev_week_entries:
-            if e.status == "completed" and e.completed_at:
+            if e.status == RunStatus.COMPLETED and e.completed_at:
                 elapsed = e.completed_at - e.started_at
                 prev_durations.append(int(elapsed.total_seconds() * 1000))
         previous_week_average_duration_ms = (
@@ -520,9 +523,9 @@ class StatsAggregator:
 
             proj = project_stats[proj_name]
             proj.total_runs += 1
-            if entry.status == "completed":
+            if entry.status == RunStatus.COMPLETED:
                 proj.completed_runs += 1
-            elif entry.status == "failed":
+            elif entry.status == RunStatus.FAILED:
                 proj.failed_runs += 1
 
             proj.tokens = TokenUsage(

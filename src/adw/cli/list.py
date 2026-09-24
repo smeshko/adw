@@ -16,14 +16,12 @@ from adw.cli.list_display import ListDisplay
 from adw.core.index_manager import IndexManager
 from adw.core.run_lookup import RunLookup
 from adw.models import RunContext
+from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
 from adw.worktree import ConcurrentRunManager
 from adw.worktree.concurrent import ActiveRun
 
 console = Console()
-
-# Valid status values for filtering
-VALID_STATUSES = frozenset({"running", "completed", "failed", "interrupted", "aborted"})
 
 
 def list_runs(
@@ -87,9 +85,9 @@ def list_runs(
         adw list --running             # Show active runs
     """
     # Validate status filter
-    if status and status not in VALID_STATUSES:
+    if status and status not in RunStatus:
         console.print(f"[red]Error:[/] Invalid status: {status}")
-        console.print(f"Valid values: {', '.join(sorted(VALID_STATUSES))}")
+        console.print(f"Valid values: {', '.join(RunStatus)}")
         raise typer.Exit(code=1)
 
     # Handle --running flag: show active runs from lock files

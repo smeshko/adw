@@ -26,6 +26,7 @@ from adw.dashboard.dependencies import (
     validate_csrf,
 )
 from adw.exceptions import StateError
+from adw.models.context import RunStatus
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -228,7 +229,7 @@ async def abort_run(
         )
 
     # Validate run is active
-    if run_entry.status != "running":
+    if run_entry.status != RunStatus.RUNNING:
         return HTMLResponse(
             content=(
                 '<p class="text-error text-sm">'
@@ -256,7 +257,7 @@ async def abort_run(
             status_code=500,
         )
 
-    if context.status != "running":
+    if context.status != RunStatus.RUNNING:
         return HTMLResponse(
             content=(
                 '<p class="text-error text-sm">'
@@ -282,14 +283,14 @@ async def abort_run(
         )
 
     # Update the index entry to reflect the abort
-    run_entry.status = "aborted"  # type: ignore[assignment]
+    run_entry.status = RunStatus.ABORTED
     run_entry.completed_at = aborted_ctx.completed_at  # type: ignore[assignment]
 
     # Persist the status change to the global index
     try:
         index_manager.update_run(
             run_id,
-            status="aborted",
+            status=RunStatus.ABORTED,
             completed_at=aborted_ctx.completed_at,
         )
     except (StateError, OSError):

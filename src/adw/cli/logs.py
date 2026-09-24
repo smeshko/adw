@@ -22,6 +22,7 @@ from rich.syntax import Syntax
 from ulid import ULID
 
 from adw.core.constants import CONTEXT_FILE, LIVE_LOG, project_runs_dir
+from adw.models.context import RunStatus
 
 console = Console()
 
@@ -578,7 +579,7 @@ def logs_follow(
             pass
 
     # If run is not active and not replay mode, inform user
-    if run_status not in ("running", "") and not replay:
+    if run_status not in (RunStatus.RUNNING, "") and not replay:
         console.print(f"[yellow]Run is not active (status: {run_status})[/]")
         if live_log.exists():
             console.print("[dim]Use --replay to view the complete log[/]\n")
@@ -602,7 +603,7 @@ def logs_follow(
         with open(live_log, encoding="utf-8") as f:
             # For replay mode or completed runs, start from beginning
             # For active runs, skip to end and follow
-            if not replay and run_status in ("running", ""):
+            if not replay and run_status in (RunStatus.RUNNING, ""):
                 f.seek(0, 2)  # Seek to end
 
             # Create renderer to track state and accumulate LLM content
@@ -619,7 +620,7 @@ def logs_follow(
                         try:
                             context = json.loads(context_file.read_text())
                             status = context.get("status", "")
-                            if status not in ("running", ""):
+                            if status not in (RunStatus.RUNNING, ""):
                                 console.print(
                                     f"\n[green]Run completed (status: {status})[/]"
                                 )

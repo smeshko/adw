@@ -25,6 +25,7 @@ from adw.cli.unregister import unregister as unregister_command
 from adw.cli.validate_config import validate_config_command
 from adw.cli.validators import validate_phase
 from adw.config.loader import ConfigLoader
+from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ADWError, ConfigError
 from adw.logging import setup_logging
 from adw.models.config import ProjectConfig
@@ -175,7 +176,7 @@ def run(
         None,
         "--phase",
         "-p",
-        help="Execute single phase only (plan, build, validate, document)",
+        help=f"Execute single phase only ({', '.join(PHASE_SEQUENCE)})",
         callback=validate_phase,
     ),
     from_run: str | None = typer.Option(

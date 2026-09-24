@@ -19,6 +19,7 @@ from adw.core.resume_manager import ResumeManager
 from adw.core.run_lookup import RunLookup
 from adw.core.snapshot_manager import SnapshotManager
 from adw.models import RunContext
+from adw.models.context import RunStatus
 
 
 @pytest.fixture
@@ -111,7 +112,7 @@ class TestInterruptionHandlerIntegration:
         # 2. Manually simulate an interrupt by creating interrupted context
         interrupted_context = sample_context.model_copy(
             update={
-                "status": "interrupted",
+                "status": RunStatus.INTERRUPTED,
                 "interrupted_phase": "build",
                 "interrupted_at": datetime.now(UTC),
                 "phase_history": ["plan"],
@@ -170,7 +171,7 @@ class TestInterruptionHandlerIntegration:
         # Create an interrupt snapshot (simulating what happens on SIGINT)
         interrupted_context = sample_context.model_copy(
             update={
-                "status": "interrupted",
+                "status": RunStatus.INTERRUPTED,
                 "interrupted_phase": "build",
             }
         )
@@ -351,7 +352,7 @@ class TestResumeFromSnapshot:
         # Simulate interruption during build
         interrupted = context_after_plan.model_copy(
             update={
-                "status": "interrupted",
+                "status": RunStatus.INTERRUPTED,
                 "interrupted_phase": "build",
             }
         )

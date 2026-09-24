@@ -14,6 +14,7 @@ from rich.table import Table
 
 from adw.core.constants import PHASE_SEQUENCE
 from adw.models import RunContext
+from adw.models.context import RunStatus
 
 __all__ = ["StatusDisplay", "output_json"]
 
@@ -101,7 +102,7 @@ class StatusDisplay:
         self.console.print(Panel(table, title="Run Status", border_style=status_color))
 
         # Show failure details
-        if context.status == "failed":
+        if context.status == RunStatus.FAILED:
             self._show_failure_details(context)
 
     def _show_failure_details(self, context: RunContext) -> None:

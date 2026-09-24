@@ -26,6 +26,7 @@ from adw.core.context_manager import ContextManager
 from adw.core.pr import create_pr, generate_pr_title, load_pr_description
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ADWError
+from adw.models.context import RunStatus
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +173,7 @@ def pr(
             raise typer.Exit(1)
 
     # Check run is complete
-    if context.status not in ("completed",):
+    if context.status != RunStatus.COMPLETED:
         console.print(
             Panel(
                 f"[red]Run is not complete[/]\n\n"

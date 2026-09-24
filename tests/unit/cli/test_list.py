@@ -12,7 +12,7 @@ import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
-from adw.cli.list import VALID_STATUSES, _get_runs_dir
+from adw.cli.list import _get_runs_dir
 from adw.models import RunContext
 
 
@@ -228,15 +228,6 @@ class TestListCommand:
             # Test -s for --status
             result = runner.invoke(app, ["list", "-s", "completed"])
             assert result.exit_code == 0
-
-
-class TestValidStatuses:
-    """Tests for valid status constants."""
-
-    def test_valid_statuses_contains_expected_values(self) -> None:
-        """Test that VALID_STATUSES contains all expected values."""
-        expected = {"running", "completed", "failed", "interrupted", "aborted"}
-        assert expected == VALID_STATUSES
 
 
 class TestGetRunsDir:

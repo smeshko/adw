@@ -11,6 +11,7 @@ from rich.prompt import Confirm
 from adw.cli.bootstrap import get_runs_dir
 from adw.core import ContextManager, InterruptionHandler, SnapshotManager
 from adw.exceptions import ConfigError, StateError
+from adw.models.context import RunStatus
 
 console = Console()
 
@@ -54,7 +55,7 @@ def abort_command(
         raise
 
     # Check if already aborted
-    if context.status == "aborted":
+    if context.status == RunStatus.ABORTED:
         raise ConfigError(
             code="RUN_ALREADY_ABORTED",
             message=f"Run {run_id} is already aborted",
@@ -63,7 +64,7 @@ def abort_command(
         )
 
     # Validate run is active
-    if context.status != "running":
+    if context.status != RunStatus.RUNNING:
         raise ConfigError(
             code="RUN_NOT_ACTIVE",
             message=f"Run is not active (status: {context.status})",

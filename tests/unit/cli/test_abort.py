@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 from adw.cli.app import app
 from adw.exceptions import StateError
 from adw.models import RunContext
+from adw.models.context import RunStatus
 
 
 @pytest.fixture
@@ -63,7 +64,9 @@ class TestAbortCommand:
         sample_context: RunContext,
     ) -> None:
         """Test abort fails when run is not active."""
-        completed_context = sample_context.model_copy(update={"status": "completed"})
+        completed_context = sample_context.model_copy(
+            update={"status": RunStatus.COMPLETED}
+        )
 
         with patch("adw.cli.abort.get_runs_dir") as mock_runs_dir:
             mock_runs_dir.return_value = Path("/tmp/runs")

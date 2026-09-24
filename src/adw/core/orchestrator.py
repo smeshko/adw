@@ -35,6 +35,7 @@ from adw.models import (
     TaskManagerConfig,
     WorktreeConfig,
 )
+from adw.models.context import RunStatus
 from adw.models.phase import PhaseResult
 from adw.models.task import TaskInfo
 from adw.worktree import ConcurrentRunManager
@@ -403,7 +404,7 @@ class Orchestrator:
             # Mark as completed
             context = context.model_copy(
                 update={
-                    "status": "completed",
+                    "status": RunStatus.COMPLETED,
                     "completed_at": datetime.now(UTC),
                 }
             )
@@ -412,7 +413,7 @@ class Orchestrator:
             # Update global index on completion
             self.index_manager.update_run(
                 context.run_id,
-                status="completed",
+                status=RunStatus.COMPLETED,
                 completed_at=context.completed_at,
                 phase_reached=context.current_phase,
                 phases_completed=list(context.phase_history),
@@ -607,7 +608,7 @@ class Orchestrator:
         # Prepare context for continuation
         context = context.model_copy(
             update={
-                "status": "running",
+                "status": RunStatus.RUNNING,
                 "current_phase": phase,
             }
         )
@@ -636,7 +637,7 @@ class Orchestrator:
             # Mark as completed
             context = context.model_copy(
                 update={
-                    "status": "completed",
+                    "status": RunStatus.COMPLETED,
                     "completed_at": datetime.now(UTC),
                 }
             )
@@ -645,7 +646,7 @@ class Orchestrator:
             # Update global index on completion
             self.index_manager.update_run(
                 context.run_id,
-                status="completed",
+                status=RunStatus.COMPLETED,
                 completed_at=context.completed_at,
                 phase_reached=context.current_phase,
                 phases_completed=list(context.phase_history),

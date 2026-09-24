@@ -27,6 +27,7 @@ from adw.dashboard.dependencies import (
 )
 from adw.dashboard.settings import settings_context
 from adw.exceptions import StateError
+from adw.models.context import RunStatus
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -73,7 +74,7 @@ async def status_bar(
     templates: Jinja2Templates = request.app.state.templates
 
     # Get active run count
-    active_runs = index_manager.get_recent_runs(status="running")
+    active_runs = index_manager.get_recent_runs(status=RunStatus.RUNNING)
     active_run_count = len(active_runs)
 
     # Get last updated timestamp from most recent run
@@ -340,7 +341,6 @@ def build_analytics_context(
             )
 
     # ── Phase breakdown ──
-    canonical_phases = ["plan", "build", "validate", "document", "ship"]
     phase_display = {
         "plan": "Plan",
         "build": "Build",
@@ -354,8 +354,8 @@ def build_analytics_context(
             project_name=project_name,
             since=since,
         )
-        phase_total = sum(phase_data.get(p, 0) for p in canonical_phases)
-        for phase_key in canonical_phases:
+        phase_total = sum(phase_data.get(p, 0) for p in PHASE_SEQUENCE)
+        for phase_key in PHASE_SEQUENCE:
             tokens_val = phase_data.get(phase_key, 0)
             if tokens_val > 0:
                 pct = int((tokens_val / phase_total) * 100) if phase_total > 0 else 0
@@ -653,22 +653,22 @@ def _build_phase_pipeline(
         current_phase: The currently active phase name.
 
     Returns:
-        List of dicts with 'name' (display label) and 'status'
-        ('completed', 'active', or 'pending') for each phase.
+        List of dicts with 'name' (display label) and 'status' for each
+        phase: completed, active or pending.
     """
     completed_set = set(phases_completed)
     pipeline: list[dict[str, str]] = []
     for phase in PHASE_SEQUENCE:
         if phase in completed_set:
-            status = "completed"
+            phase_status = "completed"
         elif phase == current_phase:
-            status = "active"
+            phase_status = "active"
         else:
-            status = "pending"
+            phase_status = "pending"
         pipeline.append(
             {
                 "name": _PHASE_LABELS.get(phase, phase.capitalize()),
-                "status": status,
+                "status": phase_status,
             }
         )
     return pipeline
@@ -685,7 +685,7 @@ def _load_active_run_details(
     if the RunContext cannot be loaded.
 
     Args:
-        entries: List of IndexEntry objects with status="running".
+        entries: List of IndexEntry objects for RunStatus.RUNNING runs.
         name_map: Optional mapping of project_path -> display_name.
 
     Returns:
@@ -751,7 +751,7 @@ async def active_runs_partial(
     project_name = project or None
     project_path_str, _ = resolve_project_filter(project_registry, project_name)
     entries = index_manager.get_recent_runs(
-        status="running",
+        status=RunStatus.RUNNING,
         project_path=Path(project_path_str) if project_path_str else None,
     )
 
@@ -866,7 +866,7 @@ async def abort_modal(
         )
 
     # Validate run is active
-    if run_entry.status != "running":
+    if run_entry.status != RunStatus.RUNNING:
         return HTMLResponse(
             content=(
                 '<p class="text-error text-sm">'
@@ -884,7 +884,7 @@ async def abort_modal(
         ctx = cm.load(run_id)
         current_phase = ctx.current_phase
         # Verify live status in case index is stale
-        if ctx.status != "running":
+        if ctx.status != RunStatus.RUNNING:
             return HTMLResponse(
                 content=(
                     '<p class="text-error text-sm">'
@@ -946,7 +946,7 @@ async def terminal_mode(
         run_entry.project_name,
     )
 
-    is_active = run_entry.status == "running"
+    is_active = run_entry.status == RunStatus.RUNNING
 
     # Check if logs exist
     has_logs = False
@@ -1087,7 +1087,7 @@ async def focus_mode(
     )
 
     status = run_entry.status
-    is_active = status == "running"
+    is_active = status == RunStatus.RUNNING
     phases_completed = list(run_entry.phases_completed)
     current_phase = run_entry.phase_reached
 
@@ -1100,7 +1100,7 @@ async def focus_mode(
         current_phase = ctx.current_phase
         phases_completed = list(ctx.phase_history)
         status = ctx.status
-        is_active = status == "running"
+        is_active = status == RunStatus.RUNNING
     except (StateError, OSError):
         logger.debug(
             "RunContext unavailable for focus mode, using IndexEntry fallback",

@@ -20,6 +20,7 @@ from adw.core import (
     SnapshotManager,
 )
 from adw.models import RunContext
+from adw.models.context import RunStatus
 from adw.models.phase import PhaseResult, PhaseStatus
 
 
@@ -355,7 +356,7 @@ class TestResumeIntegration:
                 # Simulate what happens when interrupted
                 interrupted_context = context.model_copy(
                     update={
-                        "status": "interrupted",
+                        "status": RunStatus.INTERRUPTED,
                         "interrupted_phase": "build",
                     }
                 )

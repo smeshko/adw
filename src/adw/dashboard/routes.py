@@ -38,6 +38,7 @@ from adw.dashboard.dependencies import (
 )
 from adw.dashboard.settings import settings_context
 from adw.exceptions import StateError
+from adw.models.context import RunStatus
 from adw.models.stats import TokenUsage
 
 if TYPE_CHECKING:
@@ -51,6 +52,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Run statuses whose current phase shows as failed
+_FAILED_STATUSES = frozenset({RunStatus.FAILED, RunStatus.ABORTED})
 
 
 def _relative_time(dt: datetime | None) -> str:
@@ -95,7 +99,7 @@ def _build_page_context(
     try:
         project_path_str, _ = resolve_project_filter(project_registry, project)
         active_runs = index_manager.get_recent_runs(
-            status="running",
+            status=RunStatus.RUNNING,
             project_path=Path(project_path_str) if project_path_str else None,
         )
         active_run_count = len(active_runs)
@@ -202,7 +206,7 @@ async def overview(
             context["project_stats"] = all_stats.projects
 
             active_entries = index_manager.get_recent_runs(
-                status="running",
+                status=RunStatus.RUNNING,
                 project_path=Path(project_path_str) if project_path_str else None,
             )
             context["active_runs"] = _load_active_run_details(active_entries, name_map)
@@ -453,9 +457,9 @@ def _build_detail_phase_pipeline(
         if phase in completed_set:
             phase_status = "completed"
         elif phase == current_phase:
-            if status == "running":
+            if status == RunStatus.RUNNING:
                 phase_status = "active"
-            elif status in ("failed", "aborted"):
+            elif status in _FAILED_STATUSES:
                 phase_status = "failed"
             else:
                 # completed/interrupted: treat current phase as completed
@@ -611,7 +615,7 @@ def _build_run_detail_context(
     # the full pipeline.
     # For completed/failed runs, only show phases that have data
     completed_set = set(phases_completed)
-    show_all_phases = status == "running"
+    show_all_phases = status == RunStatus.RUNNING
 
     phases_detail: list[dict[str, Any]] = []
     for phase_key in PHASE_SEQUENCE:
@@ -625,9 +629,9 @@ def _build_run_detail_context(
         if phase_key in completed_set:
             phase_status = "completed"
         elif phase_key == current_phase:
-            if status == "running":
+            if status == RunStatus.RUNNING:
                 phase_status = "active"
-            elif status in ("failed", "aborted"):
+            elif status in _FAILED_STATUSES:
                 phase_status = "failed"
             else:
                 phase_status = "completed"
@@ -667,7 +671,7 @@ def _build_run_detail_context(
 
     # Determine failed phase name for error banner
     failed_phase_name: str | None = None
-    if status in ("failed", "aborted") and current_phase:
+    if status in _FAILED_STATUSES and current_phase:
         failed_phase_name = _PHASE_LABELS.get(current_phase, current_phase.capitalize())
 
     return {
@@ -692,7 +696,7 @@ def _build_run_detail_context(
         "phases_detail": phases_detail,
         "back_label": back_label,
         "back_url": back_url,
-        "is_active": status == "running",
+        "is_active": status == RunStatus.RUNNING,
         "failed_phase_name": failed_phase_name,
     }
 
@@ -983,7 +987,7 @@ async def phase_detail(
         except (StateError, OSError):
             pass
 
-    is_active_phase = run_status == "running" and run_current_phase == phase
+    is_active_phase = run_status == RunStatus.RUNNING and run_current_phase == phase
 
     context = {
         "request": request,
@@ -1435,7 +1439,7 @@ async def run_events_sse(
 
             # Emit run-complete or run-failed if status changed to terminal
             if current_status != last_status and current_status in TERMINAL_STATUSES:
-                if current_status == "completed":
+                if current_status == RunStatus.COMPLETED:
                     yield _format_sse_event("run-complete", "")
                 else:
                     yield _format_sse_event("run-failed", "")

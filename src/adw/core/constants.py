@@ -7,6 +7,8 @@ order of phase execution (5 phases).
 
 from pathlib import Path
 
+from adw.models.context import RunStatus
+
 # Fixed phase sequence - order is critical
 # Phases execute in this exact order: Plan → Build → Validate → Document → Ship
 # Using a tuple ensures the sequence cannot be accidentally modified.
@@ -30,8 +32,8 @@ LIVE_LOG = "live.log"
 CONTEXT_FILE = "context.json"
 
 # Run statuses after which a run never changes again
-TERMINAL_STATUSES: frozenset[str] = frozenset(
-    {"completed", "failed", "aborted", "interrupted"}
+TERMINAL_STATUSES: frozenset[RunStatus] = frozenset(
+    {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.ABORTED, RunStatus.INTERRUPTED}
 )
 
 

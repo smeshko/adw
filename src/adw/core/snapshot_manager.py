@@ -119,7 +119,7 @@ class SnapshotManager:
         """Create snapshot when run is aborted.
 
         Args:
-            context: Current run context (should have status="aborted").
+            context: Current run context (should be RunStatus.ABORTED).
             reason: Reason for abort (e.g., "user_abort", "cli_abort").
 
         Returns:

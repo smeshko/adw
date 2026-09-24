@@ -29,6 +29,7 @@ from adw.core.run_directory import RunDirectoryManager
 from adw.exceptions import ADWError, WorktreeError
 from adw.git import NETWORK_TIMEOUT, ensure_on_branch, git, sanitize_branch_name
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
+from adw.models.context import RunStatus
 from adw.models.task import TaskInfo
 from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
@@ -205,7 +206,7 @@ class RunLifecycle:
             feature_description=feature_description,
             current_phase=starting_phase,
             started_at=datetime.now(UTC),
-            status="running",
+            status=RunStatus.RUNNING,
             worktree_path=worktree_path,
             use_worktree=should_use_worktree,
             branch_name=branch_name,
@@ -312,7 +313,7 @@ class RunLifecycle:
         # Mark as completed
         context = context.model_copy(
             update={
-                "status": "completed",
+                "status": RunStatus.COMPLETED,
                 "completed_at": datetime.now(UTC),
             }
         )
@@ -325,7 +326,7 @@ class RunLifecycle:
         # Update global index on completion
         self.index_manager.update_run(
             context.run_id,
-            status="completed",
+            status=RunStatus.COMPLETED,
             completed_at=context.completed_at,
             phase_reached=context.current_phase,
             phases_completed=list(context.phase_history),
@@ -341,7 +342,7 @@ class RunLifecycle:
             )
 
         # Show pipeline summary
-        self._show_pipeline_summary(context, status="completed")
+        self._show_pipeline_summary(context, status=RunStatus.COMPLETED)
 
         # Preserve worktree for user inspection
         self._show_worktree_preserved(context, outcome="success")
@@ -391,7 +392,7 @@ class RunLifecycle:
         # Mark as failed
         context = context.model_copy(
             update={
-                "status": "failed",
+                "status": RunStatus.FAILED,
                 "completed_at": datetime.now(UTC),
             }
         )
@@ -404,14 +405,14 @@ class RunLifecycle:
         # Update global index on failure
         self.index_manager.update_run(
             context.run_id,
-            status="failed",
+            status=RunStatus.FAILED,
             completed_at=context.completed_at,
             phase_reached=context.current_phase,
             phases_completed=list(context.phase_history),
         )
 
         # Show pipeline summary on failure
-        self._show_pipeline_summary(context, status="failed")
+        self._show_pipeline_summary(context, status=RunStatus.FAILED)
 
         # Preserve worktree for debugging
         self._show_worktree_preserved(context, outcome="failure")
@@ -450,7 +451,7 @@ class RunLifecycle:
         # Mark as failed
         context = context.model_copy(
             update={
-                "status": "failed",
+                "status": RunStatus.FAILED,
                 "completed_at": datetime.now(UTC),
             }
         )
@@ -463,14 +464,14 @@ class RunLifecycle:
         # Update global index on failure
         self.index_manager.update_run(
             context.run_id,
-            status="failed",
+            status=RunStatus.FAILED,
             completed_at=context.completed_at,
             phase_reached=context.current_phase,
             phases_completed=list(context.phase_history),
         )
 
         # Show pipeline summary on failure
-        self._show_pipeline_summary(context, status="failed")
+        self._show_pipeline_summary(context, status=RunStatus.FAILED)
 
         # Preserve worktree for debugging
         self._show_worktree_preserved(context, outcome="failure")
@@ -513,7 +514,7 @@ class RunLifecycle:
         # Update global index on interruption
         self.index_manager.update_run(
             context.run_id,
-            status="interrupted",
+            status=RunStatus.INTERRUPTED,
             phase_reached=error.phase,
             phases_completed=list(context.phase_history),
         )
@@ -699,7 +700,7 @@ class RunLifecycle:
 
         pr_url = None
         pr_error = None
-        if status == "completed":
+        if status == RunStatus.COMPLETED:
             pr_url = context.pr_url
             if context.pr_creation_failed:
                 pr_error = context.pr_failure_reason

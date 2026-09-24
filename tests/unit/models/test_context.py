@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from adw.models import (
     RunContext,
+    RunStatus,
     StateSnapshot,
 )
 
@@ -324,6 +325,23 @@ class TestRunContextStatus:
                 status="invalid_status",  # type: ignore[arg-type]
             )
 
+    def test_context_json_status_round_trips(self) -> None:
+        """A context.json written before RunStatus loads and writes the same string."""
+        written_today = json.dumps(
+            {
+                "run_id": "01KDSG2VDHNK0W4HSCZWJZXWSQ",
+                "feature_description": "Test",
+                "current_phase": "build",
+                "started_at": "2026-09-24T08:00:00Z",
+                "status": "interrupted",
+            }
+        )
+
+        context = RunContext.model_validate_json(written_today)
+
+        assert context.status is RunStatus.INTERRUPTED
+        assert json.loads(context.model_dump_json(indent=2))["status"] == "interrupted"
+
     def test_interrupted_phase_default_none(self) -> None:
         """interrupted_phase defaults to None."""
         context = RunContext(
@@ -381,7 +399,7 @@ class TestRunContextStatus:
 
         updated = context.model_copy(
             update={
-                "status": "interrupted",
+                "status": RunStatus.INTERRUPTED,
                 "interrupted_phase": "build",
                 "interrupted_at": now,
             }
