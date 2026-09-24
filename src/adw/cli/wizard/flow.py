@@ -31,7 +31,9 @@ def run_wizard(root: Path) -> bool:
         root: Project root; the configuration is written to root/.adw.
 
     Returns:
-        True when the wizard ran to the end.
+        True if the configuration files were written. False if the user
+        declined at the summary, the write failed, or stdin ran out; nothing
+        was written then.
     """
     console = Console()
     steps: list[tuple[str, str, Step]] = [
@@ -46,14 +48,19 @@ def run_wizard(root: Path) -> bool:
 
     _show_welcome(console)
     cfg: dict[str, dict[str, Any]] = {}
-    for number, (section, title, step) in enumerate(steps, start=1):
-        _show_step_header(console, number, total, title)
-        cfg[section] = step(console)
+    try:
+        for number, (section, title, step) in enumerate(steps, start=1):
+            _show_step_header(console, number, total, title)
+            cfg[section] = step(console)
 
-    _show_step_header(console, total, total, "Configuration Summary")
-    run_summary_step(cfg, console, root)
-    _show_completion(console)
-    return True
+        _show_step_header(console, total, total, "Configuration Summary")
+        return run_summary_step(cfg, console, root)
+    except EOFError:
+        # Rich's prompts raise this when stdin ends (Ctrl+D, or piped input)
+        console.print(
+            "\n[yellow]Setup cancelled (no more input). Nothing was written.[/]"
+        )
+        return False
 
 
 def _show_welcome(console: Console) -> None:
@@ -62,11 +69,9 @@ def _show_welcome(console: Console) -> None:
     console.print(
         Panel(
             "[bold]Welcome to the ADW Configuration Wizard![/]\n\n"
-            "This wizard will guide you through setting up your project.\n"
-            "You can navigate using:\n"
-            "  • [bold]n[/] or [bold]Enter[/] - Next step\n"
-            "  • [bold]b[/] - Go back\n"
-            "  • [bold]c[/] - Cancel wizard",
+            "The wizard asks a few questions, shows a summary, and writes\n"
+            "nothing to .adw/ until you confirm it.\n"
+            "Press [bold]Enter[/] to accept a default, [bold]Ctrl+C[/] to cancel.",
             title="[blue]ADW Setup Wizard[/]",
             border_style="blue",
         )
@@ -78,16 +83,3 @@ def _show_step_header(console: Console, number: int, total: int, title: str) -> 
     console.print()
     console.print(f"[bold blue]Step {number}/{total}:[/] [bold]{title}[/]")
     console.print("[dim]" + "─" * 50 + "[/]")
-
-
-def _show_completion(console: Console) -> None:
-    """Display wizard completion message."""
-    console.print()
-    console.print(
-        Panel(
-            "[bold green]Wizard Complete![/]\n\n"
-            "Your project has been configured and files have been written.",
-            title="[green]Setup Complete[/]",
-            border_style="green",
-        )
-    )

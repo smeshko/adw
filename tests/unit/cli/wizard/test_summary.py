@@ -6,8 +6,10 @@ file generation, and atomic write functionality.
 
 from __future__ import annotations
 
+import signal
 import tempfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -553,68 +555,60 @@ class TestAtomicWrite:
 class TestRunSummaryStep:
     """Tests for the main run_summary_step function."""
 
-    def test_run_summary_step_confirmed(self) -> None:
-        """Test full flow when user confirms."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            console = Console(force_terminal=True)
-            cfg = {
-                "basics": {"language": "python", "platform": "cli"},
-                "git": {},
-                "task_manager": {"enabled": False, "type": "none"},
-                "phases": {"customized": False, "phases": {}},
-                "webhooks": {"enabled": False},
-            }
+    CFG: dict[str, dict[str, Any]] = {  # noqa: RUF012
+        "basics": {"language": "python", "platform": "cli"},
+        "git": {},
+        "task_manager": {"enabled": False, "type": "none"},
+        "phases": {"customized": False, "phases": {}},
+        "webhooks": {"enabled": False},
+    }
 
-            with patch("adw.cli.wizard.summary.Confirm.ask", return_value=True):
-                result = run_summary_step(cfg, console, Path(tmpdir))
-
-            assert result["confirmed"] is True
-            assert result["action"] == "complete"
-            assert len(result["files_created"]) > 0
-
-            # Verify files were created
-            adw_dir = Path(tmpdir) / ".adw"
-            assert (adw_dir / "project.yaml").exists()
-            assert (adw_dir / ".gitignore").exists()
-
-    def test_run_summary_step_start_over(self) -> None:
-        """Test flow when user declines and chooses start over."""
+    def test_confirm_writes_files_and_returns_true(self, tmp_path: Path) -> None:
+        """Confirming writes the files and reports it."""
         console = Console(force_terminal=True)
-        cfg = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "task_manager": {},
-            "phases": {},
-            "webhooks": {},
-        }
 
-        with (
-            patch("adw.cli.wizard.summary.Confirm.ask", return_value=False),
-            patch("adw.cli.wizard.summary.Prompt.ask", return_value="s"),
-        ):
-            result = run_summary_step(cfg, console, Path.cwd())
+        with patch("adw.cli.wizard.summary.Confirm.ask", return_value=True):
+            written = run_summary_step(self.CFG, console, tmp_path)
 
-        assert result["confirmed"] is False
-        assert result["action"] == "start_over"
-        assert result["files_created"] == []
+        assert written is True
+        assert (tmp_path / ".adw" / "project.yaml").exists()
+        assert (tmp_path / ".adw" / ".gitignore").exists()
 
-    def test_run_summary_step_cancel(self) -> None:
-        """Test flow when user declines and chooses cancel."""
+    def test_decline_writes_nothing_and_returns_false(self, tmp_path: Path) -> None:
+        """Declining writes nothing and reports it."""
         console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.summary.Confirm.ask", return_value=False):
+            written = run_summary_step(self.CFG, console, tmp_path)
+
+        assert written is False
+        assert not (tmp_path / ".adw").exists()
+
+    def test_write_holds_off_ctrl_c(self, tmp_path: Path) -> None:
+        """Ctrl+C is ignored while the files are written, registered and reported."""
         cfg = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "task_manager": {},
-            "phases": {},
-            "webhooks": {},
+            **self.CFG,
+            "global_registry": {
+                "global_registry_enabled": True,
+                "global_registry_name": "p",
+            },
         }
+        recorded: list[object] = []
 
+        def record(*_: object, **__: object) -> None:
+            recorded.append(signal.getsignal(signal.SIGINT))
+
+        before = signal.getsignal(signal.SIGINT)
         with (
-            patch("adw.cli.wizard.summary.Confirm.ask", return_value=False),
-            patch("adw.cli.wizard.summary.Prompt.ask", return_value="c"),
+            patch("adw.cli.wizard.summary.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.summary.atomic_write_config", side_effect=record),
+            patch(
+                "adw.cli.wizard.summary._register_in_global_dashboard",
+                side_effect=record,
+            ),
+            patch("adw.cli.wizard.summary._show_success_message", side_effect=record),
         ):
-            result = run_summary_step(cfg, console, Path.cwd())
+            run_summary_step(cfg, Console(force_terminal=True), tmp_path)
 
-        assert result["confirmed"] is False
-        assert result["action"] == "cancel"
-        assert result["files_created"] == []
+        assert recorded == [signal.SIG_IGN] * 3
+        assert signal.getsignal(signal.SIGINT) == before

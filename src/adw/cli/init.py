@@ -37,7 +37,7 @@ def _interrupt_handler(signum: int, frame: Any) -> None:
     _interrupted = True
     console.print()
     console.print("[yellow]Setup cancelled. No files created.[/]")
-    raise SystemExit(0)
+    raise SystemExit(130)
 
 
 @contextmanager
@@ -160,7 +160,8 @@ def _run_wizard_setup(project_root: Path) -> None:
     console.print("[bold blue]Starting guided setup wizard...[/]")
     console.print()
 
-    run_wizard(project_root)
+    if not run_wizard(project_root):
+        raise SystemExit(1)
 
 
 def _run_minimal_setup(

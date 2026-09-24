@@ -8,13 +8,14 @@ generated.
 from __future__ import annotations
 
 import contextlib
-from collections.abc import Mapping
+import signal
+from collections.abc import Iterator, Mapping
 from pathlib import Path
 from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Confirm
 
 from adw.config.initializer import generate_env_template, generate_gitignore
 from adw.exceptions import ConfigError
@@ -54,15 +55,8 @@ class ConfigWriteError(ConfigError):
         )
 
 
-def run_summary_step(
-    cfg: WizardConfig,
-    console: Console,
-    root: Path,
-) -> dict[str, Any]:
-    """Execute the summary configuration step.
-
-    This is the main entry point for the summary step, implementing
-    the full interactive flow for summary display and file generation.
+def run_summary_step(cfg: WizardConfig, console: Console, root: Path) -> bool:
+    """Show the summary, ask to confirm, then write the configuration files.
 
     Args:
         cfg: The wizard's answers, keyed by section.
@@ -70,58 +64,53 @@ def run_summary_step(
         root: The project root directory; files go to root/.adw.
 
     Returns:
-        Configuration dict containing confirmation status and created files.
+        True if the files were written; False if the user declined or the
+        write failed, in which case nothing was written.
     """
-    # Step 1: Generate and display summary panel
-    panel = generate_summary_panel(cfg)
     console.print()
-    console.print(panel)
+    console.print(generate_summary_panel(cfg))
 
-    # Step 2: Prompt for confirmation
-    confirmed = _prompt_confirmation(console)
+    if not _prompt_confirmation(console):
+        console.print("\n[yellow]Setup cancelled. Nothing was written.[/]")
+        return False
 
-    if not confirmed:
-        # Handle start over or cancel
-        action = _prompt_start_over_or_cancel(console)
-        if action == "start_over":
-            return {"confirmed": False, "action": "start_over", "files_created": []}
-        else:
-            return {"confirmed": False, "action": "cancel", "files_created": []}
-
-    # Step 3: Generate and write configuration files
+    adw_dir = root / ".adw"
+    files = _generate_all_files(cfg)
     try:
-        files = _generate_all_files(cfg)
-        adw_dir = root / ".adw"
-        atomic_write_config(adw_dir, files)
+        with _hold_interrupts():
+            atomic_write_config(adw_dir, files)
 
-        # Step 4: Register project in web dashboard if enabled
-        global_registry = cfg.get("global_registry", {})
-        if global_registry.get("global_registry_enabled", False):
-            _register_in_global_dashboard(
-                root,
-                global_registry.get("global_registry_name"),
-                console,
-            )
+            global_registry = cfg.get("global_registry", {})
+            if global_registry.get("global_registry_enabled", False):
+                _register_in_global_dashboard(
+                    root,
+                    global_registry.get("global_registry_name"),
+                    console,
+                )
 
-        # Step 5: Show success message
-        _show_success_message(console, list(files.keys()))
-
-        return {
-            "confirmed": True,
-            "action": "complete",
-            "files_created": [str(adw_dir / path) for path in files],
-        }
+            _show_success_message(console, adw_dir)
     except ConfigWriteError as e:
         console.print(f"\n[red]Error writing configuration:[/] {e.message}")
         if e.suggestion:
             console.print(f"[dim]Suggestion: {e.suggestion}[/]")
-        console.print("[dim]No files were created.[/]")
-        return {
-            "confirmed": True,
-            "action": "error",
-            "files_created": [],
-            "error": str(e),
-        }
+        console.print("[yellow]No files were written.[/]")
+        return False
+    return True
+
+
+@contextlib.contextmanager
+def _hold_interrupts() -> Iterator[None]:
+    """Ignore Ctrl+C for the duration of the block.
+
+    init's SIGINT handler reports "No files created" and exits. Holding it off
+    while the files are written and reported keeps that true: an interrupt
+    either lands before the write or is dropped.
+    """
+    previous = signal.signal(signal.SIGINT, signal.SIG_IGN)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, previous)
 
 
 def generate_summary_panel(cfg: WizardConfig) -> Panel:
@@ -245,25 +234,6 @@ def _prompt_confirmation(console: Console) -> bool:
         default=True,
         console=console,
     )
-
-
-def _prompt_start_over_or_cancel(console: Console) -> str:
-    """Prompt user to start over or cancel.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        "start_over" or "cancel".
-    """
-    console.print()
-    choice = Prompt.ask(
-        "Start over or cancel?",
-        choices=["s", "c"],
-        default="c",
-        console=console,
-    )
-    return "start_over" if choice.lower() == "s" else "cancel"
 
 
 def _generate_all_files(cfg: WizardConfig) -> dict[str, str]:
@@ -422,15 +392,15 @@ def _register_in_global_dashboard(
         console.print(f"[yellow]Warning: Could not register in web dashboard: {e}[/]")
 
 
-def _show_success_message(console: Console, files: list[str]) -> None:
-    """Display success message after configuration creation.
+def _show_success_message(console: Console, adw_dir: Path) -> None:
+    """Report the written configuration and what to do next.
 
     Args:
         console: Console for output.
-        files: List of created file paths.
+        adw_dir: The .adw directory the files were written to.
     """
     console.print()
-    console.print("[bold green]\u2713 Configuration created![/]")
+    console.print(f"[bold green]\u2713 Configuration written to {adw_dir}[/]")
     console.print()
     console.print("[bold]Next steps:[/]")
     console.print('  adw run "your feature description"')
