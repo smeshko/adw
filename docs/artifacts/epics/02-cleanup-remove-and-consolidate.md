@@ -42,7 +42,7 @@ It then consolidates what remains, so each shared concern has one implementation
 
 ## Phase 2.1 — Remove the security package
 
-**Plan**: [2026-09-24-02.1-remove-the-security-package](../plans/2026-09-24-02.1-remove-the-security-package/PLAN.md) · status: in-progress
+**Plan**: [2026-09-24-02.1-remove-the-security-package](../plans/2026-09-24-02.1-remove-the-security-package/PLAN.md) · status: done
 
 **Linear**: ADW-17 (https://linear.app/ivo-tsonev/issue/ADW-17)
 
@@ -64,11 +64,11 @@ It then consolidates what remains, so each shared concern has one implementation
 
 ### Acceptance criteria
 
-- [ ] `grep -rn "SecurityInterceptor\|SecurityConfig\|SecurityError\|allow_dangerous\|adw.security" src tests` returns nothing.
-- [ ] A `project.yaml` that still has a `security:` section loads without error.
-- [ ] `adw init --wizard` asks no security questions.
-- [ ] The dashboard settings page renders without a security section.
-- [ ] Lint and tests pass.
+- [x] `grep -rn "SecurityInterceptor\|SecurityConfig\|SecurityError\|allow_dangerous\|adw.security" src tests` returns nothing.
+- [x] A `project.yaml` that still has a `security:` section loads without error.
+- [x] `adw init --wizard` asks no security questions.
+- [x] The dashboard settings page renders without a security section.
+- [x] Lint and tests pass.
 
 ### Validation
 

@@ -1,6 +1,6 @@
 # Plan: Remove the security package
 
-Status: in-progress
+Status: done
 Branch: feature/adw-17
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -72,13 +72,13 @@ See [RESEARCH.md](RESEARCH.md). In short:
 
 Every CLI check runs the code in this worktree: `uv run --project "$WORKTREE" adw …`, never the `adw` on `PATH`, which is installed from another checkout.
 
-- [ ] `grep -rn --exclude-dir=__pycache__ "SecurityInterceptor\|SecurityConfig\|SecurityError\|allow_dangerous\|allow-dangerous\|security_interceptor\|adw\.security" src tests` returns nothing, and so does the epic's literal phase-2.1 grep once stale `__pycache__` dirs are cleared. Evidence: both empty greps.
-- [ ] A `project.yaml` that still has a `security:` section loads without error: a unit test, and `adw validate` in a scratch project. Evidence: the pytest line and the `adw validate` transcript.
-- [ ] `adw init --wizard` asks no security questions. Evidence: a transcript of the wizard in a scratch repo, fed on stdin, with no "Security" prompt or summary line.
-- [ ] The dashboard settings page renders without a security section. Evidence: a unit test, and a screenshot of the settings page for a project whose `project.yaml` has a `security:` section.
-- [ ] `adw run --allow-dangerous` fails with "No such option". Evidence: the transcript.
-- [ ] `uvx vulture src/adw --min-confidence 60`, diffed against the merge-base, reports no new entry. Evidence: the empty diff.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the preflight output and the pytest summary line.
+- [x] `grep -rn --exclude-dir=__pycache__ "SecurityInterceptor\|SecurityConfig\|SecurityError\|allow_dangerous\|allow-dangerous\|security_interceptor\|adw\.security" src tests` returns nothing, and so does the epic's literal phase-2.1 grep once stale `__pycache__` dirs are cleared. Evidence: both empty greps.
+- [x] A `project.yaml` that still has a `security:` section loads without error: a unit test, and `adw validate` in a scratch project. Evidence: the pytest line and the `adw validate` transcript.
+- [x] `adw init --wizard` asks no security questions. Evidence: a transcript of the wizard in a scratch repo, fed on stdin, with no "Security" prompt or summary line.
+- [x] The dashboard settings page renders without a security section. Evidence: a unit test, and a screenshot of the settings page for a project whose `project.yaml` has a `security:` section.
+- [x] `adw run --allow-dangerous` fails with "No such option". Evidence: the transcript.
+- [x] `uvx vulture src/adw --min-confidence 60`, diffed against the merge-base, reports no new entry. Evidence: the empty diff.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the preflight output and the pytest summary line.
 
 ## Tasks
 
@@ -88,4 +88,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-001: Delete the security package and its runtime wiring
 - [x] TASK-002: Remove the security config section (depends on TASK-001)
 - [x] TASK-003: Remove the wizard security step (depends on TASK-002)
-- [ ] TASK-004: Final Validation
+- [x] TASK-004: Final Validation
