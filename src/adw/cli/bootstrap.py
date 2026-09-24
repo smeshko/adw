@@ -44,7 +44,6 @@ from adw.models.config import (
 )
 from adw.models.logging import VERBOSITY_LEVEL_MAP, LogLevel, Verbosity
 from adw.models.task import TaskInfo
-from adw.security import SecurityInterceptor
 from adw.task_managers.base import TaskManager
 from adw.task_managers.labels import LabelManager
 from adw.task_managers.sync import StatusSyncService
@@ -171,7 +170,6 @@ def create_orchestrator(
     console: Console | None = None,
     *,
     with_progress: bool = True,
-    allow_dangerous: bool = False,
     run_id: str | None = None,
     task_manager: TaskManager | None = None,
     task_info: TaskInfo | None = None,
@@ -185,14 +183,12 @@ def create_orchestrator(
     - RunDirectoryManager for directory structure
     - InterruptionHandler for graceful shutdown
     - ProgressDisplay for CLI output (optional)
-    - SecurityInterceptor for tool call validation
     - PhaseRunner with CommandResolver, TemplateEngine, HookRunner, LLMExecutor
     - LabelManager for task label operations (optional)
 
     Args:
         console: Rich console for output. If None, creates a new one.
         with_progress: Whether to include progress display.
-        allow_dangerous: If True, log warnings instead of blocking dangerous operations.
         run_id: Optional run ID. Used for live log directory setup.
         task_manager: Optional task manager for label/sync operations.
         task_info: Optional TaskInfo with internal UUID for label operations.
@@ -239,18 +235,6 @@ def create_orchestrator(
     template_engine = TemplateEngine(project_root=project_root)
     hook_runner = HookRunner(config=config.hooks if config else HookConfig())
 
-    # Create security components
-    # Wire user-configured blocked patterns from project config security section
-    additional_patterns = None
-    additional_file_patterns = None
-    if config and config.security:
-        additional_patterns = config.security.blocked_patterns or None
-        additional_file_patterns = config.security.blocked_env_files or None
-    security_interceptor = SecurityInterceptor(
-        additional_patterns=additional_patterns,
-        additional_file_patterns=additional_file_patterns,
-    )
-
     # Set up live stream transport for LLM output logging
     live_stream = None
     if run_id:
@@ -268,8 +252,6 @@ def create_orchestrator(
     else:
         llm_executor = ClaudeCodeExecutor(
             config=llm_config,
-            security_interceptor=security_interceptor,
-            allow_dangerous=allow_dangerous,
             live_stream=live_stream,
         )
 

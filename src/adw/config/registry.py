@@ -59,7 +59,6 @@ class ConfigRegistry:
         "task_manager",
         "ports",
         "llm",
-        "security",
         "webhook",
         "ship",
     ]
@@ -113,7 +112,6 @@ class ConfigRegistry:
         )
         self._settings["ports"] = self._extract_from_model(PortRangeConfig)
         self._settings["retry"] = self._extract_from_model(RetryConfig)
-        self._settings["security"] = self._extract_security_settings()
         self._settings["webhook"] = self._extract_webhook_settings(WebhookConfig)
         self._settings["webhook_provider"] = self._extract_from_model(ProviderConfig)
         self._settings["ship"] = self._extract_from_model(
@@ -182,16 +180,6 @@ class ConfigRegistry:
             settings.append(setting)
 
         return settings
-
-    def _extract_security_settings(self) -> list[SettingDefinition]:
-        """Extract security settings with custom descriptions.
-
-        Returns:
-            List of security-related setting definitions.
-        """
-        from adw.models.security import SecurityConfig
-
-        return self._extract_from_model(SecurityConfig)
 
     def _extract_webhook_settings(
         self, model: type[BaseModel]

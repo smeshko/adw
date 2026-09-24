@@ -221,14 +221,6 @@ class YAMLWithComments:
 
         lines.append("")
 
-        # === Security ===
-        lines.append("# === Security ===")
-        lines.append("# security:")
-        lines.append("#   blocked_patterns: []  # Additional patterns to block")
-        lines.append("#   blocked_env_files: []  # Additional file patterns to block")
-
-        lines.append("")
-
         # === Webhook ===
         self._add_webhook_section(lines, webhooks)
 

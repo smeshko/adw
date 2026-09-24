@@ -175,6 +175,25 @@ class TestSettingsContext:
         assert ctx["config_error"] is None
         assert _values(ctx["sections"]["project"])["name"] == ["bare"]
 
+    def test_legacy_security_section_is_not_shown(self, project: Path) -> None:
+        project_yaml = project / ".adw" / "project.yaml"
+        project_yaml.write_text(
+            PROJECT_YAML
+            + "\nsecurity:\n"
+            + "  blocked_patterns:\n"
+            + '    - pattern: "rm -rf"\n'
+            + '      description: "Recursive delete"\n'
+            + "      category: destructive\n"
+            + "  blocked_env_files:\n"
+            + "    - '\\.secrets$'\n"
+        )
+
+        ctx = settings_context(project, "project")
+
+        assert ctx["config_error"] is None
+        assert "security" not in ctx["sections"]
+        assert "security" not in _values(ctx["sections"]["project"])
+
 
 class TestEffectivePhaseMerge:
     """The phase view merges tiers the way PhaseRunner does."""

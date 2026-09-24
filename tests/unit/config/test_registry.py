@@ -141,14 +141,6 @@ class TestConfigRegistry:
                     f"{section}.{setting.name} missing description"
                 )
 
-    def test_security_section_exists(self, registry: ConfigRegistry) -> None:
-        """Test security section has expected settings."""
-        settings = registry.get_all_settings("security")
-        setting_names = {s.name for s in settings}
-
-        assert "blocked_patterns" in setting_names
-        assert "blocked_env_files" in setting_names
-
     def test_ship_section_exists(self, registry: ConfigRegistry) -> None:
         """Test ship section has expected settings."""
         settings = registry.get_all_settings("ship")

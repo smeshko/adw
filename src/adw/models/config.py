@@ -9,7 +9,6 @@ from typing import Any, Literal, Self
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from adw.models.command import PhaseLLMConfig
-from adw.models.security import SecurityConfig
 from adw.models.webhook import WebhookConfig
 
 # NOTE: ValidationConfig removed - validation settings now in ValidateCommandConfig
@@ -504,7 +503,6 @@ class ProjectConfig(BaseModel):
         llm: LLM configuration section
         hooks: Hook configuration
         logging: Logging configuration (includes redaction settings)
-        security: Security configuration (blocked patterns, blocked env files)
         git: Git integration configuration (branch management)
         task_manager: Task manager integration configuration (Linear, Jira, etc.)
         ship: Ship phase configuration (version bump, build, publish, PR merge)
@@ -534,9 +532,6 @@ class ProjectConfig(BaseModel):
     )
     logging: LoggingConfig = Field(
         default_factory=LoggingConfig, description="Logging configuration"
-    )
-    security: SecurityConfig | None = Field(
-        default=None, description="Security configuration"
     )
     git: GitConfig = Field(
         default_factory=GitConfig, description="Git integration configuration"

@@ -189,11 +189,6 @@ def run(
         "--dry-run",
         help="Show what would happen without executing",
     ),
-    allow_dangerous: bool = typer.Option(
-        False,
-        "--allow-dangerous",
-        help="Allow dangerous LLM tool calls (log warnings instead of blocking)",
-    ),
     no_worktree: bool = typer.Option(
         False,
         "--no-worktree",
@@ -229,9 +224,6 @@ def run(
 
         # Dry run to see what would happen
         adw run "Add login" --dry-run
-
-        # Allow dangerous operations (log warnings instead of blocking)
-        adw run "Add login" --allow-dangerous
 
         # View real-time LLM output (run in separate terminal)
         adw logs follow <run_id>
@@ -391,7 +383,6 @@ def run(
         # Pass task_manager and task_info for StatusSyncService/LabelManager
         orchestrator = create_orchestrator(
             console,
-            allow_dangerous=allow_dangerous,
             run_id=run_id,
             task_manager=task_manager,
             task_info=task_info,

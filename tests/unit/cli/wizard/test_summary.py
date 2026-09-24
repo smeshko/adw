@@ -42,7 +42,6 @@ class TestSummaryPanelGeneration:
             "task_manager": {},
             "phases": {},
             "llm_retry": {},
-            "security": {},
             "webhooks": {},
         }
 
@@ -86,7 +85,6 @@ class TestSummaryPanelGeneration:
                 "retry_max_retries": 5,
                 "retry_base_delay": 2.0,
             },
-            "security": {"security_allow_dangerous": False},
             "webhooks": {"enabled": True, "providers": {"linear": {"enabled": True}}},
         }
 
@@ -110,7 +108,7 @@ class TestSummaryPanelGeneration:
         assert "Phases:" in output
         assert "Ship:" in output
         assert "LLM Retry:" in output
-        assert "Security:" in output
+        assert "Security:" not in output
         assert "Webhooks:" in output
 
     def test_summary_panel_shows_disabled_features(self) -> None:
@@ -132,7 +130,6 @@ class TestSummaryPanelGeneration:
                 },
             },
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -160,7 +157,6 @@ class TestSummaryPanelGeneration:
             },
             "ship": {"enabled": True, "commands": {}, "pr": {}},
             "llm_retry": {},
-            "security": {},
             "webhooks": {},
         }
 
@@ -190,7 +186,6 @@ class TestProjectYamlGeneration:
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -216,7 +211,6 @@ class TestProjectYamlGeneration:
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -238,7 +232,6 @@ class TestProjectYamlGeneration:
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -256,7 +249,6 @@ class TestProjectYamlGeneration:
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -280,7 +272,6 @@ class TestProjectYamlGeneration:
                 "sync_comments": True,
             },
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -300,7 +291,6 @@ class TestProjectYamlGeneration:
             "ports": {"backend_port_start": 8000, "frontend_port_start": 8100},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -320,7 +310,6 @@ class TestProjectYamlGeneration:
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -344,7 +333,6 @@ class TestProjectYamlGeneration:
                 "retry_max_delay": 120.0,
                 "retry_multiplier": 3.0,
             },
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -382,7 +370,6 @@ class TestProjectYamlGeneration:
                 },
             },
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -414,7 +401,6 @@ class TestProjectYamlGeneration:
                 },
             },
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -432,7 +418,6 @@ class TestProjectYamlGeneration:
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {
                 "enabled": True,
                 "port": 9000,
@@ -465,7 +450,6 @@ class TestProjectYamlGeneration:
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
-            "security": {},
             "webhooks": {"enabled": False},
         }
 
@@ -732,7 +716,6 @@ class TestRunSummaryStep:
                 "task_manager": {"enabled": False, "type": "none"},
                 "phases": {"customized": False, "phases": {}},
                 "llm_retry": {"retry_custom": False},
-                "security": {},
                 "webhooks": {"enabled": False},
             }
 
@@ -759,7 +742,6 @@ class TestRunSummaryStep:
             "task_manager": {},
             "phases": {},
             "llm_retry": {},
-            "security": {},
             "webhooks": {},
         }
 
@@ -784,7 +766,6 @@ class TestRunSummaryStep:
             "task_manager": {},
             "phases": {},
             "llm_retry": {},
-            "security": {},
             "webhooks": {},
         }
 
@@ -815,7 +796,6 @@ class TestSummaryStepHandler:
                 "task_manager": {"enabled": False, "type": "none"},
                 "phases": {"customized": False, "phases": {}},
                 "llm_retry": {"retry_custom": False},
-                "security": {},
                 "webhooks": {"enabled": False},
             }
 
