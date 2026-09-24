@@ -1,6 +1,6 @@
 # Plan: Logging on stdlib with a redaction filter
 
-Status: in-progress
+Status: done
 Branch: feature/adw-25
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -70,12 +70,12 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 
 ## Acceptance Criteria
 
-- [ ] `adw -v run --dry-run "x"` prints DEBUG lines (B8). Evidence: `test_verbose_dry_run_prints_debug_lines`, RED then GREEN, and a scratch-repo transcript run with this worktree's `.venv/bin/adw`.
-- [ ] A value matching a redaction pattern in mocked LLM output shows up as `[REDACTED]` in `live.log`. Evidence: `test_llm_output_secrets_are_redacted_in_live_log` (RED then GREEN): `ClaudeCodeExecutor` on a mocked subprocess whose text and Bash tool call carry an `sk-ant-…` key and a `ghp_…` token. Plus a `live.log` excerpt from a scratch-repo `adw run --phase plan --no-worktree` whose `llm.path` points at a fake `claude` script that prints a planted secret.
-- [ ] Exactly one writer holds `live.log` during a run, and the per-line file lock is gone. Evidence: `test_run_hands_the_one_live_log_handler_to_the_orchestrator` and `test_executor_writes_through_the_given_live_stream`, RED then GREEN. `grep -rn "FileLock\|filelock" src/adw/logging` prints nothing. `ls` of the scratch run's directory shows `live.log` and no `live.log.lock`.
-- [ ] `src/adw/logging/` contains only `__init__.py` (holding `setup_logging`), `redactor.py`, `console.py` and `live_stream.py`. Evidence: `ls src/adw/logging`, and `grep -rn -I --exclude-dir=__pycache__ "LogManager\|LogManagerHandler\|LogEvent\|LogContext\|LogCategory\|LogLevel\|ConsoleTransport\|LiveStreamTransport\|create_log_manager\|StructuredFileTransport\|logs\.jsonl\|redact_dict" src tests docs/architecture` prints nothing.
-- [ ] `live.log` timestamps are UTC. Evidence: `test_live_log_timestamps_are_utc` (RED then GREEN), which pins the clock and compares a record line and an LLM marker line against UTC.
-- [ ] Lint and tests pass. Evidence: `scripts/preflight.sh` and the tail of `uv run pytest`, coverage ≥ 80%.
+- [x] `adw -v run --dry-run "x"` prints DEBUG lines (B8). Evidence: `test_verbose_dry_run_prints_debug_lines`, RED then GREEN, and a scratch-repo transcript run with this worktree's `.venv/bin/adw`.
+- [x] A value matching a redaction pattern in mocked LLM output shows up as `[REDACTED]` in `live.log`. Evidence: `test_llm_output_secrets_are_redacted_in_live_log` (RED then GREEN): `ClaudeCodeExecutor` on a mocked subprocess whose text and Bash tool call carry an `sk-ant-…` key and a `ghp_…` token. Plus a `live.log` excerpt from a scratch-repo `adw run --phase plan --no-worktree` whose `llm.path` points at a fake `claude` script that prints a planted secret.
+- [x] Exactly one writer holds `live.log` during a run, and the per-line file lock is gone. Evidence: `test_run_hands_the_one_live_log_handler_to_the_orchestrator` and `test_executor_writes_through_the_given_live_stream`, RED then GREEN. `grep -rn "FileLock\|filelock" src/adw/logging` prints nothing. `ls` of the scratch run's directory shows `live.log` and no `live.log.lock`.
+- [x] `src/adw/logging/` contains only `__init__.py` (holding `setup_logging`), `redactor.py`, `console.py` and `live_stream.py`. Evidence: `ls src/adw/logging`, and `grep -rn -I --exclude-dir=__pycache__ "LogManager\|LogManagerHandler\|LogEvent\|LogContext\|LogCategory\|LogLevel\|ConsoleTransport\|LiveStreamTransport\|create_log_manager\|StructuredFileTransport\|logs\.jsonl\|redact_dict" src tests docs/architecture` prints nothing.
+- [x] `live.log` timestamps are UTC. Evidence: `test_live_log_timestamps_are_utc` (RED then GREEN), which pins the clock and compares a record line and an LLM marker line against UTC.
+- [x] Lint and tests pass. Evidence: `scripts/preflight.sh` and the tail of `uv run pytest`, coverage ≥ 80%.
 
 ## Tasks
 
@@ -86,4 +86,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-002: Add setup_logging with a Rich console handler and one live.log handler (depends on TASK-001)
 - [x] TASK-003: Route run, resume and the executor through setup_logging and delete LogManager (depends on TASK-002)
 - [x] TASK-004: Show DEBUG lines for adw -v run --dry-run (depends on TASK-003)
-- [ ] TASK-005: Final Validation
+- [x] TASK-005: Final Validation

@@ -1,0 +1,52 @@
+$ adw run -v --dry-run "x"
+Usage: adw run [OPTIONS] [FEATURE_DESCRIPTION]
+Try 'adw run --help' for help.
+╭─ Error ──────────────────────────────────────────────────────────────────────╮
+│ No such option: -v                                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+exit=2
+
+$ adw -v run --dry-run "x"
+07:03:13 [DEBUG] Input treated as feature string
+
+╭──────────────────────────────────────────── ADW Run ─────────────────────────────────────────────╮
+│ Run ID: 01M393KE2A4QVN21J3ACBWJ77F                                                               │
+│ Feature: x                                                                                       │
+│ Started: 2026-09-24 07:03:13 UTC                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────────────────────────────────── Dry Run Preview ─────────────────────────────────────────╮
+│ Feature: x                                                                                       │
+│ Mode: Full Pipeline                                                                              │
+│ Run ID: (would be generated)                                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+              Phases to Execute              
+┏━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┓
+┃ Phase    ┃ Enabled ┃ Pre-Hook ┃ Post-Hook ┃
+┡━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━┩
+│ plan     │ ✓       │ —        │ —         │
+│ build    │ ✓       │ —        │ post.sh   │
+│ validate │ ✓       │ —        │ —         │
+│ document │ ✓       │ —        │ post.sh   │
+│ ship     │ ✓       │ pre.sh   │ post.sh   │
+└──────────┴─────────┴──────────┴───────────┘
+
+    Project Configuration    
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
+┃ Setting         ┃ Value   ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩
+│ Name            │ repo    │
+│ Language        │ unknown │
+│ Platform        │ cli     │
+│ LLM Path        │ claude  │
+│ Git Integration │ enabled │
+└─────────────────┴─────────┘
+
+Dry run mode - no execution will occur
+
+exit=0
+
+$ adw run --dry-run "x"   # default verbosity
+0
