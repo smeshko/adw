@@ -43,8 +43,8 @@ class Verbosity(str, Enum):
     - VERBOSE: Debug and above (-v, --verbose)
     - TRACE: Everything including trace (--trace)
 
-    Note: Verbosity affects console output only, not file logs.
-    File logs always capture everything for debugging purposes.
+    Note: Verbosity sets the console level. A run's live.log records INFO,
+    or DEBUG at VERBOSE/TRACE; QUIET quiets the console only.
     """
 
     QUIET = "quiet"

@@ -2,6 +2,7 @@
 
 This module provides common fixtures for testing ADW components:
 - isolated_home: Points HOME at a per-test directory (autouse)
+- reset_adw_logging: Drops the handlers setup_logging left on the adw logger (autouse)
 - git_repo: Creates isolated git repository with worktree cleanup
 - fake_gh: Puts a recording fake `gh` executable first on PATH
 
@@ -11,6 +12,7 @@ hitting the real Claude API.
 """
 
 import json
+import logging
 import os
 import shutil
 import stat
@@ -67,6 +69,22 @@ def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("GIT_COMMITTER_NAME", "ADW Test")
     monkeypatch.setenv("GIT_COMMITTER_EMAIL", "adw-test@example.com")
     return home
+
+
+@pytest.fixture(autouse=True)
+def reset_adw_logging() -> Generator[None]:
+    """Remove and close the handlers a test left on the ``adw`` logger.
+
+    ``setup_logging`` (called by ``adw run`` and ``adw resume``) attaches a
+    console handler and a live.log handler that outlive the call. Without this,
+    they would write into the next test's output or a deleted tmp dir.
+    """
+    yield
+    logger = logging.getLogger("adw")
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+        handler.close()
+    logger.setLevel(logging.NOTSET)
 
 
 @pytest.fixture
