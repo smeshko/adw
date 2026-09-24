@@ -311,7 +311,7 @@ Include the spy test, `adw run --dry-run` output before and after, and both erro
 
 ## Phase 2.9 — Logging on stdlib with a redaction filter
 
-**Plan**: [02.9-logging-on-stdlib](../plans/02.9-logging-on-stdlib/PLAN.md) · status: done
+**Plan**: [02.9-logging-on-stdlib](../plans/archive/2026-09-24-02.9-logging-on-stdlib/PLAN.md) · status: done
 
 **Linear**: ADW-25 (https://linear.app/ivo-tsonev/issue/ADW-25)
 

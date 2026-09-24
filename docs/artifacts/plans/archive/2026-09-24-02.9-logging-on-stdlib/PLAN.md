@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-25
 Risk: medium
-Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
+Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../../epics/02-cleanup-remove-and-consolidate.md))
 Phase: 2.9 — Logging on stdlib with a redaction filter
 Linear: ADW-25
 Created: 2026-09-24
