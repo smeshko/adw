@@ -87,8 +87,7 @@ Step 7/7: Configuration Summary
 
 Create configuration? [y/n] (y): 
 ✓ Configuration written to 
-/private/tmp/claude-503/-Users-A1E6E98-Developer-Projects-adw-adw-final/66931aa6
--4e55-4a95-aa13-b2b586a326a9/scratchpad/t5/accept/.adw
+<scratch>/t5/accept/.adw
 
 Next steps:
   adw run "your feature description"
