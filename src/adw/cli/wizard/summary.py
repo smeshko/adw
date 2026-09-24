@@ -8,8 +8,9 @@ generated.
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -18,8 +19,8 @@ from rich.prompt import Confirm, Prompt
 from adw.config.initializer import generate_env_template, generate_gitignore
 from adw.exceptions import ConfigError
 
-if TYPE_CHECKING:
-    from adw.models.wizard import WizardState
+WizardConfig = Mapping[str, dict[str, Any]]
+"""The wizard's answers: each step's dict, keyed by its section name."""
 
 
 class ConfigWriteError(ConfigError):
@@ -53,44 +54,10 @@ class ConfigWriteError(ConfigError):
         )
 
 
-class SummaryStepHandler:
-    """Handler for the summary configuration wizard step.
-
-    This step:
-    - Displays a comprehensive summary panel of all configuration choices
-    - Prompts user to confirm or start over
-    - Generates all configuration files atomically
-    - Shows success message with next steps
-    """
-
-    def __init__(self, project_root: Path | None = None) -> None:
-        """Initialize the summary step handler.
-
-        Args:
-            project_root: The project root directory for file generation.
-                         If None, uses current working directory.
-        """
-        self.project_root = project_root or Path.cwd()
-
-    def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
-        """Execute the summary configuration step.
-
-        Args:
-            state: Current wizard state containing all collected config.
-            console: Console for output.
-
-        Returns:
-            Configuration dict containing:
-            - confirmed: Whether user confirmed the config
-            - files_created: List of created file paths (if confirmed)
-        """
-        return run_summary_step(state, console, self.project_root)
-
-
 def run_summary_step(
-    state: WizardState,
+    cfg: WizardConfig,
     console: Console,
-    project_root: Path | None = None,
+    root: Path,
 ) -> dict[str, Any]:
     """Execute the summary configuration step.
 
@@ -98,17 +65,15 @@ def run_summary_step(
     the full interactive flow for summary display and file generation.
 
     Args:
-        state: Current wizard state containing all collected config.
+        cfg: The wizard's answers, keyed by section.
         console: Console for output.
-        project_root: The project root directory. Defaults to cwd.
+        root: The project root directory; files go to root/.adw.
 
     Returns:
         Configuration dict containing confirmation status and created files.
     """
-    root = project_root or Path.cwd()
-
     # Step 1: Generate and display summary panel
-    panel = generate_summary_panel(state)
+    panel = generate_summary_panel(cfg)
     console.print()
     console.print(panel)
 
@@ -125,12 +90,12 @@ def run_summary_step(
 
     # Step 3: Generate and write configuration files
     try:
-        files = _generate_all_files(state)
+        files = _generate_all_files(cfg)
         adw_dir = root / ".adw"
         atomic_write_config(adw_dir, files)
 
         # Step 4: Register project in web dashboard if enabled
-        global_registry = state.get_step_config("global_registry")
+        global_registry = cfg.get("global_registry", {})
         if global_registry.get("global_registry_enabled", False):
             _register_in_global_dashboard(
                 root,
@@ -159,11 +124,11 @@ def run_summary_step(
         }
 
 
-def generate_summary_panel(state: WizardState) -> Panel:
+def generate_summary_panel(cfg: WizardConfig) -> Panel:
     """Generate Rich panel with full configuration summary.
 
     Args:
-        state: Current wizard state containing all collected config.
+        cfg: The wizard's answers, keyed by section.
 
     Returns:
         Rich Panel with formatted configuration summary.
@@ -171,13 +136,12 @@ def generate_summary_panel(state: WizardState) -> Panel:
     lines = []
 
     # Get configs from collected_config
-    basics = state.get_step_config("basics")
-    global_registry = state.get_step_config("global_registry")
-    git = state.get_step_config("git")
-    task_manager = state.get_step_config("task_manager")
-    phases = state.get_step_config("phases")
-    ship = state.get_step_config("ship")
-    webhooks = state.get_step_config("webhooks")
+    basics = cfg.get("basics", {})
+    global_registry = cfg.get("global_registry", {})
+    git = cfg.get("git", {})
+    task_manager = cfg.get("task_manager", {})
+    phases = cfg.get("phases", {})
+    webhooks = cfg.get("webhooks", {})
 
     # Basics section
     lines.append("[bold]Basics:[/]")
@@ -217,31 +181,11 @@ def generate_summary_panel(state: WizardState) -> Panel:
     else:
         lines.append("[dim]Phases:[/] Default")
 
-    # Ship section
-    # Ship step returns: enabled, commands (dict), pr (dict)
-    ship_commands = ship.get("commands", {})
-    ship_pr = ship.get("pr", {})
-    has_ship_config = ship_commands or ship_pr.get("merge_on_success")
-
-    if has_ship_config:
-        parts = []
-        if ship_commands:
-            cmd_names = list(ship_commands.keys())
-            parts.append(", ".join(cmd_names))
-        if ship_pr.get("merge_on_success"):
-            merge_method = ship_pr.get("merge_method", "squash")
-            delete_on_merge = ship_pr.get("delete_branch_on_merge", True)
-            auto_delete = ", auto-delete" if delete_on_merge else ""
-            parts.append(f"{merge_method} merge{auto_delete}")
-        lines.append(f"[cyan]Ship:[/] {'; '.join(parts)}")
-    else:
-        lines.append("[dim]Ship:[/] Default (no commands, manual merge)")
-
     # Webhooks section
     if webhooks.get("enabled", False):
         providers = webhooks.get("providers", {})
         enabled_providers = [
-            p for p, cfg in providers.items() if cfg.get("enabled", False)
+            p for p, provider in providers.items() if provider.get("enabled", False)
         ]
         if enabled_providers:
             provider_str = ", ".join(f"{p.title()} \u2713" for p in enabled_providers)
@@ -255,7 +199,7 @@ def generate_summary_panel(state: WizardState) -> Panel:
 
     # Files to create section
     lines.append("[bold]Files to create:[/]")
-    files = _get_files_to_create(state)
+    files = _get_files_to_create()
     for file_path in sorted(files):
         lines.append(f"  .adw/{file_path}")
 
@@ -266,14 +210,11 @@ def generate_summary_panel(state: WizardState) -> Panel:
     )
 
 
-def _get_files_to_create(state: WizardState) -> list[str]:
+def _get_files_to_create() -> list[str]:
     """Get list of files that will be created.
 
     Includes a config file for every phase, not just customized ones, so the
     full configuration is visible.
-
-    Args:
-        state: Current wizard state.
 
     Returns:
         List of relative file paths (within .adw/).
@@ -325,11 +266,11 @@ def _prompt_start_over_or_cancel(console: Console) -> str:
     return "start_over" if choice.lower() == "s" else "cancel"
 
 
-def _generate_all_files(state: WizardState) -> dict[str, str]:
-    """Generate all configuration files from wizard state.
+def _generate_all_files(cfg: WizardConfig) -> dict[str, str]:
+    """Generate all configuration files from the wizard's answers.
 
     Args:
-        state: Current wizard state.
+        cfg: The wizard's answers, keyed by section.
 
     Returns:
         Dict mapping relative file paths to their content.
@@ -337,7 +278,7 @@ def _generate_all_files(state: WizardState) -> dict[str, str]:
     files: dict[str, str] = {}
 
     # Generate project.yaml
-    files["project.yaml"] = generate_project_yaml(state)
+    files["project.yaml"] = generate_project_yaml(cfg)
 
     # Generate .gitignore
     files[".gitignore"] = generate_gitignore()
@@ -346,20 +287,20 @@ def _generate_all_files(state: WizardState) -> dict[str, str]:
     files[".env.template"] = generate_env_template()
 
     # Generate phase config files
-    phase_files = generate_phase_configs(state)
+    phase_files = generate_phase_configs(cfg)
     files.update(phase_files)
 
     return files
 
 
-def generate_project_yaml(state: WizardState) -> str:
-    """Generate project.yaml content from wizard state.
+def generate_project_yaml(cfg: WizardConfig) -> str:
+    """Generate project.yaml content from the wizard's answers.
 
     Uses the YAMLWithComments generator for comprehensive config
     with commented defaults.
 
     Args:
-        state: Current wizard state.
+        cfg: The wizard's answers, keyed by section.
 
     Returns:
         YAML content string with all settings visible.
@@ -369,16 +310,16 @@ def generate_project_yaml(state: WizardState) -> str:
 
     registry = ConfigRegistry()
     generator = YAMLWithComments(registry)
-    return generator.generate_project_yaml(state)
+    return generator.generate_project_yaml(cfg)
 
 
-def generate_phase_configs(state: WizardState) -> dict[str, str]:
+def generate_phase_configs(cfg: WizardConfig) -> dict[str, str]:
     """Generate phase-specific config.yaml files for ALL phases.
 
     Covers every phase, not just customized ones, with commented defaults.
 
     Args:
-        state: Current wizard state.
+        cfg: The wizard's answers, keyed by section.
 
     Returns:
         Dict mapping relative file paths to their content.
@@ -387,7 +328,7 @@ def generate_phase_configs(state: WizardState) -> dict[str, str]:
     from adw.config.yaml_generator import generate_all_phase_configs
 
     registry = ConfigRegistry()
-    return generate_all_phase_configs(state, registry)
+    return generate_all_phase_configs(cfg, registry)
 
 
 def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:

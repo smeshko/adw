@@ -7,15 +7,12 @@ basic project settings: language detection, platform type, and build/test comman
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
 from adw.config.detector import ProjectTypeDetector
-
-if TYPE_CHECKING:
-    from adw.models.wizard import WizardState
 
 # Supported languages for selection
 SUPPORTED_LANGUAGES: list[str] = [
@@ -33,63 +30,20 @@ SUPPORTED_LANGUAGES: list[str] = [
 SUPPORTED_PLATFORMS: list[str] = ["cli", "web", "api", "other"]
 
 
-class BasicsStepHandler:
-    """Handler for the basics configuration wizard step.
-
-    This step:
-    - Auto-detects project language from marker files
-    - Prompts for language confirmation or selection
-    - Prompts for platform type (cli/web/api/other)
-    - Auto-detects and prompts for test command
-    - Prompts for optional build command
-    """
-
-    def __init__(self, project_root: Path | None = None) -> None:
-        """Initialize the basics step handler.
-
-        Args:
-            project_root: The project root directory for detection.
-                         If None, uses current working directory.
-        """
-        self.project_root = project_root or Path.cwd()
-
-    def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
-        """Execute the basics configuration step.
-
-        Args:
-            state: Current wizard state.
-            console: Console for output.
-
-        Returns:
-            Configuration collected from this step containing:
-            - language: The detected/selected language
-            - platform: The selected platform type
-            - test_command: The test command (may be empty)
-            - build_command: The build command (may be empty)
-        """
-        return run_basics_step(state, console, self.project_root)
-
-
-def run_basics_step(
-    state: WizardState,
-    console: Console,
-    project_root: Path | None = None,
-) -> dict[str, Any]:
+def run_basics_step(console: Console, root: Path) -> dict[str, Any]:
     """Execute the basics configuration step.
 
     This is the main entry point for the basics step, implementing
     the full interactive flow for basic project configuration.
 
     Args:
-        state: Current wizard state.
         console: Console for output.
-        project_root: The project root directory. Defaults to cwd.
+        root: The project root directory, where detection looks for markers.
 
     Returns:
         Configuration dict containing project_name (the project root's
         directory name), language, platform, test_command and build_command.
     """
-    root = project_root or Path.cwd()
     detector = ProjectTypeDetector()
 
     # Step 1: Language detection and confirmation

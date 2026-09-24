@@ -7,15 +7,12 @@ configure integration with external task management systems like Linear.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
 from adw.models.config import DEFAULT_STATE_MAPPING
-
-if TYPE_CHECKING:
-    from adw.models.wizard import WizardState
 
 # Team key validation pattern: 2-10 uppercase letters
 TEAM_KEY_PATTERN = re.compile(r"^[A-Z]{2,10}$")
@@ -49,45 +46,13 @@ def validate_team_key(key: str) -> tuple[bool, str]:
     return True, key
 
 
-class TaskManagerStepHandler:
-    """Handler for the task manager configuration wizard step.
-
-    This step:
-    - Prompts to enable/disable task manager integration
-    - If enabled, prompts for:
-      - Task manager type (Linear for MVP)
-      - Team key with validation
-      - Comment sync options
-      - PR title format
-      - Label management
-      - Context options
-      - State mapping configuration
-    """
-
-    def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
-        """Execute the task manager configuration step.
-
-        Args:
-            state: Current wizard state.
-            console: Console for output.
-
-        Returns:
-            Configuration collected from this step.
-        """
-        return run_task_manager_step(state, console)
-
-
-def run_task_manager_step(
-    state: WizardState,
-    console: Console,
-) -> dict[str, Any]:
+def run_task_manager_step(console: Console) -> dict[str, Any]:
     """Execute the task manager configuration step.
 
     This is the main entry point for the task manager step, implementing
     the full interactive flow for task manager configuration.
 
     Args:
-        state: Current wizard state.
         console: Console for output.
 
     Returns:

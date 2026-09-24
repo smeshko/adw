@@ -7,50 +7,19 @@ can choose to register their project in the ADW web dashboard.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
-if TYPE_CHECKING:
-    from adw.models.wizard import WizardState
 
-
-class GlobalRegistryStepHandler:
-    """Handler for the global registry wizard step.
-
-    This step:
-    - Prompts user to register project in the ADW web dashboard
-    - Optionally collects custom display name
-    - Stores decision in wizard state for summary step
-    """
-
-    def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
-        """Execute the global registry step.
-
-        Args:
-            state: Current wizard state.
-            console: Console for output.
-
-        Returns:
-            Configuration collected from this step containing:
-            - global_registry_enabled: Whether to register the project
-            - global_registry_name: Display name (or None if not registering)
-        """
-        return run_global_registry_step(state, console)
-
-
-def run_global_registry_step(
-    state: WizardState,  # noqa: ARG001 - state reserved for future use
-    console: Console,
-) -> dict[str, Any]:
+def run_global_registry_step(console: Console) -> dict[str, Any]:
     """Execute the global registry step.
 
     This is the main entry point for the global registry step, implementing
     the full interactive flow for dashboard registration.
 
     Args:
-        state: Current wizard state.
         console: Console for output.
 
     Returns:

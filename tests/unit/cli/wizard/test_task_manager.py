@@ -1,7 +1,7 @@
 """Tests for wizard task manager configuration step.
 
 Tests the team key validation, prompt flows, state mapping configuration,
-and wizard state integration for the task manager step.
+and the generated config for the task manager step.
 """
 
 from __future__ import annotations
@@ -16,12 +16,10 @@ from rich.console import Console
 from adw.cli.wizard.task_manager import (
     DEFAULT_LABEL_PREFIX,
     TEAM_KEY_PATTERN,
-    TaskManagerStepHandler,
     run_task_manager_step,
     validate_team_key,
 )
 from adw.models.config import DEFAULT_STATE_MAPPING
-from adw.models.wizard import WizardState
 
 
 class TestTeamKeyValidation:
@@ -83,10 +81,9 @@ class TestDisabledFlow:
     def test_disabled_returns_none_type(self) -> None:
         """Test that disabled task manager returns type='none'."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with patch("adw.cli.wizard.task_manager.Confirm.ask", return_value=False):
-            result = run_task_manager_step(state, console)
+            result = run_task_manager_step(console)
 
         assert result["enabled"] is False
         assert result["type"] == "none"
@@ -94,10 +91,9 @@ class TestDisabledFlow:
     def test_disabled_returns_default_values(self) -> None:
         """Test that disabled task manager returns sensible defaults."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with patch("adw.cli.wizard.task_manager.Confirm.ask", return_value=False):
-            result = run_task_manager_step(state, console)
+            result = run_task_manager_step(console)
 
         assert result["team_key"] is None
         assert result["sync_comments"] is False
@@ -112,7 +108,6 @@ class TestEnabledFlow:
     def test_enabled_basic_flow(self) -> None:
         """Test enabled task manager collects basic configuration."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
@@ -126,7 +121,7 @@ class TestEnabledFlow:
                 DEFAULT_LABEL_PREFIX,
             ]
 
-            result = run_task_manager_step(state, console)
+            result = run_task_manager_step(console)
 
         assert result["enabled"] is True
         assert result["type"] == "linear"
@@ -135,7 +130,6 @@ class TestEnabledFlow:
     def test_enabled_with_sync_comments(self) -> None:
         """Test enabled with sync comments."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
@@ -149,14 +143,13 @@ class TestEnabledFlow:
                 DEFAULT_LABEL_PREFIX,
             ]
 
-            result = run_task_manager_step(state, console)
+            result = run_task_manager_step(console)
 
         assert result["sync_comments"] is True
 
     def test_enabled_with_labels_disabled(self) -> None:
         """Test labels can be disabled."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
@@ -170,7 +163,7 @@ class TestEnabledFlow:
                 # No label prefix prompt when labels disabled
             ]
 
-            result = run_task_manager_step(state, console)
+            result = run_task_manager_step(console)
 
         assert result["labels_enabled"] is False
         assert result["label_prefix"] is None
@@ -182,7 +175,6 @@ class TestStateMappingConfiguration:
     def test_state_mapping_not_configured(self) -> None:
         """Test state mapping is None when not configured."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
@@ -196,14 +188,13 @@ class TestStateMappingConfiguration:
                 DEFAULT_LABEL_PREFIX,
             ]
 
-            result = run_task_manager_step(state, console)
+            result = run_task_manager_step(console)
 
         assert result["state_mapping"] is None
 
     def test_state_mapping_with_custom_values(self) -> None:
         """Test state mapping with custom phase mappings."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
@@ -223,7 +214,7 @@ class TestStateMappingConfiguration:
                 "Failed",  # failed
             ]
 
-            result = run_task_manager_step(state, console)
+            result = run_task_manager_step(console)
 
         assert result["state_mapping"] is not None
         assert result["state_mapping"]["plan"] == "Planning"
@@ -236,7 +227,6 @@ class TestStateMappingConfiguration:
     def test_state_mapping_accepts_defaults(self) -> None:
         """Test state mapping accepts default values when user just presses enter."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
@@ -251,58 +241,14 @@ class TestStateMappingConfiguration:
                 *DEFAULT_STATE_MAPPING.values(),
             ]
 
-            result = run_task_manager_step(state, console)
+            result = run_task_manager_step(console)
 
         assert result["state_mapping"] is not None
         assert result["state_mapping"] == DEFAULT_STATE_MAPPING
 
 
-class TestTaskManagerStepHandler:
-    """Tests for TaskManagerStepHandler class."""
-
-    def test_handler_execute_calls_run_task_manager_step(self) -> None:
-        """Test handler execute method calls the correct function."""
-        handler = TaskManagerStepHandler()
-        state = WizardState()
-        console = Console(force_terminal=True)
-
-        with patch("adw.cli.wizard.task_manager.Confirm.ask", return_value=False):
-            result = handler.execute(state, console)
-
-        assert result["enabled"] is False
-        assert result["type"] == "none"
-
-
-class TestStateIntegration:
-    """Tests for integration with wizard state."""
-
-    def test_config_stored_via_flow_controller_pattern(self) -> None:
-        """Test that config can be stored using flow controller pattern."""
-        console = Console(force_terminal=True)
-        state = WizardState()
-
-        with (
-            patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
-            patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
-        ):
-            # enable, sync_comments, labels_enabled, configure_mapping
-            mock_confirm.side_effect = [True, False, True, False]
-            mock_prompt.side_effect = [
-                "linear",
-                "ADW",
-                DEFAULT_LABEL_PREFIX,
-            ]
-            config = run_task_manager_step(state, console)
-
-            # Simulate what flow controller does
-            state.update_config("task_manager", config)
-            state.mark_completed("task_manager")
-
-        # Verify storage
-        stored = state.get_step_config("task_manager")
-        assert stored["type"] == "linear"
-        assert stored["team_key"] == "ADW"
-        assert "task_manager" in state.completed_steps
+class TestGeneratedConfig:
+    """Tests that the step's answers produce a loadable project.yaml."""
 
     def test_accepted_defaults_yield_ship_mapping(self) -> None:
         """Accepting every default mapping prompt keeps ship -> Done (B17)."""
@@ -321,13 +267,15 @@ class TestStateIntegration:
         ):
             state_mapping = _prompt_state_mapping(console)
 
-        state = WizardState()
-        state.update_config("basics", {"project_name": "p", "language": "python"})
-        state.update_config(
-            "task_manager",
-            {"enabled": True, "type": "linear", "state_mapping": state_mapping},
-        )
-        content = YAMLWithComments(ConfigRegistry()).generate_project_yaml(state)
+        cfg = {
+            "basics": {"project_name": "p", "language": "python"},
+            "task_manager": {
+                "enabled": True,
+                "type": "linear",
+                "state_mapping": state_mapping,
+            },
+        }
+        content = YAMLWithComments(ConfigRegistry()).generate_project_yaml(cfg)
         config = ProjectConfig.model_validate(yaml.safe_load(content))
 
         assert config.task_manager.state_mapping["ship"] == "Done"

@@ -154,49 +154,13 @@ def _run_wizard_setup(project_root: Path) -> None:
     Args:
         project_root: Root directory of the project.
     """
-    from adw.cli.wizard import (
-        BasicsStepHandler,
-        GitStepHandler,
-        GlobalRegistryStepHandler,
-        PhasesStepHandler,
-        SummaryStepHandler,
-        TaskManagerStepHandler,
-        WebhooksStepHandler,
-        WizardFlowController,
-        WizardStep,
-    )
-    from adw.models.wizard import WizardState
+    from adw.cli.wizard import run_wizard
 
     console.print()
     console.print("[bold blue]Starting guided setup wizard...[/]")
     console.print()
 
-    # Create controller and state
-    state = WizardState()
-    controller = WizardFlowController(state=state)
-
-    # Register step handlers
-    controller.register_step_handler(
-        WizardStep.BASICS, BasicsStepHandler(project_root=project_root)
-    )
-    controller.register_step_handler(
-        WizardStep.GLOBAL_REGISTRY, GlobalRegistryStepHandler()
-    )
-    controller.register_step_handler(WizardStep.GIT, GitStepHandler())
-    controller.register_step_handler(WizardStep.TASK_MANAGER, TaskManagerStepHandler())
-    controller.register_step_handler(WizardStep.PHASES, PhasesStepHandler())
-    # Note: Ship config is part of PHASES step, no separate SHIP step needed
-    controller.register_step_handler(WizardStep.WEBHOOKS, WebhooksStepHandler())
-    controller.register_step_handler(
-        WizardStep.SUMMARY, SummaryStepHandler(project_root=project_root)
-    )
-
-    # Run the wizard flow
-    completed = controller.run()
-
-    if not completed:
-        # Wizard was cancelled - exit without success message
-        return
+    run_wizard(project_root)
 
 
 def _run_minimal_setup(
