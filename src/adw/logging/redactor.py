@@ -1,7 +1,8 @@
 """Secret redaction for log output.
 
 This module provides the Redactor class for removing sensitive data from
-log messages before they are written to any transport (console, file, JSONL).
+log output, and RedactingFilter, which applies a Redactor to every record
+a logging handler emits (console and live.log).
 
 Redaction covers:
 - API keys (Bearer tokens, OpenAI, AWS, GitHub)
@@ -15,8 +16,8 @@ Usage:
     'Authorization: Bearer [REDACTED]'
 """
 
+import logging
 import re
-from typing import Any
 
 # =============================================================================
 # DEFAULT REDACTION PATTERNS
@@ -97,13 +98,12 @@ REDACTED_PLACEHOLDER = "[REDACTED]"
 
 
 class Redactor:
-    """Redacts sensitive data from strings and dictionaries.
+    """Redacts sensitive data from strings and environment dictionaries.
 
     The Redactor applies regex patterns to identify and replace sensitive
     content with a placeholder. It supports:
     - Pattern-based string redaction
     - Environment variable name matching
-    - Deep dictionary redaction (for JSON logs)
 
     Attributes:
         patterns: Compiled regex patterns for redaction
@@ -204,60 +204,47 @@ class Redactor:
             for k, v in env.items()
         }
 
-    def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Recursively redact sensitive data in a dictionary.
 
-        Traverses the dictionary structure and applies pattern-based
-        redaction to all string values. Also checks dictionary keys
-        that look like environment variable names.
+class RedactingFilter(logging.Filter):
+    """Redacts every record a handler emits.
 
-        Args:
-            data: Dictionary to redact (can be nested)
+    Attach it to a handler rather than a logger: a logger's filters only see
+    records logged on that logger, while a handler's filters see every record
+    that propagates to it. The message is formatted with its args first, then
+    redacted, and so is any exception or stack text. Filtering a record twice
+    is harmless, because the placeholder matches no pattern.
 
-        Returns:
-            New dictionary with sensitive values redacted
+    Example:
+        >>> handler.addFilter(RedactingFilter(get_redactor()))
+    """
 
-        Example:
-            >>> redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
-            >>> redactor.redact_dict({"config": {"api_key": "sk-abc123"}})
-            {'config': {'api_key': '[REDACTED]'}}
-        """
-        result: dict[str, Any] = {}
-        for key, value in data.items():
-            # Check if the key looks like a sensitive env var
-            if isinstance(value, str):
-                if self.should_redact_env(key.upper()):
-                    result[key] = REDACTED_PLACEHOLDER
-                else:
-                    result[key] = self.redact(value)
-            elif isinstance(value, dict):
-                result[key] = self.redact_dict(value)
-            elif isinstance(value, list):
-                result[key] = self._redact_list(value)
-            else:
-                result[key] = value
-        return result
-
-    def _redact_list(self, items: list[Any]) -> list[Any]:
-        """Recursively redact sensitive data in a list.
+    def __init__(self, redactor: Redactor) -> None:
+        """Initialize the filter.
 
         Args:
-            items: List to process
+            redactor: The redactor applied to each record's text
+        """
+        super().__init__()
+        self._redactor = redactor
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Redact the record's message, exception text and stack text in place.
+
+        Args:
+            record: The record about to be emitted
 
         Returns:
-            New list with sensitive values redacted
+            Always True: redaction never drops a record
         """
-        result: list[Any] = []
-        for item in items:
-            if isinstance(item, str):
-                result.append(self.redact(item))
-            elif isinstance(item, dict):
-                result.append(self.redact_dict(item))
-            elif isinstance(item, list):
-                result.append(self._redact_list(item))
-            else:
-                result.append(item)
-        return result
+        record.msg = self._redactor.redact(record.getMessage())
+        record.args = None
+        if record.exc_info and not record.exc_text:
+            record.exc_text = logging.Formatter().formatException(record.exc_info)
+        if record.exc_text:
+            record.exc_text = self._redactor.redact(record.exc_text)
+        if record.stack_info:
+            record.stack_info = self._redactor.redact(record.stack_info)
+        return True
 
 
 # Module-level default redactor instance

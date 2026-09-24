@@ -15,12 +15,13 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from adw.cli.bootstrap import create_log_manager, create_orchestrator, get_runs_dir
+from adw.cli.bootstrap import create_orchestrator, get_runs_dir
 from adw.cli.run_display import RunDisplay
 from adw.cli.validators import validate_phase
 from adw.core import ContextManager, ResumeManager
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ADWError
+from adw.logging import setup_logging
 from adw.models.logging import Verbosity
 
 console = Console()
@@ -68,10 +69,7 @@ def resume(
     if ctx.obj:
         verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
 
-    # Enable debug logging for VERBOSE/TRACE levels
-    if verbosity in (Verbosity.VERBOSE, Verbosity.TRACE):
-        logging.basicConfig(level=logging.DEBUG, format="%(name)s - %(message)s")
-        logger.debug("Verbose mode enabled")
+    setup_logging(verbosity, console=console)
 
     # Use ResumeManager to find and validate run
     resume_manager = _create_resume_manager()
@@ -131,10 +129,6 @@ def resume(
 
     try:
         logger.debug("Creating orchestrator and starting resume")
-
-        # Create log manager with verbosity
-        log_manager = create_log_manager(console, verbosity=verbosity)
-        _ = log_manager  # Log manager created, integration with orchestrator pending
 
         orchestrator = create_orchestrator(console)
         result = orchestrator.resume(context.run_id, from_phase=from_phase)

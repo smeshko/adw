@@ -311,7 +311,7 @@ Include the spy test, `adw run --dry-run` output before and after, and both erro
 
 ## Phase 2.9 — Logging on stdlib with a redaction filter
 
-**Plan**: _not yet created_
+**Plan**: [02.9-logging-on-stdlib](../plans/02.9-logging-on-stdlib/PLAN.md) · status: done
 
 **Linear**: ADW-25 (https://linear.app/ivo-tsonev/issue/ADW-25)
 
@@ -330,11 +330,12 @@ Include the spy test, `adw run --dry-run` output before and after, and both erro
 
 ### Acceptance criteria
 
-- [ ] `adw run -v --dry-run "x"` prints DEBUG lines (B8).
-- [ ] A value matching a redaction pattern, emitted in mocked LLM output, appears as `[REDACTED]` in `live.log`.
-- [ ] Exactly one writer holds `live.log` during a run, and the per-line file lock is gone.
-- [ ] `logging/` contains only `redactor.py`, `console.py`, `live_stream.py` and the setup function.
-- [ ] Lint and tests pass.
+- [x] `adw run -v --dry-run "x"` prints DEBUG lines (B8).
+  - `-v` is a root option: checked as `adw -v run --dry-run "x"` (plan 02.9, Decisions).
+- [x] A value matching a redaction pattern, emitted in mocked LLM output, appears as `[REDACTED]` in `live.log`.
+- [x] Exactly one writer holds `live.log` during a run, and the per-line file lock is gone.
+- [x] `logging/` contains only `redactor.py`, `console.py`, `live_stream.py` and the setup function.
+- [x] Lint and tests pass.
 
 ### Validation
 

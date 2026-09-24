@@ -283,18 +283,18 @@ class TestRealTimeStreaming:
             assert "Third line" in result.content
 
     def test_outputs_to_live_stream_when_configured(self, tmp_path) -> None:
-        """Should forward output to live_stream transport when configured.
+        """Should forward output to the live.log handler when configured.
 
         LLM output is written to live.log for real-time tailing via `adw logs follow`.
         """
         import json
 
-        from adw.logging.live_stream import LiveStreamTransport
+        from adw.logging.live_stream import LiveStreamHandler
 
-        # Create executor with live_stream transport
+        # Create executor with a live.log handler
         config = LLMConfig(path="claude")
         live_log_path = tmp_path / "live.log"
-        live_stream = LiveStreamTransport(live_log_path)
+        live_stream = LiveStreamHandler(live_log_path)
         executor = ClaudeCodeExecutor(config, live_stream=live_stream)
 
         # Use valid stream-json format with content_block_delta
@@ -338,6 +338,77 @@ class TestRealTimeStreaming:
         assert live_log_path.exists()
         content = live_log_path.read_text()
         assert "Hello world" in content
+
+    def test_llm_output_secrets_are_redacted_in_live_log(self, tmp_path) -> None:
+        """Secrets in LLM text and in a Bash tool call reach live.log redacted."""
+        import io
+        import json
+
+        from rich.console import Console
+
+        from adw.logging import setup_logging
+        from adw.models.logging import Verbosity
+
+        api_key = "sk-ant-api03-" + "a" * 24
+        gh_token = "ghp_" + "b" * 36
+        live_stream = setup_logging(
+            Verbosity.NORMAL, tmp_path, console=Console(file=io.StringIO())
+        )
+        executor = ClaudeCodeExecutor(LLMConfig(path="claude"), live_stream=live_stream)
+        text_line = json.dumps(
+            {
+                "type": "assistant",
+                "message": {"content": [{"type": "text", "text": f"Use {api_key}"}]},
+            }
+        )
+        tool_line = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "Bash",
+                            "input": {
+                                "command": f"gh auth login --with-token {gh_token}"
+                            },
+                        }
+                    ]
+                },
+            }
+        )
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(
+                side_effect=[
+                    (text_line + "\n").encode(),
+                    (tool_line + "\n").encode(),
+                    b"",
+                ]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt", phase="plan")
+
+        content = (tmp_path / "live.log").read_text()
+        assert "Token stream begins (plan)" in content
+        assert "[TOOL]" in content
+        assert content.count("[REDACTED]") == 2
+        assert "sk-ant-api03-aaaa" not in content
+        assert "ghp_bbbb" not in content
 
     def test_streaming_does_not_block_on_empty_lines(
         self, executor: ClaudeCodeExecutor

@@ -20,7 +20,7 @@ from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult, ToolCall
 
 if TYPE_CHECKING:
-    from adw.logging.live_stream import LiveStreamTransport
+    from adw.logging.live_stream import LiveStreamHandler
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +48,15 @@ class ClaudeCodeExecutor:
         self,
         config: LLMConfig,
         *,
-        live_stream: "LiveStreamTransport | None" = None,
+        live_stream: "LiveStreamHandler | None" = None,
     ) -> None:
         """Initialize the ClaudeCodeExecutor.
 
         Args:
             config: LLM configuration containing path and retry settings.
-            live_stream: Optional LiveStreamTransport for writing LLM tokens
-                        to live.log for real-time tailing.
+            live_stream: The run's live.log handler, which the LLM text,
+                        tool calls and errors are written through (redacted)
+                        for real-time tailing.
         """
         self.config = config
         self.live_stream = live_stream
@@ -72,7 +73,7 @@ class ClaudeCodeExecutor:
 
         Spawns Claude Code as a subprocess, streams output in real-time,
         and returns a structured result. LLM output is always written to
-        live.log when a live_stream transport is configured.
+        live.log when a live.log handler is configured.
 
         Args:
             prompt: The prompt to send to Claude Code.
@@ -112,7 +113,7 @@ class ClaudeCodeExecutor:
         """Execute Claude Code subprocess with streaming output.
 
         Uses concurrent tasks for stdout/stderr to prevent deadlocks.
-        LLM tokens are written to live.log when a live_stream transport
+        LLM tokens are written to live.log when a live.log handler
         is configured. Runs without a timeout so the LLM can complete
         naturally.
 
@@ -199,7 +200,7 @@ class ClaudeCodeExecutor:
 
         Uses asyncio.create_task() for concurrent processing, so artifact
         writes never block the stream. LLM tokens are
-        written to live.log when a live_stream transport is configured.
+        written to live.log when a live.log handler is configured.
 
         Args:
             process: The subprocess to read from.

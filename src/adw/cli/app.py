@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from rich.console import Console
 from ulid import ULID
 
-from adw.cli.bootstrap import create_log_manager, create_orchestrator
+from adw.cli.bootstrap import create_orchestrator
 from adw.cli.dashboard_web import dashboard_web_app
 from adw.cli.dry_run import DryRunDisplay
 from adw.cli.global_commands import global_app
@@ -26,6 +26,7 @@ from adw.cli.validate_config import validate_config_command
 from adw.cli.validators import validate_phase
 from adw.config.loader import ConfigLoader
 from adw.exceptions import ADWError, ConfigError
+from adw.logging import setup_logging
 from adw.models.config import ProjectConfig
 from adw.models.logging import Verbosity
 from adw.models.task import TaskInfo
@@ -272,6 +273,13 @@ def run(
         # No config or invalid - use defaults
         pass
 
+    # Console logging from here on, so input resolution and --dry-run log at
+    # the chosen verbosity. The run's live.log is attached further down.
+    verbosity = Verbosity.NORMAL
+    if ctx.obj:
+        verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
+    setup_logging(verbosity, console=console, redaction=redaction_config)
+
     # Resolve input: task ID vs feature string
     # Creates a task manager with config and uses InputResolver to auto-detect
     # When --no-task-manager is used, bypass config entirely to avoid initialization
@@ -359,30 +367,22 @@ def run(
         )
         return
 
-    # Get verbosity from context
-    verbosity = Verbosity.NORMAL
-    if ctx.obj:
-        verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
-
     # Calculate run directory for file logging
     runs_dir = Path.cwd() / ".adw" / "runs"
     run_dir = runs_dir / run_id
 
-    # Create log manager with file transports
-    # This wires up Python logging to LogManager, so all logging.getLogger() calls
-    # in ADW modules flow through to live.log for debugging via `adw logs follow`
-    create_log_manager(
-        console,
-        verbosity=verbosity,
-        run_dir=run_dir,
-        redaction_config=redaction_config,
+    # Replace the console-only handlers with the console plus the run's
+    # live.log handler. The executor writes the LLM stream through the same
+    # handler.
+    live_stream = setup_logging(
+        verbosity, run_dir, console=console, redaction=redaction_config
     )
 
     try:
         # Pass task_manager and task_info for StatusSyncService/LabelManager
         orchestrator = create_orchestrator(
             console,
-            run_id=run_id,
+            live_stream=live_stream,
             task_manager=task_manager,
             task_info=task_info,
         )

@@ -173,3 +173,37 @@ class TestResumeHeaderDisplay:
         # Should show completed phases
         assert "plan" in result
         assert "build" in result
+
+
+class TestResumeVerbosity:
+    """Tests for resume's logging setup."""
+
+    def test_verbose_resume_prints_debug_lines_once(self) -> None:
+        """-v shows resume's DEBUG lines through ADW's console handler, once."""
+        from datetime import UTC, datetime
+        from unittest.mock import MagicMock, patch
+
+        from adw.models.context import RunContext
+
+        context = RunContext(
+            run_id="01HQXK5P3Z7V8R2M4N6T9W1Y3C",
+            feature_description="Resume me",
+            current_phase="build",
+            started_at=datetime.now(UTC),
+        )
+        manager = MagicMock()
+        manager.find_run_to_resume.return_value = MagicMock(
+            is_valid=True, context=context, resume_phase="build"
+        )
+        orchestrator = MagicMock()
+        orchestrator.resume.return_value = context
+
+        with (
+            patch("adw.cli.resume._create_resume_manager", return_value=manager),
+            patch("adw.cli.resume.create_orchestrator", return_value=orchestrator),
+        ):
+            result = runner.invoke(app, ["-v", "resume"])
+
+        assert result.exit_code == 0, result.output
+        assert result.output.count("Resume phase: build") == 1
+        assert "[DEBUG] Resume phase: build" in result.output

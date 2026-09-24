@@ -433,31 +433,24 @@ class TestLoadLogEntries:
         assert entries[2]["level"] == "ERROR"
 
     def test_reads_log_written_by_run(self, tmp_path: Path) -> None:
-        """Reads the live.log a run's LogManager writes (B4)."""
-        from adw.cli.bootstrap import create_log_manager
+        """Reads the live.log a run's logging setup writes (B4)."""
         from adw.core.constants import project_runs_dir
         from adw.dashboard.routes import _load_log_entries
-        from adw.models.logging import LogCategory
+        from adw.logging import setup_logging
+        from adw.models.logging import Verbosity
 
         run_id = "01TESTRUNID0000000000000A"
         runs_dir = project_runs_dir(tmp_path)
         run_dir = runs_dir / run_id
-        run_dir.mkdir(parents=True)
 
-        root_logger = logging.getLogger()
-        handlers_before = list(root_logger.handlers)
-        try:
-            log_manager = create_log_manager(
-                console=Console(file=io.StringIO()), run_dir=run_dir
-            )
-            log_manager.info(LogCategory.PHASE, "phase plan started")
-        finally:
-            for handler in root_logger.handlers[:]:
-                if handler not in handlers_before:
-                    root_logger.removeHandler(handler)
+        setup_logging(Verbosity.NORMAL, run_dir, console=Console(file=io.StringIO()))
+        logging.getLogger("adw.core.orchestrator").info(
+            "phase plan started", extra={"phase": "plan"}
+        )
 
         entries = _load_log_entries(runs_dir, run_id)
         assert any("phase plan started" in e["message"] for e in entries)
+        assert len(_load_log_entries(runs_dir, run_id, phase="plan")) == 1
 
     def test_returns_empty_when_no_log_file(self, tmp_path: Path) -> None:
         """Returns empty list when no log file exists."""
