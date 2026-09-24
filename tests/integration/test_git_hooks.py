@@ -11,15 +11,13 @@ from pathlib import Path
 import pytest
 
 from adw.exceptions import HookError
-from adw.hooks.git_branch import (
+from adw.git import (
     check_uncommitted_changes,
+    create_commit,
     create_or_switch_branch,
     ensure_on_branch,
-    sanitize_branch_name,
-)
-from adw.hooks.git_commit import (
-    create_commit,
     has_staged_changes,
+    sanitize_branch_name,
     stage_changes,
 )
 

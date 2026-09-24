@@ -9,7 +9,7 @@ import logging
 import subprocess
 from typing import TYPE_CHECKING, ClassVar
 
-from adw.hooks.git_diff import (
+from adw.git import (
     capture_diff,
     capture_staged_diff,
     get_diff_stats,

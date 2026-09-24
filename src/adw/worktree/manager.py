@@ -31,7 +31,8 @@ from pathlib import Path
 from typing import TypedDict
 
 from adw.exceptions import ConfigError, WorktreeError
-from adw.worktree.branch import WorktreeBranchManager
+from adw.git import branch_exists, pr_exists
+from adw.git import delete_branch as delete_local_branch
 
 logger = logging.getLogger(__name__)
 
@@ -80,16 +81,6 @@ class WorktreeManager:
         """
         self.project_root = project_root.resolve()
         self.base_dir = base_dir
-        self._branch_manager = WorktreeBranchManager(self.project_root)
-
-    @property
-    def branch_manager(self) -> WorktreeBranchManager:
-        """Get the branch manager for this worktree manager.
-
-        Returns:
-            The WorktreeBranchManager instance used by this manager.
-        """
-        return self._branch_manager
 
     def get_branch_name(self, run_id: str) -> str:
         """Get the branch name for a given run ID.
@@ -100,7 +91,7 @@ class WorktreeManager:
         Returns:
             Branch name in format `adw/<run_id>`.
         """
-        return self._branch_manager.get_branch_name(run_id)
+        return f"adw/{run_id}"
 
     @property
     def worktree_base_path(self) -> Path:
@@ -434,8 +425,8 @@ class WorktreeManager:
                 f"rm -rf {worktree_path}",
             )
 
-        # Check if branch already exists (using branch manager for consistency)
-        if self._branch_manager.branch_exists(branch_name):
+        # Check if branch already exists
+        if branch_exists(branch_name, working_dir=self.project_root):
             raise WorktreeError(
                 code="BRANCH_EXISTS",
                 message=f"Branch '{branch_name}' already exists for run '{run_id}'",
@@ -484,7 +475,7 @@ class WorktreeManager:
             self.ensure_worktree_adw_structure(worktree_path, run_id)
 
             # Verify the branch was created
-            if not self._branch_manager.branch_exists(branch_name):
+            if not branch_exists(branch_name, working_dir=self.project_root):
                 raise WorktreeError(
                     code="BRANCH_NOT_CREATED",
                     message=(
@@ -550,7 +541,7 @@ class WorktreeManager:
                 and force=False.
         """
         worktree_path = self.worktree_base_path / run_id
-        branch_name = branch_name or self._branch_manager.get_branch_name(run_id)
+        branch_name = branch_name or self.get_branch_name(run_id)
 
         # Check if worktree exists
         if not worktree_path.exists():
@@ -624,13 +615,13 @@ class WorktreeManager:
             branch_deleted = False
             if delete_branch:
                 # Check for PR before deletion (optional - graceful if gh not available)
-                pr_exists = self._branch_manager.check_pr_exists(branch_name)
-                if pr_exists is True and not force:
+                has_pr = pr_exists(branch_name, working_dir=self.project_root)
+                if has_pr is True and not force:
                     logger.info(
                         "Preserving branch with existing PR",
                         extra={"branch": branch_name, "run_id": run_id},
                     )
-                elif pr_exists is None and not force:
+                elif has_pr is None and not force:
                     # gh CLI unavailable - preserve branch to be safe
                     logger.info(
                         "Preserving branch (PR status unknown - gh CLI unavailable)",
@@ -640,8 +631,8 @@ class WorktreeManager:
                     # User explicitly requested deletion with --delete-branch
                     # Use force=True since ADW branches always have unmerged commits
                     # PR check above is the safety guard, not unmerged commits
-                    branch_deleted = self._branch_manager.delete_branch(
-                        run_id, force=True, branch_name=branch_name
+                    branch_deleted = delete_local_branch(
+                        branch_name, working_dir=self.project_root
                     )
                     if not branch_deleted:
                         logger.warning(

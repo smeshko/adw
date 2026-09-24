@@ -1,4 +1,4 @@
-"""Unit tests for git commit module.
+"""Unit tests for the commit helpers in adw.git.
 
 Tests for stage_changes, has_staged_changes, create_commit,
 and commit message formatting functions.
@@ -9,7 +9,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.exceptions import HookError
-from adw.hooks.git_commit import (
+from adw.git import (
+    HOOK_TIMEOUT,
     create_commit,
     format_commit_message,
     get_unstaged_modifications,
@@ -86,7 +87,7 @@ class TestStageChanges:
 
     def test_stage_all_changes(self) -> None:
         """Should run git add -A and return staged files."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             # First call: git add -A
             # Second call: git diff --cached --name-only
             mock_run.side_effect = [
@@ -98,26 +99,26 @@ class TestStageChanges:
             assert mock_run.call_count == 2
             # Verify git add -A command was called (stages ALL changes including untracked)
             add_call = mock_run.call_args_list[0]
-            assert add_call[0][0] == ["git", "add", "-A"]
+            assert add_call.args == ("add", "-A")
 
     def test_stage_with_working_dir(self) -> None:
-        """Should pass working_dir to subprocess.run cwd."""
+        """Should pass working_dir as cwd to every git call."""
         from pathlib import Path
 
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.side_effect = [
                 MagicMock(returncode=0),
                 MagicMock(stdout="file.py\n", returncode=0),
             ]
             worktree = Path("/my/worktree")
             stage_changes(working_dir=worktree)
-            # Both subprocess calls should use cwd=worktree
+            # Both git calls should use cwd=worktree
             for call in mock_run.call_args_list:
                 assert call.kwargs.get("cwd") == worktree
 
     def test_no_changes_to_stage(self) -> None:
         """Should return empty list when no changes."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.side_effect = [
                 MagicMock(returncode=0),
                 MagicMock(stdout="", returncode=0),
@@ -127,7 +128,7 @@ class TestStageChanges:
 
     def test_raises_on_git_error(self) -> None:
         """Should raise HookError when git add fails."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.return_value = MagicMock(
                 stdout="",
                 stderr="fatal: not a git repository",
@@ -143,21 +144,21 @@ class TestHasStagedChanges:
 
     def test_has_staged_changes_true(self) -> None:
         """Should return True when staged changes exist."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             # git diff --cached --quiet exits with 1 when there are changes
             mock_run.return_value = MagicMock(returncode=1)
             assert has_staged_changes() is True
 
     def test_has_staged_changes_false(self) -> None:
         """Should return False when no staged changes."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             # git diff --cached --quiet exits with 0 when no changes
             mock_run.return_value = MagicMock(returncode=0)
             assert has_staged_changes() is False
 
     def test_raises_on_git_error(self) -> None:
         """Should raise HookError when git diff fails unexpectedly."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.return_value = MagicMock(
                 stdout="",
                 stderr="fatal: not a git repository",
@@ -173,7 +174,7 @@ class TestGetUnstagedModifications:
 
     def test_returns_modified_files(self) -> None:
         """Should return list of files with unstaged modifications."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.return_value = MagicMock(
                 stdout="file1.py\nfile2.py\n",
                 returncode=0,
@@ -183,14 +184,14 @@ class TestGetUnstagedModifications:
 
     def test_returns_empty_list_when_no_modifications(self) -> None:
         """Should return empty list when no unstaged modifications."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.return_value = MagicMock(stdout="", returncode=0)
             result = get_unstaged_modifications()
             assert result == []
 
     def test_raises_on_git_error(self) -> None:
         """Should raise HookError when git diff fails."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.return_value = MagicMock(
                 stdout="",
                 stderr="fatal: not a git repository",
@@ -206,7 +207,7 @@ class TestCreateCommit:
 
     def test_creates_commit_with_staged_changes(self) -> None:
         """Should create commit and return SHA when changes exist."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             # First call: git diff --cached --name-only (get staged files before)
             # Second call: git commit
             # Third call: git diff --name-only (check for unstaged modifications)
@@ -217,7 +218,7 @@ class TestCreateCommit:
                 MagicMock(returncode=0, stdout=""),  # no unstaged mods
                 MagicMock(returncode=0, stdout="abc123def456\n"),  # rev-parse
             ]
-            with patch("adw.hooks.git_commit.has_staged_changes", return_value=True):
+            with patch("adw.git.has_staged_changes", return_value=True):
                 result = create_commit(
                     phase="build",
                     feature="Add auth",
@@ -227,7 +228,7 @@ class TestCreateCommit:
 
     def test_returns_none_when_no_changes(self) -> None:
         """Should return None when no staged changes."""
-        with patch("adw.hooks.git_commit.has_staged_changes", return_value=False):
+        with patch("adw.git.has_staged_changes", return_value=False):
             result = create_commit(
                 phase="build",
                 feature="Add auth",
@@ -237,7 +238,7 @@ class TestCreateCommit:
 
     def test_raises_on_commit_failure(self) -> None:
         """Should raise HookError when commit fails."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.side_effect = [
                 MagicMock(returncode=0, stdout="file.py\n"),  # staged files
                 MagicMock(
@@ -247,7 +248,7 @@ class TestCreateCommit:
                 ),  # commit fails
                 MagicMock(returncode=0, stdout=""),  # no unstaged mods (no retry)
             ]
-            with patch("adw.hooks.git_commit.has_staged_changes", return_value=True):
+            with patch("adw.git.has_staged_changes", return_value=True):
                 with pytest.raises(HookError) as exc_info:
                     create_commit(
                         phase="build",
@@ -259,14 +260,14 @@ class TestCreateCommit:
 
     def test_uses_default_template_in_commit(self) -> None:
         """Should use default commit template."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.side_effect = [
                 MagicMock(returncode=0, stdout="file.py\n"),  # staged files
                 MagicMock(returncode=0, stdout=""),  # commit
                 MagicMock(returncode=0, stdout=""),  # no unstaged mods
                 MagicMock(returncode=0, stdout="abc123\n"),  # rev-parse
             ]
-            with patch("adw.hooks.git_commit.has_staged_changes", return_value=True):
+            with patch("adw.git.has_staged_changes", return_value=True):
                 create_commit(
                     phase="build",
                     feature="Add auth",
@@ -274,19 +275,19 @@ class TestCreateCommit:
                 )
             # Verify the commit message used (second call is the commit)
             commit_call = mock_run.call_args_list[1]
-            commit_msg = commit_call[0][0][3]
+            commit_msg = commit_call.args[2]
             assert commit_msg == "[adw] Build: Add auth\n\nRun: 01HQ123"
 
     def test_skip_hooks_adds_no_verify(self) -> None:
         """Should add --no-verify flag when skip_hooks=True."""
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             mock_run.side_effect = [
                 MagicMock(returncode=0, stdout="file.py\n"),  # staged files
                 MagicMock(returncode=0, stdout=""),  # commit
                 MagicMock(returncode=0, stdout=""),  # no unstaged mods
                 MagicMock(returncode=0, stdout="abc123\n"),  # rev-parse
             ]
-            with patch("adw.hooks.git_commit.has_staged_changes", return_value=True):
+            with patch("adw.git.has_staged_changes", return_value=True):
                 create_commit(
                     phase="build",
                     feature="Add auth",
@@ -295,15 +296,31 @@ class TestCreateCommit:
                 )
             # Verify --no-verify is in the commit command
             commit_call = mock_run.call_args_list[1]
-            commit_cmd = commit_call[0][0]
+            commit_cmd = commit_call.args
             assert "--no-verify" in commit_cmd
 
+    def test_commit_gets_the_hook_timeout(self) -> None:
+        """The commit runs pre-commit hooks, so it gets HOOK_TIMEOUT, not 60 s."""
+        with patch("adw.git.git") as mock_run:
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout="file.py\n"),  # staged files
+                MagicMock(returncode=0, stdout=""),  # commit
+                MagicMock(returncode=0, stdout=""),  # no unstaged mods
+                MagicMock(returncode=0, stdout="abc123\n"),  # rev-parse
+            ]
+            with patch("adw.git.has_staged_changes", return_value=True):
+                create_commit(phase="build", feature="Add auth", run_id="01HQ123")
+
+            commit_call = mock_run.call_args_list[1]
+            assert commit_call.args[0] == "commit"
+            assert commit_call.kwargs["timeout"] == HOOK_TIMEOUT
+
     def test_creates_commit_with_working_dir(self) -> None:
-        """Should pass working_dir to all subprocess calls for worktree support."""
+        """Should pass working_dir to every git call for worktree support."""
         from pathlib import Path
 
         worktree = Path("/my/worktree")
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.git.git") as mock_run:
             # staged files before commit, commit, unstaged mods, rev-parse HEAD
             mock_run.side_effect = [
                 MagicMock(returncode=0, stdout="file.py\n"),  # staged files before
@@ -312,10 +329,10 @@ class TestCreateCommit:
             ]
             with (
                 patch(
-                    "adw.hooks.git_commit.has_staged_changes", return_value=True
+                    "adw.git.has_staged_changes", return_value=True
                 ) as mock_has_staged,
                 patch(
-                    "adw.hooks.git_commit.get_unstaged_modifications", return_value=[]
+                    "adw.git.get_unstaged_modifications", return_value=[]
                 ) as mock_unstaged,
             ):
                 result = create_commit(
@@ -333,6 +350,6 @@ class TestCreateCommit:
 
                 assert result == "abc123def456"
 
-                # Verify cwd passed to all subprocess.run calls
+                # Verify cwd passed to every git call
                 for call in mock_run.call_args_list:
                     assert call.kwargs.get("cwd") == worktree

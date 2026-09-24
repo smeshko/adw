@@ -207,8 +207,7 @@ After LLM execution and post-hook (if any), `PhaseRunner._auto_commit_changes` c
 | `src/adw/core/extensions.py` | Extension registry for phase hooks |
 | `src/adw/commands/template.py` | Template rendering with includes |
 | `src/adw/defaults/commands/build/prompt.md` | Default build prompt |
-| `src/adw/hooks/git_commit.py` | Git commit helper functions |
-| `src/adw/hooks/git_diff.py` | Diff capture utilities |
+| `src/adw/git.py` | Every git and gh call: commit, diff and branch helpers |
 
 ## Configuration
 

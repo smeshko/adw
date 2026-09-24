@@ -28,7 +28,7 @@ from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.exceptions import ADWError, WorktreeError
-from adw.hooks.git_branch import ensure_on_branch, sanitize_branch_name
+from adw.git import ensure_on_branch, sanitize_branch_name
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.task import TaskInfo
 from adw.worktree import ConcurrentRunManager

@@ -733,12 +733,10 @@ class TestWorktreeManagerRemoval:
         )
         assert branch_name in result.stdout
 
-        # Mock check_pr_exists to return False (no PR)
+        # Mock pr_exists to return False (no PR)
         # Without this mock, gh CLI being unavailable returns None,
         # which preserves the branch as a safety measure
-        with patch.object(
-            manager._branch_manager, "check_pr_exists", return_value=False
-        ):
+        with patch("adw.worktree.manager.pr_exists", return_value=False):
             # Remove with delete_branch=True
             worktree_removed, branch_deleted = manager.remove_worktree(
                 run_id, delete_branch=True
@@ -759,7 +757,7 @@ class TestWorktreeManagerRemoval:
     def test_remove_worktree_preserve_branch_when_gh_unavailable(
         self, git_repo: Path
     ) -> None:
-        """Branch is preserved when gh CLI is unavailable (check_pr_exists returns None)."""
+        """Branch is preserved when gh CLI is unavailable (pr_exists returns None)."""
         from adw.worktree.manager import WorktreeManager
 
         manager = WorktreeManager(project_root=git_repo)
@@ -769,10 +767,8 @@ class TestWorktreeManagerRemoval:
         # Create a worktree
         manager.create_worktree(run_id)
 
-        # Mock check_pr_exists to return None (gh CLI unavailable)
-        with patch.object(
-            manager._branch_manager, "check_pr_exists", return_value=None
-        ):
+        # Mock pr_exists to return None (gh CLI unavailable)
+        with patch("adw.worktree.manager.pr_exists", return_value=None):
             # Remove with delete_branch=True but gh unavailable
             worktree_removed, branch_deleted = manager.remove_worktree(
                 run_id, delete_branch=True
@@ -803,10 +799,8 @@ class TestWorktreeManagerRemoval:
         # Create a worktree
         manager.create_worktree(run_id)
 
-        # Mock check_pr_exists to return None (gh CLI unavailable)
-        with patch.object(
-            manager._branch_manager, "check_pr_exists", return_value=None
-        ):
+        # Mock pr_exists to return None (gh CLI unavailable)
+        with patch("adw.worktree.manager.pr_exists", return_value=None):
             # Remove with delete_branch=True and force=True
             worktree_removed, branch_deleted = manager.remove_worktree(
                 run_id, delete_branch=True, force=True
@@ -850,15 +844,6 @@ class TestWorktreeManagerBranchIntegration:
     """Tests for WorktreeManager branch manager integration."""
 
     # Uses shared git_repo fixture from conftest.py
-
-    def test_branch_manager_property_returns_manager(self, git_repo: Path) -> None:
-        """branch_manager property returns WorktreeBranchManager instance."""
-        from adw.worktree.branch import WorktreeBranchManager
-        from adw.worktree.manager import WorktreeManager
-
-        manager = WorktreeManager(project_root=git_repo)
-
-        assert isinstance(manager.branch_manager, WorktreeBranchManager)
 
     def test_get_branch_name_returns_expected_format(self, git_repo: Path) -> None:
         """get_branch_name returns adw/<run_id> format."""

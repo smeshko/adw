@@ -1,6 +1,6 @@
-"""ADW hooks module - shell script execution and git integration.
+"""ADW hooks module - phase hook script execution.
 
-Submodules run pre-hook and post-hook shell scripts during phase execution,
-manage git branches, automate commits, and capture git diffs for build
-artifacts. Import from the submodules directly.
+Submodules run pre-hook and post-hook shell scripts during phase execution
+and build their environment. Git helpers live in adw.git. Import from the
+submodules directly.
 """
