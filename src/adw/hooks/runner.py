@@ -16,15 +16,12 @@ import os
 import signal
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from adw.exceptions import HookError
 from adw.hooks.environment import build_hook_environment
 from adw.logging.redactor import get_redactor
 from adw.models import HookConfig, HookResult, RunContext
-
-if TYPE_CHECKING:
-    from adw.models.worktree import PortAllocation
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +89,6 @@ class HookRunner:
         artifacts_dir: Path | None = None,
         context_file: Path | None = None,
         working_dir: Path | None = None,
-        port_allocation: "PortAllocation | None" = None,
     ) -> HookResult:
         """Execute a hook script and capture its output.
 
@@ -108,7 +104,6 @@ class HookRunner:
             artifacts_dir: Optional path to artifacts directory for ADW_ARTIFACTS_DIR
             context_file: Optional path to context file for ADW_CONTEXT_FILE
             working_dir: Working directory for hook execution (defaults to project root)
-            port_allocation: Optional port allocation for ADW ports
 
         Returns:
             HookResult with captured stdout, stderr, exit code, and timing
@@ -126,7 +121,6 @@ class HookRunner:
                 artifacts_dir=artifacts_dir,
                 context_file=context_file,
                 working_dir=working_dir,
-                port_allocation=port_allocation,
             )
         )
 
@@ -140,7 +134,6 @@ class HookRunner:
         artifacts_dir: Path | None,
         context_file: Path | None,
         working_dir: Path | None,
-        port_allocation: "PortAllocation | None",
     ) -> HookResult:
         """Internal async implementation of hook execution.
 
@@ -153,7 +146,6 @@ class HookRunner:
             artifacts_dir: Optional artifacts directory path
             context_file: Optional context file path
             working_dir: Working directory (defaults to current directory)
-            port_allocation: Optional port allocation for environment variables
 
         Returns:
             HookResult on successful execution
@@ -170,7 +162,6 @@ class HookRunner:
             phase,
             artifacts_dir=artifacts_dir,
             context_file=context_file,
-            port_allocation=port_allocation,
         )
 
         # Use provided working directory or default to current directory
