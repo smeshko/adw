@@ -1,6 +1,6 @@
 # Plan: One home for git, formatting, paths and run status
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-23
 Risk: large
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -273,7 +273,7 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Add adw.git with a timed git() and gh() runner
+- [x] TASK-001: Add adw.git with a timed git() and gh() runner
 - [ ] TASK-002: Move the branch, commit and diff helpers into adw.git (depends on TASK-001)
 - [ ] TASK-003: Route the remaining git and gh calls through adw.git (depends on TASK-002)
 - [ ] TASK-004: Type run status as a RunStatus StrEnum
