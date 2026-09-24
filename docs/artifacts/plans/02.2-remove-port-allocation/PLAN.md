@@ -1,6 +1,6 @@
 # Plan: Remove port allocation
 
-Status: in-progress
+Status: done
 Branch: feature/adw-18
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -74,12 +74,12 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 
 ## Acceptance Criteria
 
-- [ ] `grep -rn "PortAlloc\|port_range\|ports.env" src` returns nothing, and `grep -rln "PortAlloc\|port_range\|ports.env" tests` lists only `tests/unit/models/test_config.py`, which holds the legacy-config regression test (see Decisions). Evidence: both grep outputs.
-- [ ] `adw list --running` shows no port column. Evidence: `test_list_running_has_no_ports_column`, RED then GREEN, plus a scratch-repo transcript with one mocked active run.
-- [ ] A `project.yaml` that still has `worktree.port_range` loads without error and keeps its `max_concurrent`. Evidence: `test_legacy_port_range_is_ignored`, RED then GREEN. Its overlapping range fails validation before the change and loads after it. Plus `adw validate` against a legacy file in a scratch repo, which exits 0.
-- [ ] `max_concurrent` is still enforced for a run started while the limit's worth of runs are live (sequential starts; see Out of Scope for the simultaneous-start race). Evidence: the existing `test_check_can_start_or_raise_raises_at_limit` passes, which pins the `MAX_CONCURRENT_REACHED` code. In a scratch repo with `max_concurrent: 1` and one live lock, `adw run` prints "Maximum concurrent runs reached (1)", exits non-zero and creates no worktree. The CLI prints the message, not the code.
-- [ ] `adw init --wizard` has no ports step, and the generated `project.yaml` has no `port_range`. Evidence: `test_run_marks_steps_completed` asserting that the controller run never visits `ports`, and the `test_yaml_generator.py` assertions, both RED then GREEN.
-- [ ] Lint and tests pass. Evidence: `scripts/preflight.sh` and the tail of `uv run pytest`, with coverage ≥ 80%.
+- [x] `grep -rn "PortAlloc\|port_range\|ports.env" src` returns nothing, and `grep -rln "PortAlloc\|port_range\|ports.env" tests` lists only `tests/unit/models/test_config.py`, which holds the legacy-config regression test (see Decisions). Evidence: both grep outputs.
+- [x] `adw list --running` shows no port column. Evidence: `test_list_running_has_no_ports_column`, RED then GREEN, plus a scratch-repo transcript with one mocked active run.
+- [x] A `project.yaml` that still has `worktree.port_range` loads without error and keeps its `max_concurrent`. Evidence: `test_legacy_port_range_is_ignored`, RED then GREEN. Its overlapping range fails validation before the change and loads after it. Plus `adw validate` against a legacy file in a scratch repo, which exits 0.
+- [x] `max_concurrent` is still enforced for a run started while the limit's worth of runs are live (sequential starts; see Out of Scope for the simultaneous-start race). Evidence: the existing `test_check_can_start_or_raise_raises_at_limit` passes, which pins the `MAX_CONCURRENT_REACHED` code. In a scratch repo with `max_concurrent: 1` and one live lock, `adw run` prints "Maximum concurrent runs reached (1)", exits non-zero and creates no worktree. The CLI prints the message, not the code.
+- [x] `adw init --wizard` has no ports step, and the generated `project.yaml` has no `port_range`. Evidence: `test_run_marks_steps_completed` asserting that the controller run never visits `ports`, and the `test_yaml_generator.py` assertions, both RED then GREEN.
+- [x] Lint and tests pass. Evidence: `scripts/preflight.sh` and the tail of `uv run pytest`, with coverage ≥ 80%.
 
 ## Tasks
 
@@ -91,4 +91,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-004: Remove the ports step from the init wizard
 - [x] TASK-003: Delete PortAllocator, PortAllocation and the port error code (depends on TASK-002, TASK-004)
 - [x] TASK-005: Drop WorktreeConfig.port_range and keep old configs loading (depends on TASK-004)
-- [ ] TASK-006: Final Validation
+- [x] TASK-006: Final Validation
