@@ -22,16 +22,16 @@ Worktree Directory Structure:
             └── 01HQXK5.../         # Preserved artifacts after worktree removal
 """
 
+import contextlib
 import json
 import logging
 import shutil
-import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypedDict
 
-from adw.exceptions import ConfigError, WorktreeError
-from adw.git import branch_exists, pr_exists
+from adw.exceptions import ADWError, ConfigError, WorktreeError
+from adw.git import CHECKOUT_TIMEOUT, HOOK_TIMEOUT, branch_exists, git, pr_exists
 from adw.git import delete_branch as delete_local_branch
 
 logger = logging.getLogger(__name__)
@@ -425,8 +425,19 @@ class WorktreeManager:
                 f"rm -rf {worktree_path}",
             )
 
-        # Check if branch already exists
-        if branch_exists(branch_name, working_dir=self.project_root):
+        # Check if branch already exists. A timed-out check must not read as
+        # "absent": the cleanup after a failed add would delete that branch.
+        try:
+            exists = branch_exists(branch_name, working_dir=self.project_root)
+        except ADWError as exc:
+            raise WorktreeError(
+                code="WORKTREE_CREATE_FAILED",
+                message=f"Could not check whether branch '{branch_name}' exists: "
+                f"{exc.message}",
+                suggestion=exc.suggestion,
+                recoverable=True,
+            ) from exc
+        if exists:
             raise WorktreeError(
                 code="BRANCH_EXISTS",
                 message=f"Branch '{branch_name}' already exists for run '{run_id}'",
@@ -436,11 +447,11 @@ class WorktreeManager:
         # Ensure trees directory exists with proper gitignore setup
         self.ensure_trees_directory()
 
-        # Build the git worktree add command
-        cmd = ["git", "worktree", "add", str(worktree_path), "-b", branch_name]
+        # Build the git worktree add arguments
+        args = ["worktree", "add", str(worktree_path), "-b", branch_name]
 
         if source_branch:
-            cmd.append(source_branch)
+            args.append(source_branch)
 
         logger.info(
             "Creating worktree",
@@ -453,13 +464,17 @@ class WorktreeManager:
         )
 
         try:
-            result = subprocess.run(
-                cmd,
-                cwd=self.project_root,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            # worktree add checks out a full tree and runs post-checkout hooks
+            try:
+                result = git(*args, cwd=self.project_root, timeout=HOOK_TIMEOUT)
+            except ADWError as exc:
+                self._cleanup_partial_worktree(worktree_path, branch_name)
+                raise WorktreeError(
+                    code="WORKTREE_CREATE_FAILED",
+                    message=f"Failed to create worktree: {exc.message}",
+                    suggestion=exc.suggestion,
+                    recoverable=True,
+                ) from exc
 
             if result.returncode != 0:
                 # Clean up any partial state
@@ -475,7 +490,17 @@ class WorktreeManager:
             self.ensure_worktree_adw_structure(worktree_path, run_id)
 
             # Verify the branch was created
-            if not branch_exists(branch_name, working_dir=self.project_root):
+            try:
+                created = branch_exists(branch_name, working_dir=self.project_root)
+            except ADWError as exc:
+                self._cleanup_partial_worktree(worktree_path, branch_name)
+                raise WorktreeError(
+                    code="WORKTREE_CREATE_FAILED",
+                    message=f"Could not verify branch '{branch_name}': {exc.message}",
+                    suggestion=exc.suggestion,
+                    recoverable=True,
+                ) from exc
+            if not created:
                 raise WorktreeError(
                     code="BRANCH_NOT_CREATED",
                     message=(
@@ -585,19 +610,21 @@ class WorktreeManager:
             },
         )
 
-        # Build the git worktree remove command
-        cmd = ["git", "worktree", "remove", str(worktree_path)]
+        # Build the git worktree remove arguments
+        args = ["worktree", "remove", str(worktree_path)]
         if force:
-            cmd.insert(3, "--force")
+            args.insert(2, "--force")
 
         try:
-            result = subprocess.run(
-                cmd,
-                cwd=self.project_root,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            try:
+                result = git(*args, cwd=self.project_root, timeout=CHECKOUT_TIMEOUT)
+            except ADWError as exc:
+                raise WorktreeError(
+                    code="WORKTREE_REMOVE_FAILED",
+                    message=f"Failed to remove worktree: {exc.message}",
+                    suggestion=exc.suggestion,
+                    recoverable=True,
+                ) from exc
 
             if result.returncode != 0:
                 raise WorktreeError(
@@ -659,15 +686,9 @@ class WorktreeManager:
             True if there are uncommitted changes, False otherwise.
         """
         try:
-            result = subprocess.run(
-                ["git", "status", "--porcelain"],
-                cwd=worktree_path,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            result = git("status", "--porcelain", cwd=worktree_path)
             return bool(result.stdout.strip())
-        except (FileNotFoundError, OSError):
+        except (OSError, ADWError):
             return False
 
     def _cleanup_partial_worktree(
@@ -695,14 +716,11 @@ class WorktreeManager:
                     extra={"path": str(worktree_path), "error": str(e)},
                 )
 
-        # Try to remove the branch if it was created
-        import contextlib
+        # A killed `worktree add` leaves .git/worktrees/<id> behind, and git
+        # refuses to delete a branch still registered to a worktree
+        with contextlib.suppress(OSError, ADWError):
+            git("worktree", "prune", cwd=self.project_root)
 
-        with contextlib.suppress(OSError):
-            subprocess.run(
-                ["git", "branch", "-D", branch_name],
-                cwd=self.project_root,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+        # Try to remove the branch if it was created
+        with contextlib.suppress(OSError, ADWError):
+            delete_local_branch(branch_name, working_dir=self.project_root)

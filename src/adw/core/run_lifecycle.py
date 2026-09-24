@@ -15,7 +15,6 @@ Key responsibilities:
 from __future__ import annotations
 
 import logging
-import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -28,7 +27,7 @@ from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.exceptions import ADWError, WorktreeError
-from adw.git import ensure_on_branch, sanitize_branch_name
+from adw.git import NETWORK_TIMEOUT, ensure_on_branch, git, sanitize_branch_name
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.task import TaskInfo
 from adw.worktree import ConcurrentRunManager
@@ -577,13 +576,23 @@ class RunLifecycle:
         """
         base_branch = self.git_config.base_branch
 
-        result = subprocess.run(
-            ["git", "fetch", "origin", base_branch],
-            cwd=self.project_path,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            result = git(
+                "fetch",
+                "origin",
+                base_branch,
+                cwd=self.project_path,
+                timeout=NETWORK_TIMEOUT,
+            )
+        except ADWError as exc:
+            # Keep adw.git's suggestion: it names credentials and ssh-agent,
+            # and git writes its prompts to the terminal, not stderr
+            raise WorktreeError(
+                code="GIT_FETCH_FAILED",
+                message=f"Failed to fetch '{base_branch}' from origin: {exc.message}",
+                suggestion=exc.suggestion,
+                recoverable=True,
+            ) from exc
 
         if result.returncode != 0:
             raise WorktreeError(
@@ -596,6 +605,7 @@ class RunLifecycle:
                     "Check your network connection and ensure the remote "
                     "'origin' is configured with: git remote -v"
                 ),
+                recoverable=True,
             )
 
         logger.info(

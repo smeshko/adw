@@ -209,17 +209,35 @@ class TestCreatePr:
 
     def test_timeout_raises_recoverable(self, repo: Path) -> None:
         """A gh timeout raises a recoverable GH_TIMEOUT."""
+        timeout = ADWError(
+            "GH_TIMEOUT", "`gh pr create` timed out after 60s", recoverable=True
+        )
         with (
-            patch(
-                "adw.core.pr.subprocess.run",
-                side_effect=subprocess.TimeoutExpired(cmd="gh", timeout=60),
-            ),
+            patch("adw.core.pr.gh", side_effect=timeout),
             pytest.raises(ADWError) as exc_info,
         ):
             create_pr(_context(repo, branch_name=None), "Body", base="main")
 
         assert exc_info.value.code == "GH_TIMEOUT"
         assert exc_info.value.recoverable is True
+
+    def test_push_timeout_raises_git_push_failed(self, repo: Path) -> None:
+        """A timed-out push is a GIT_PUSH_FAILED that keeps the credentials hint."""
+        timeout = ADWError(
+            "GIT_TIMEOUT",
+            "`git push` timed out after 600s",
+            suggestion="check your credentials or ssh-agent",
+            recoverable=True,
+        )
+        with (
+            patch("adw.core.pr.git", side_effect=timeout),
+            pytest.raises(ADWError) as exc_info,
+        ):
+            create_pr(_context(repo), "Body", base="main")
+
+        assert exc_info.value.code == "GIT_PUSH_FAILED"
+        assert "timed out" in exc_info.value.message
+        assert "credential" in (exc_info.value.suggestion or "")
 
 
 class TestLoadPrDescription:

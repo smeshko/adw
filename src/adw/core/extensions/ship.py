@@ -7,12 +7,12 @@ post-merge cleanup (worktree removal, branch deletion, checkout).
 
 import json
 import logging
-import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 import yaml
 
+from adw.git import HOOK_TIMEOUT, git
 from adw.models.command import ShipCommandConfig, get_config_class
 
 if TYPE_CHECKING:
@@ -188,18 +188,21 @@ class ShipExtension:
             preserve=True,
         )
 
-        # 2. Checkout base branch and pull latest
-        subprocess.run(
-            ["git", "checkout", base_branch],
+        # 2. Checkout base branch and pull latest (both run git hooks)
+        git(
+            "checkout",
+            base_branch,
             cwd=self._project_root,
-            capture_output=True,
             check=True,
+            timeout=HOOK_TIMEOUT,
         )
-        subprocess.run(
-            ["git", "pull", "origin", base_branch],
+        git(
+            "pull",
+            "origin",
+            base_branch,
             cwd=self._project_root,
-            capture_output=True,
             check=True,
+            timeout=HOOK_TIMEOUT,
         )
 
         logger.info(

@@ -8,12 +8,14 @@ will exit if not in a git repository.
 from __future__ import annotations
 
 import re
-import subprocess
 from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
+
+from adw.exceptions import ADWError
+from adw.git import git
 
 # Branch prefix validation pattern:
 # - Must start with a letter (a-zA-Z)
@@ -133,15 +135,10 @@ def is_git_repo() -> bool:
         True if inside a git working tree, False otherwise.
     """
     try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--is-inside-work-tree"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
+        result = git("rev-parse", "--is-inside-work-tree", timeout=5)
         # Check both returncode and stdout - bare repos return "false" with exit 0
         return result.returncode == 0 and result.stdout.strip().lower() == "true"
-    except (subprocess.SubprocessError, FileNotFoundError):
+    except (ADWError, OSError):
         return False
 
 

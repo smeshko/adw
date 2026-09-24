@@ -12,11 +12,11 @@ Example:
 
 import logging
 import re
-import subprocess
 from pathlib import Path
 
 from adw.core.constants import PR_DESCRIPTION_ARTIFACT
 from adw.exceptions import ADWError
+from adw.git import HOOK_TIMEOUT, gh, git
 from adw.models import PRDescription, RunContext
 
 logger = logging.getLogger(__name__)
@@ -150,8 +150,7 @@ def create_pr(
     if context.branch_name:
         _push_branch(context.branch_name, context.worktree_path)
 
-    cmd = [
-        "gh",
+    args = [
         "pr",
         "create",
         "--title",
@@ -162,12 +161,13 @@ def create_pr(
         base,
     ]
     if context.branch_name:
-        cmd.extend(["--head", context.branch_name])
+        args.extend(["--head", context.branch_name])
     if draft:
-        cmd.append("--draft")
+        args.append("--draft")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        # A timeout raises GH_TIMEOUT (recoverable) from gh() itself
+        result = gh(*args, timeout=60)
     except FileNotFoundError as e:
         raise ADWError(
             code="GH_NOT_INSTALLED",
@@ -176,13 +176,6 @@ def create_pr(
                 "Install the GitHub CLI (https://cli.github.com) "
                 "or open the PR manually"
             ),
-        ) from e
-    except subprocess.TimeoutExpired as e:
-        raise ADWError(
-            code="GH_TIMEOUT",
-            message="PR creation timed out after 60 seconds",
-            suggestion="Check network connection and try again",
-            recoverable=True,
         ) from e
 
     if result.returncode != 0:
@@ -210,16 +203,16 @@ def _push_branch(branch_name: str, working_dir: Path | None) -> None:
     Raises:
         ADWError: GIT_PUSH_FAILED on a non-zero exit, timeout or OS error.
     """
+    suggestion = f"Check 'git remote -v', then run 'git push -u origin {branch_name}'"
     try:
-        result = subprocess.run(
-            ["git", "push", "-u", "origin", branch_name],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            cwd=working_dir,
+        # push runs pre-push hooks
+        result = git(
+            "push", "-u", "origin", branch_name, cwd=working_dir, timeout=HOOK_TIMEOUT
         )
-    except subprocess.TimeoutExpired:
-        error = "push timed out after 120 seconds"
+    except ADWError as e:
+        # A timeout: keep adw.git's suggestion, which names credentials
+        error = e.message
+        suggestion = e.suggestion or suggestion
     except OSError as e:
         error = str(e)
     else:
@@ -230,9 +223,7 @@ def _push_branch(branch_name: str, working_dir: Path | None) -> None:
     raise ADWError(
         code="GIT_PUSH_FAILED",
         message=f"Failed to push branch '{branch_name}': {error}",
-        suggestion=(
-            f"Check 'git remote -v', then run 'git push -u origin {branch_name}'"
-        ),
+        suggestion=suggestion,
     )
 
 
