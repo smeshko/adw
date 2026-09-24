@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-23
 Risk: large
-Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
+Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../../epics/02-cleanup-remove-and-consolidate.md))
 Phase: 2.7 — One home for git, formatting, paths and run status
 Linear: ADW-23
 Created: 2026-09-24

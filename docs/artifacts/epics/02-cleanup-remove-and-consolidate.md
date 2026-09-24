@@ -241,7 +241,7 @@ Include both transcripts (accept and cancel) from a scratch repo, driven by a te
 
 ## Phase 2.7 — One home for git, formatting, paths and run status
 
-**Plan**: [02.7-one-home-for-git-format-paths-status](../plans/02.7-one-home-for-git-format-paths-status/PLAN.md) · status: done
+**Plan**: [02.7-one-home-for-git-format-paths-status](../plans/archive/2026-09-24-02.7-one-home-for-git-format-paths-status/PLAN.md) · status: done
 
 **Linear**: ADW-23 (https://linear.app/ivo-tsonev/issue/ADW-23)
 
