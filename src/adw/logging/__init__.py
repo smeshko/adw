@@ -57,9 +57,6 @@ def create_redactor_from_config(
         ... )
     """
     if not enabled:
-        logging.getLogger(__name__).warning(
-            "Secret redaction is DISABLED - sensitive data may appear in logs"
-        )
         return None
 
     return configure_redactor(
@@ -95,7 +92,8 @@ def setup_logging(
         without a run directory.
     """
     logger = logging.getLogger("adw")
-    for old in logger.handlers[:]:
+    previous = logger.handlers[:]
+    for old in previous:
         logger.removeHandler(old)
         old.close()
 
@@ -114,7 +112,6 @@ def setup_logging(
         logger.addHandler(handler)
     logger.setLevel(min(handler.level for handler in handlers))
 
-    # After the handlers are attached, so a "DISABLED" warning reaches them
     redaction = redaction or RedactionConfig()
     redactor = create_redactor_from_config(
         enabled=redaction.enabled,
@@ -124,8 +121,21 @@ def setup_logging(
     if redactor is not None:
         for handler in handlers:
             handler.addFilter(RedactingFilter(redactor))
+    elif not _redaction_was_off(previous):
+        # Once per switch-off: adw run calls this twice, and the handlers
+        # the first call attached carry no RedactingFilter
+        logger.warning(
+            "Secret redaction is DISABLED - sensitive data may appear in logs"
+        )
 
     return live_handler
+
+
+def _redaction_was_off(handlers: list[logging.Handler]) -> bool:
+    """Whether handlers from an earlier setup_logging call ran unredacted."""
+    return bool(handlers) and not any(
+        isinstance(f, RedactingFilter) for h in handlers for f in h.filters
+    )
 
 
 __all__ = [

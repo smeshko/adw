@@ -85,5 +85,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-001: Add a redacting logging filter and drop the test-only dict redaction
 - [x] TASK-002: Add setup_logging with a Rich console handler and one live.log handler (depends on TASK-001)
 - [x] TASK-003: Route run, resume and the executor through setup_logging and delete LogManager (depends on TASK-002)
-- [ ] TASK-004: Show DEBUG lines for adw -v run --dry-run (depends on TASK-003)
+- [x] TASK-004: Show DEBUG lines for adw -v run --dry-run (depends on TASK-003)
 - [ ] TASK-005: Final Validation

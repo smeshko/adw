@@ -273,6 +273,13 @@ def run(
         # No config or invalid - use defaults
         pass
 
+    # Console logging from here on, so input resolution and --dry-run log at
+    # the chosen verbosity. The run's live.log is attached further down.
+    verbosity = Verbosity.NORMAL
+    if ctx.obj:
+        verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
+    setup_logging(verbosity, console=console, redaction=redaction_config)
+
     # Resolve input: task ID vs feature string
     # Creates a task manager with config and uses InputResolver to auto-detect
     # When --no-task-manager is used, bypass config entirely to avoid initialization
@@ -360,17 +367,13 @@ def run(
         )
         return
 
-    # Get verbosity from context
-    verbosity = Verbosity.NORMAL
-    if ctx.obj:
-        verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
-
     # Calculate run directory for file logging
     runs_dir = Path.cwd() / ".adw" / "runs"
     run_dir = runs_dir / run_id
 
-    # Attach the console and the run's live.log handler to the adw logger.
-    # The executor writes the LLM stream through the same handler.
+    # Replace the console-only handlers with the console plus the run's
+    # live.log handler. The executor writes the LLM stream through the same
+    # handler.
     live_stream = setup_logging(
         verbosity, run_dir, console=console, redaction=redaction_config
     )

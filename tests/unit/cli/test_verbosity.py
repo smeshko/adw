@@ -22,3 +22,18 @@ class TestVerbosityBusinessLogic:
         assert result.exit_code != 0
         output_lower = result.output.lower()
         assert "mutually exclusive" in output_lower or "cannot" in output_lower
+
+    def test_verbose_dry_run_prints_debug_lines(self) -> None:
+        """-v shows DEBUG log lines on a dry run (B8)."""
+        result = runner.invoke(app, ["-v", "run", "--dry-run", "x"])
+
+        assert result.exit_code == 0, result.output
+        assert "[DEBUG] Input treated as feature string" in result.output
+
+    def test_default_dry_run_prints_no_debug_lines(self) -> None:
+        """Without -v a dry run prints no DEBUG or resolver lines."""
+        result = runner.invoke(app, ["run", "--dry-run", "x"])
+
+        assert result.exit_code == 0, result.output
+        assert "[DEBUG]" not in result.output
+        assert "Input treated as" not in result.output

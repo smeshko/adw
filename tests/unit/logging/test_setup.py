@@ -200,6 +200,17 @@ def test_disabled_redaction_warns_and_passes_secrets(
     assert SECRET in (run_dir / "live.log").read_text()
 
 
+def test_disabled_redaction_warns_once_across_calls(
+    run_dir: Path, console: Console, buf: io.StringIO
+) -> None:
+    """adw run sets up logging twice; the DISABLED warning shows once."""
+    disabled = RedactionConfig(enabled=False)
+    setup_logging(Verbosity.NORMAL, console=console, redaction=disabled)
+    setup_logging(Verbosity.NORMAL, run_dir, console=console, redaction=disabled)
+
+    assert buf.getvalue().count("redaction is DISABLED") == 1
+
+
 def test_live_log_needs_no_lock_file(run_dir: Path, console: Console) -> None:
     handler = setup_logging(Verbosity.NORMAL, run_dir, console=console)
     assert handler is not None

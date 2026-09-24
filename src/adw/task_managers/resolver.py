@@ -82,7 +82,7 @@ class InputResolver:
             ValueError: If force_task_id=True and input doesn't match pattern.
         """
         if force_feature:
-            logger.info(
+            logger.debug(
                 "Input treated as feature (--no-task-manager)",
                 extra={"input": input_str},
             )
@@ -95,7 +95,7 @@ class InputResolver:
         task_id = self._task_manager.resolve_task_id(input_str)
 
         if task_id:
-            logger.info(
+            logger.debug(
                 "Input resolved as task ID",
                 extra={"input": input_str, "task_id": task_id},
             )
@@ -110,7 +110,7 @@ class InputResolver:
             msg = f"Input '{input_str}' does not match task ID pattern"
             raise ValueError(msg)
 
-        logger.info(
+        logger.debug(
             "Input treated as feature string",
             extra={"input": input_str},
         )
