@@ -9,6 +9,7 @@ deeper; archive_plan repairs them.
 import os
 import re
 import shutil
+from contextlib import suppress
 from datetime import date
 from pathlib import Path
 
@@ -35,6 +36,10 @@ def archive_plan(root: Path, slug: str, merged_on: date) -> Path:
     recomputed from the new location. Epic links into the plan dir move to
     the archive.
 
+    The archive is built as a copy, swapped in with a rename, and the source
+    is dropped last. If any step fails, the copy is removed and the epics are
+    restored, so the plan stays where it was and a retry starts clean.
+
     Args:
         root: Project root.
         slug: The plan's slug.
@@ -46,6 +51,7 @@ def archive_plan(root: Path, slug: str, merged_on: date) -> Path:
     Raises:
         PlanError: INVALID_PLAN for an unusable slug, PLAN_NOT_FOUND when the
             plan has no PLAN.md.
+        OSError: A read or write failed; nothing was changed.
     """
     source = plan_dir(root, slug)
     if not (source / "PLAN.md").is_file():
@@ -58,25 +64,59 @@ def archive_plan(root: Path, slug: str, merged_on: date) -> Path:
     while destination.exists():
         destination = archive_root / f"{base}-{suffix}"
         suffix += 1
+    staging = archive_root / f".{destination.name}.tmp"
+    discarded = archive_root / f".{destination.name}.old"
+    epics = _repointed_epics(root, slug, destination.name)
+
     archive_root.mkdir(parents=True, exist_ok=True)
-    shutil.move(source, destination)
+    shutil.rmtree(staging, ignore_errors=True)
+    shutil.rmtree(discarded, ignore_errors=True)
+    try:
+        shutil.copytree(source, staging)
+        for markdown in sorted(staging.rglob("*.md")):
+            relative = markdown.relative_to(staging)
+            text = markdown.read_text(encoding="utf-8")
+            repaired = _repair_links(
+                text,
+                (source / relative).parent,
+                (destination / relative).parent,
+                source,
+            )
+            if repaired != text:
+                markdown.write_text(repaired, encoding="utf-8")
+        staging.rename(destination)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
 
-    for markdown in sorted(destination.rglob("*.md")):
-        old_file = source / markdown.relative_to(destination)
-        text = markdown.read_text(encoding="utf-8")
-        repaired = _repair_links(text, old_file.parent, markdown.parent, source)
-        if repaired != text:
-            markdown.write_text(repaired, encoding="utf-8")
+    try:
+        for epic, (_, repointed) in epics.items():
+            epic.write_text(repointed, encoding="utf-8")
+        source.rename(discarded)
+    except BaseException:
+        for epic, (original, _) in epics.items():
+            with suppress(OSError):
+                epic.write_text(original, encoding="utf-8")
+        shutil.rmtree(destination, ignore_errors=True)
+        raise
+    shutil.rmtree(discarded, ignore_errors=True)
+    return destination
 
+
+def _repointed_epics(
+    root: Path, slug: str, archived_name: str
+) -> dict[Path, tuple[str, str]]:
+    """Map each epic that links into the plan to its (original, repointed) text."""
+    epics: dict[Path, tuple[str, str]] = {}
     for epic in sorted(epics_dir(root).glob("*.md")):
         text = epic.read_text(encoding="utf-8")
         repointed = text.replace(
             f"](../plans/{slug}/",
-            f"](../plans/{ARCHIVE_DIR_NAME}/{destination.name}/",
+            f"](../plans/{ARCHIVE_DIR_NAME}/{archived_name}/",
         )
         if repointed != text:
-            epic.write_text(repointed, encoding="utf-8")
-    return destination
+            epics[epic] = (text, repointed)
+    return epics
 
 
 def _repair_links(text: str, old_dir: Path, new_dir: Path, old_plan: Path) -> str:

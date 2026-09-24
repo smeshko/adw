@@ -123,6 +123,49 @@ def test_the_epic_points_at_the_archived_plan(root: Path) -> None:
     assert "**Plan**: [p-2](../plans/p-2/PLAN.md) · status: planned" in epic
 
 
+def _snapshot(root: Path) -> dict[str, bytes]:
+    docs = root / "docs"
+    return {
+        path.relative_to(docs).as_posix(): path.read_bytes()
+        for path in sorted(docs.rglob("*"))
+        if path.is_file()
+    }
+
+
+@pytest.mark.parametrize(
+    "failing_file",
+    ["RESEARCH.md", "04-x.md"],
+    ids=["rewriting-the-plan", "repointing-the-epic"],
+)
+def test_a_failed_write_leaves_everything_as_it_was(
+    root: Path, monkeypatch: pytest.MonkeyPatch, failing_file: str
+) -> None:
+    before = _snapshot(root)
+    original_write_text = Path.write_text
+    failures = []
+
+    def write_text_failing_once(self: Path, data: str, **kwargs: object) -> int:
+        if self.name == failing_file and not failures:
+            failures.append(self)
+            raise OSError(28, "No space left on device")
+        return original_write_text(self, data, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(Path, "write_text", write_text_failing_once)
+
+    with pytest.raises(OSError, match="No space left"):
+        archive_plan(root, "p", MERGED)
+
+    assert failures, "the injected failure never fired"
+    assert _snapshot(root) == before
+    assert not (plans_dir(root) / "archive").exists() or not any(
+        (plans_dir(root) / "archive").iterdir()
+    )
+
+    monkeypatch.setattr(Path, "write_text", original_write_text)
+    destination = archive_plan(root, "p", MERGED)
+    assert destination.name == "2026-09-24-p"
+
+
 @pytest.mark.parametrize(
     ("slug", "code"),
     [("missing", "PLAN_NOT_FOUND"), ("archive", "INVALID_PLAN")],
