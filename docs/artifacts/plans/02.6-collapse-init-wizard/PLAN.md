@@ -1,6 +1,6 @@
 # Plan: Collapse the init wizard into a straight sequence
 
-Status: in-progress
+Status: done
 Branch: feature/adw-22
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -68,14 +68,14 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 
 ## Acceptance Criteria
 
-- [ ] `adw init --wizard` in a scratch git repo, accepting every default, writes files that `adw validate` accepts. Evidence: the transcript test, RED then GREEN, and a transcript from a scratch repo under the session scratchpad.
-- [ ] Declining at the summary writes no files, prints that nothing was written, and exits non-zero. Evidence: the cancel transcript test, RED then GREEN, and a scratch-repo transcript with `echo $?`.
-- [ ] A write failure prints the error, says nothing was written, prints no success line, and exits non-zero. Evidence: the write-failure test, RED then GREEN.
-- [ ] Ctrl+C at a prompt exits 130 and writes nothing, and Ctrl+C cannot interrupt the write or the dashboard registration. Evidence: `test_write_holds_off_ctrl_c`, RED then GREEN, and a scratch-repo transcript of `adw init --wizard` sent SIGINT at a prompt, with its exit code and `ls -a`.
-- [ ] `grep -rn -I --exclude-dir=__pycache__ "WizardFlowController\|WizardState\|StepHandler\|nav_prompt_ask" src tests` returns nothing. (`-I` and the exclude skip the stale `.pyc` files that `git rm` leaves behind.) Evidence: the grep output.
-- [ ] The wizard asks no retry questions and no ship build command, and its welcome panel promises no back/cancel keys. Evidence: the accept transcript, and the phases-step test that the ship options prompt only for version bump and publish.
-- [ ] The wizard's language and test-command defaults match `ProjectTypeDetector`'s. Evidence: the basics tests with marker files, RED then GREEN.
-- [ ] Lint and tests pass. Evidence: `scripts/preflight.sh` and the tail of `uv run pytest`, with coverage ≥ 80%.
+- [x] `adw init --wizard` in a scratch git repo, accepting every default, writes files that `adw validate` accepts. Evidence: the transcript test, RED then GREEN, and a transcript from a scratch repo under the session scratchpad.
+- [x] Declining at the summary writes no files, prints that nothing was written, and exits non-zero. Evidence: the cancel transcript test, RED then GREEN, and a scratch-repo transcript with `echo $?`.
+- [x] A write failure prints the error, says nothing was written, prints no success line, and exits non-zero. Evidence: the write-failure test, RED then GREEN.
+- [x] Ctrl+C at a prompt exits 130 and writes nothing, and Ctrl+C cannot interrupt the write or the dashboard registration. Evidence: `test_write_holds_off_ctrl_c`, RED then GREEN, and a scratch-repo transcript of `adw init --wizard` sent SIGINT at a prompt, with its exit code and `ls -a`.
+- [x] `grep -rn -I --exclude-dir=__pycache__ "WizardFlowController\|WizardState\|StepHandler\|nav_prompt_ask" src tests` returns nothing. (`-I` and the exclude skip the stale `.pyc` files that `git rm` leaves behind.) Evidence: the grep output.
+- [x] The wizard asks no retry questions and no ship build command, and its welcome panel promises no back/cancel keys. Evidence: the accept transcript, and the phases-step test that the ship options prompt only for version bump and publish.
+- [x] The wizard's language and test-command defaults match `ProjectTypeDetector`'s. Evidence: the basics tests with marker files, RED then GREEN.
+- [x] Lint and tests pass. Evidence: `scripts/preflight.sh` and the tail of `uv run pytest`, with coverage ≥ 80%.
 
 ## Tasks
 
@@ -87,4 +87,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-003: Drop the LLM retry step
 - [x] TASK-004: Replace the flow controller and WizardState with run_wizard (depends on TASK-001,TASK-002,TASK-003)
 - [x] TASK-005: Report honestly whether files were written (depends on TASK-004)
-- [ ] TASK-006: Final Validation
+- [x] TASK-006: Final Validation
