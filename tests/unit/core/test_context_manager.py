@@ -64,33 +64,6 @@ class TestContextManagerSave:
         context_path = run_dir / "context.json"
         assert context_path.exists()
 
-    def test_save_uses_temp_file_pattern(
-        self,
-        context_manager: ContextManager,
-        sample_context: RunContext,
-        runs_dir: Path,
-    ) -> None:
-        """Test that save uses temp file + rename pattern for atomicity."""
-        run_dir = runs_dir / sample_context.run_id
-        run_dir.mkdir(parents=True)
-        (run_dir / ".lock").touch()
-
-        # Track rename calls
-        original_rename = Path.rename
-        rename_calls: list[tuple[Path, Path]] = []
-
-        def tracked_rename(self: Path, target: Path) -> None:
-            rename_calls.append((self, target))
-            return original_rename(self, target)
-
-        with patch.object(Path, "rename", tracked_rename):
-            context_manager.save(sample_context)
-
-        # Should have called rename (atomic)
-        assert len(rename_calls) == 1
-        assert rename_calls[0][0].name == ".context.json.tmp"
-        assert rename_calls[0][1].name == "context.json"
-
     def test_save_calls_fsync(
         self,
         context_manager: ContextManager,
@@ -133,31 +106,28 @@ class TestContextManagerSave:
         assert data["run_id"] == sample_context.run_id
         assert data["feature_description"] == sample_context.feature_description
 
-    def test_save_cleans_up_temp_on_error(
+    def test_failed_write_keeps_the_old_context_and_no_temp(
         self,
         context_manager: ContextManager,
         sample_context: RunContext,
         runs_dir: Path,
     ) -> None:
-        """Test that temp file is cleaned up on write error."""
+        """A write that fails partway leaves the old context.json and no temp."""
         run_dir = runs_dir / sample_context.run_id
         run_dir.mkdir(parents=True)
         (run_dir / ".lock").touch()
-
-        # Patch os.fsync to raise an error after file is written
-        def failing_fsync(fd: int) -> None:
-            raise OSError("Disk full")
+        context_manager.save(sample_context)
+        modified = sample_context.model_copy(update={"current_phase": "build"})
 
         with (
-            patch("adw.core.context_manager.os.fsync", failing_fsync),
+            patch("adw.fs.os.fsync", side_effect=OSError("Disk full")),
             pytest.raises(StateError) as exc_info,
         ):
-            context_manager.save(sample_context)
+            context_manager.save(modified)
 
         assert exc_info.value.code == "CONTEXT_WRITE_FAILED"
-        # Temp file should be cleaned up
-        temp_path = run_dir / ".context.json.tmp"
-        assert not temp_path.exists()
+        assert context_manager.load(sample_context.run_id).current_phase == "plan"
+        assert list(run_dir.glob("*.tmp")) == []
 
     def test_save_missing_run_dir_raises_error(
         self, context_manager: ContextManager, sample_context: RunContext
@@ -353,8 +323,8 @@ class TestContextManagerDurability:
     ) -> None:
         """Test that if write is interrupted, old context is preserved.
 
-        This simulates a scenario where the rename fails after temp file
-        is written. The old context.json should remain intact.
+        This simulates a scenario where the final rename fails after the temp
+        file is written. The old context.json should remain intact.
         """
         run_dir = runs_dir / sample_context.run_id
         run_dir.mkdir(parents=True)
@@ -367,10 +337,10 @@ class TestContextManagerDurability:
         # Now try to save a modified context but fail the rename
         modified = sample_context.model_copy(update={"current_phase": "build"})
 
-        def failing_rename(self: Path, target: Path) -> None:
-            raise OSError("Simulated filesystem error during rename")
-
-        with patch.object(Path, "rename", failing_rename), pytest.raises(StateError):
+        with (
+            patch("adw.fs.os.replace", side_effect=OSError("rename failed")),
+            pytest.raises(StateError),
+        ):
             context_manager.save(modified)
 
         # Original context should still exist and be valid
@@ -395,85 +365,8 @@ class TestContextManagerDurability:
 
         context_manager.save(sample_context)
 
-        # Temp file should not exist after successful save
-        temp_path = run_dir / ".context.json.tmp"
-        assert not temp_path.exists()
-
-    def test_temp_file_cleaned_after_failed_save(
-        self,
-        context_manager: ContextManager,
-        sample_context: RunContext,
-        runs_dir: Path,
-    ) -> None:
-        """Test that temp file is cleaned up after failed save."""
-        run_dir = runs_dir / sample_context.run_id
-        run_dir.mkdir(parents=True)
-        (run_dir / ".lock").touch()
-
-        def failing_fsync(fd: int) -> None:
-            raise OSError("Simulated disk error")
-
-        with (
-            patch("adw.core.context_manager.os.fsync", failing_fsync),
-            pytest.raises(StateError),
-        ):
-            context_manager.save(sample_context)
-
-        # Temp file should be cleaned up
-        temp_path = run_dir / ".context.json.tmp"
-        assert not temp_path.exists()
-
-    def test_partial_write_never_corrupts_context(
-        self,
-        context_manager: ContextManager,
-        sample_context: RunContext,
-        runs_dir: Path,
-    ) -> None:
-        """Test that a partial write never leaves a corrupted context.json.
-
-        If the write fails at any point before the atomic rename, the
-        original context.json should remain untouched.
-        """
-        run_dir = runs_dir / sample_context.run_id
-        run_dir.mkdir(parents=True)
-        (run_dir / ".lock").touch()
-
-        # Create initial valid context
-        context_manager.save(sample_context)
-
-        # Simulate partial write by failing during file.write()
-        original_open = open
-        call_count = 0
-
-        def partial_write_open(path: str, mode: str = "r", *args, **kwargs):  # type: ignore[no-untyped-def]
-            nonlocal call_count
-            if mode == "w" and ".context.json.tmp" in str(path):
-                call_count += 1
-                if call_count >= 1:
-                    # Return a file that fails on write
-                    class FailingFile:
-                        def write(self, data: str) -> int:
-                            # Write partial data then fail
-                            raise OSError("Simulated partial write failure")
-
-                        def __enter__(self) -> "FailingFile":
-                            return self
-
-                        def __exit__(self, *args: object) -> None:
-                            pass
-
-                    return FailingFile()
-            return original_open(path, mode, *args, **kwargs)
-
-        modified = sample_context.model_copy(update={"current_phase": "validate"})
-
-        with patch("builtins.open", partial_write_open), pytest.raises(StateError):
-            context_manager.save(modified)
-
-        # Original context.json should still be valid and loadable
-        loaded = context_manager.load(sample_context.run_id)
-        assert loaded.run_id == sample_context.run_id
-        assert loaded.current_phase == "plan"  # Original, not modified
+        # No temp file is left after a successful save
+        assert list(run_dir.glob("*.tmp")) == []
 
     def test_context_file_never_partially_overwritten(
         self,

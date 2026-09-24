@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from adw.exceptions import StateError
+from adw.fs import atomic_write
 from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
 
@@ -409,6 +410,6 @@ class IndexManager:
         Args:
             entries: List of IndexEntry objects to write.
         """
-        with open(self.index_path, "w") as f:
-            for entry in entries:
-                f.write(entry.model_dump_json() + "\n")
+        atomic_write(
+            self.index_path, "".join(e.model_dump_json() + "\n" for e in entries)
+        )

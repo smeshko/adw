@@ -379,11 +379,11 @@ class TestArtifactManagerErrorHandling:
         run_dir = runs_dir / run_id
         run_dir.mkdir(parents=True)
 
-        # Mock open to raise OSError
-        def mock_open_error(*args: object, **kwargs: object) -> None:
+        # atomic_write opens through os.open/os.fdopen, so fail its fsync
+        def failing_fsync(fd: int) -> None:
             raise OSError("Disk full")
 
-        monkeypatch.setattr("builtins.open", mock_open_error)
+        monkeypatch.setattr("adw.fs.os.fsync", failing_fsync)
 
         # Act & Assert
         with pytest.raises(StateError) as exc_info:

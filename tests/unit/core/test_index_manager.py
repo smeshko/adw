@@ -10,12 +10,13 @@ Tests cover:
 
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
 
 from adw.core.index_manager import IndexManager
-from adw.models import RunContext, RunStatus
+from adw.models import IndexEntry, RunContext, RunStatus
 
 
 class TestIndexManagerInit:
@@ -144,6 +145,33 @@ class TestUpdateRun:
         before = index_path.read_text()
         with pytest.raises(ValidationError):
             manager.update_run(context.run_id, status="paused")
+        assert index_path.read_text() == before
+
+    def test_rewrite_failure_keeps_the_index(self, tmp_path: Path) -> None:
+        """A rewrite that fails partway leaves the old index.jsonl intact."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        for run_id in ("01KDSG2VDHNK0W4HSCZWJZXWS1", "01KDSG2VDHNK0W4HSCZWJZXWS2"):
+            manager.register_run(_create_test_context(run_id), Path("/test/project"))
+        first = manager.get_recent_runs(limit=10)[-1]
+        before = index_path.read_text()
+
+        real_dump = IndexEntry.model_dump_json
+        calls = 0
+
+        def failing_dump(self: IndexEntry, **kwargs: object) -> str:
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise OSError("disk full")
+            return real_dump(self, **kwargs)  # type: ignore[arg-type]
+
+        with (
+            patch.object(IndexEntry, "model_dump_json", failing_dump),
+            pytest.raises(OSError, match="disk full"),
+        ):
+            manager.update_run(first.run_id, status="completed")
+
         assert index_path.read_text() == before
 
     def test_updates_completed_at(self, tmp_path: Path) -> None:

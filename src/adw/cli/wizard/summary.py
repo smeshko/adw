@@ -19,6 +19,7 @@ from rich.prompt import Confirm
 
 from adw.config.initializer import generate_env_template, generate_gitignore
 from adw.exceptions import ConfigError
+from adw.fs import atomic_write
 
 WizardConfig = Mapping[str, dict[str, Any]]
 """The wizard's answers: each step's dict, keyed by its section name."""
@@ -287,11 +288,11 @@ def generate_phase_configs(cfg: WizardConfig) -> dict[str, str]:
 
 
 def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
-    """Write all config files atomically.
+    """Write all config files as one transaction.
 
-    Creates files atomically - if any write fails, rolls back
-    only newly created files to prevent partial configuration.
-    Pre-existing files that were overwritten are backed up and restored on failure.
+    Each file is replaced atomically (adw.fs.atomic_write), and the set is
+    rolled back as a whole: if any write fails, pre-existing files that were
+    overwritten are restored from backup and newly created files are removed.
 
     Args:
         adw_dir: Path to .adw/ directory.
@@ -325,8 +326,7 @@ def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
             if file_existed:
                 backups[full_path] = full_path.read_text()
 
-            # Write file
-            full_path.write_text(content)
+            atomic_write(full_path, content)
 
             # Only track newly created files for deletion on rollback
             if not file_existed:
@@ -336,7 +336,7 @@ def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
         # Rollback: restore backups for overwritten files
         for path, original_content in backups.items():
             with contextlib.suppress(OSError):
-                path.write_text(original_content)
+                atomic_write(path, original_content)
 
         # Delete only newly created files (not pre-existing ones)
         for path in reversed(newly_created_paths):

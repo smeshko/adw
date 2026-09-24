@@ -10,7 +10,6 @@ Key features:
 - Proper validation and error handling on load
 """
 
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -19,6 +18,7 @@ from pydantic import ValidationError
 
 from adw.core.constants import CONTEXT_FILE
 from adw.exceptions import StateError
+from adw.fs import atomic_write
 
 if TYPE_CHECKING:
     from adw.models import RunContext
@@ -56,10 +56,7 @@ class ContextManager:
         self.runs_dir = runs_dir
 
     def save(self, context: "RunContext") -> None:
-        """Save context atomically with fsync.
-
-        Uses the write-to-temp-then-rename pattern for atomic writes.
-        Calls fsync before rename to guarantee data durability.
+        """Save context atomically (adw.fs.atomic_write), under the run's lock.
 
         Args:
             context: RunContext to persist.
@@ -71,7 +68,6 @@ class ContextManager:
         """
         run_dir = self.runs_dir / context.run_id
         context_path = run_dir / CONTEXT_FILE
-        temp_path = run_dir / ".context.json.tmp"
         lock_path = run_dir / ".lock"
 
         if not run_dir.exists():
@@ -84,14 +80,7 @@ class ContextManager:
 
         try:
             with filelock.FileLock(lock_path, timeout=_DEFAULT_LOCK_TIMEOUT):
-                # Write to temp file with fsync for durability
-                with open(temp_path, "w") as f:
-                    f.write(context.model_dump_json(indent=2))
-                    f.flush()
-                    os.fsync(f.fileno())
-
-                # Atomic rename (POSIX guarantee)
-                temp_path.rename(context_path)
+                atomic_write(context_path, context.model_dump_json(indent=2))
 
         except filelock.Timeout as e:
             raise StateError(
@@ -101,9 +90,6 @@ class ContextManager:
                 recoverable=True,
             ) from e
         except OSError as e:
-            # Clean up temp file on error
-            if temp_path.exists():
-                temp_path.unlink()
             raise StateError(
                 code="CONTEXT_WRITE_FAILED",
                 message=f"Failed to write context: {e}",
