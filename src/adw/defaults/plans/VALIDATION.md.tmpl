@@ -1,0 +1,35 @@
+# Validation Summary — {slug}
+
+**Rounds:** {N}
+**Plan status at validation:** {draft|ready}
+**Run on:** {YYYY-MM-DD}
+
+## Rounds
+
+| Round | Findings | Applied | Deferred | Rejected |
+|-------|----------|---------|----------|----------|
+| 1     |          |         |          |          |
+| 2     |          |         |          |          |
+{# Add a round 3 row only if a third round ran. }
+
+## Applied
+
+<!-- One bullet per applied edit, grouped by round. Reference the round/finding number and the plan location it landed in. -->
+
+### Round 1
+- {location} — {one-line summary} (round-1 #{n})
+
+### Round 2
+- {location} — {one-line summary} (round-2 #{n})
+
+## Deferred
+
+<!-- Findings worth doing later but out of scope for this plan. Each becomes a "Known limitations" hint in the PR body. -->
+
+- (round-{R} #{n}) {one-line summary} — {rationale}
+
+## Rejected
+
+<!-- Findings we pushed back on. Surfaces what Codex flagged and why we said no, so PR reviewers see the reasoning. -->
+
+- (round-{R} #{n}) {one-line summary} — {rationale, referencing the Decision in PLAN.md/DECISIONS.md if applicable}

@@ -1,0 +1,73 @@
+# adw plan smoke test: a scratch git repo with one archived plan
+
+Run on 2026-09-24 from <scratchpad>/scratch-repo (a fresh `git init` repo), with the
+worktree's `.venv/bin` first on PATH so `adw` is this branch's build. Paths are redacted.
+
+$ which adw
+<worktree>/.venv/bin/adw
+[exit 0]
+
+$ adw --version
+adw version 0.1.67
+[exit 0]
+
+$ find docs -type f
+docs/artifacts/plans/archive/2026-09-01-old-plan/PLAN.md
+[exit 0]
+
+$ adw plan init --title "Add a --dry-run flag to the importer" --risk medium
+created: <scratchpad>/scratch-repo/docs/artifacts/plans/add-a-dry-run-flag-to-the-importer
+slug:    add-a-dry-run-flag-to-the-importer
+risk:    medium
+research: RESEARCH.md created
+[exit 0]
+
+$ adw plan add-task add-a-dry-run-flag-to-the-importer --type impl --title "Parse the --dry-run flag"
+TASK-001
+[exit 0]
+
+$ adw plan add-task add-a-dry-run-flag-to-the-importer --type checklist --title "Document the flag in the README" --depends TASK-001
+TASK-002
+[exit 0]
+
+$ adw plan add-final add-a-dry-run-flag-to-the-importer
+TASK-003
+[exit 0]
+
+$ adw plan tasks add-a-dry-run-flag-to-the-importer
+TASK-001	pending	docs/artifacts/plans/add-a-dry-run-flag-to-the-importer/tasks/TASK-001-parse-the-dry-run-flag.md	Parse the --dry-run flag
+TASK-002	pending	docs/artifacts/plans/add-a-dry-run-flag-to-the-importer/tasks/TASK-002-document-the-flag-in-the-readme.md	Document the flag in the README
+TASK-003	pending	docs/artifacts/plans/add-a-dry-run-flag-to-the-importer/tasks/TASK-003-final-validation.md	Final Validation
+[exit 0]
+
+$ adw plan list
+add-a-dry-run-flag-to-the-importer	draft	Add a --dry-run flag to the importer
+[exit 0]
+
+$ adw plan show add-a-dry-run-flag-to-the-importer
+slug=add-a-dry-run-flag-to-the-importer
+title=Add a --dry-run flag to the importer
+status=draft
+risk=medium
+epic=none
+phase=none
+linear=none
+branch=none
+created=2026-09-24
+dir=docs/artifacts/plans/add-a-dry-run-flag-to-the-importer
+tasks=0/3
+[exit 0]
+
+$ adw plan init --title "Add a --dry-run flag to the importer" --risk medium
+error: plan directory already exists: <scratchpad>/scratch-repo/docs/artifacts/plans/add-a-dry-run-flag-to-the-importer
+[exit 1]
+
+$ find docs -type f
+docs/artifacts/plans/add-a-dry-run-flag-to-the-importer/RESEARCH.md
+docs/artifacts/plans/add-a-dry-run-flag-to-the-importer/PLAN.md
+docs/artifacts/plans/archive/2026-09-01-old-plan/PLAN.md
+docs/artifacts/plans/add-a-dry-run-flag-to-the-importer/tasks/TASK-001-parse-the-dry-run-flag.md
+docs/artifacts/plans/add-a-dry-run-flag-to-the-importer/tasks/TASK-002-document-the-flag-in-the-readme.md
+docs/artifacts/plans/add-a-dry-run-flag-to-the-importer/tasks/TASK-003-final-validation.md
+[exit 0]
+

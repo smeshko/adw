@@ -15,6 +15,7 @@ from adw.cli.global_commands import global_app
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
 from adw.cli.logs import logs_app
+from adw.cli.plan import plan_app
 from adw.cli.pr import pr as pr_command
 from adw.cli.projects import projects as projects_command
 from adw.cli.register import register as register_command
@@ -501,6 +502,9 @@ app.add_typer(dashboard_web_app, name="dashboard")
 
 # Register the global subapp
 app.add_typer(global_app, name="global")
+
+# Register the plan subapp
+app.add_typer(plan_app, name="plan")
 
 # Register the validate command (config validation)
 app.command(name="validate")(validate_config_command)

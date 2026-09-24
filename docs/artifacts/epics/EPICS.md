@@ -22,7 +22,7 @@ small-to-medium pull request and maps to exactly one plan under
 | 1 | [Cleanup: test safety, dead code and bug fixes](./01-cleanup-safety-dead-code-bugs.md) | 10 | — | Done |
 | 2 | [Cleanup: remove inert features and consolidate](./02-cleanup-remove-and-consolidate.md) | 12 | Epic 01 | In progress |
 | 3 | [Cleanup: run-loop consolidation and docs](./03-cleanup-run-loop-and-docs.md) | 5 | Epic 02 | Blocked |
-| 4 | [Plan-driven runs](./04-plan-driven-runs.md) | 4 | Epic 03 | Blocked |
+| 4 | [Plan-driven runs](./04-plan-driven-runs.md) | 4 | Epic 03 | In progress |
 | 5 | [Plan-workflow phase prompts](./05-plan-workflow-phase-prompts.md) | 8 | Epic 04 | Blocked |
 | 6 | [Autonomous landing and the Linear flow](./06-autonomous-landing-linear-flow.md) | 3 | Epic 05 | Blocked |
 | 7 | [Run observability from Loop](./07-run-observability.md) | 5 | Epic 03 | Blocked |
