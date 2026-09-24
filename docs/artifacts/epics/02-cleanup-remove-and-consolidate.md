@@ -208,7 +208,7 @@ Include screenshots of the settings page, the route list from `app.routes`, and 
 
 ## Phase 2.6 — Collapse the init wizard into a straight sequence
 
-**Plan**: _not yet created_
+**Plan**: [02.6-collapse-init-wizard](../plans/02.6-collapse-init-wizard/PLAN.md) · status: planned
 
 **Linear**: ADW-22 (https://linear.app/ivo-tsonev/issue/ADW-22)
 
