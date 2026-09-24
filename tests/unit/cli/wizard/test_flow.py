@@ -173,7 +173,7 @@ class TestWizardFlowControllerRun:
         # All steps should be completed
         assert "basics" in controller.state.completed_steps
         assert "git" in controller.state.completed_steps
-        assert "ports" in controller.state.completed_steps
+        assert "ports" not in controller.state.completed_steps
 
     def test_run_with_registered_handler(self) -> None:
         """Run calls registered handler for step."""

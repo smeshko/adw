@@ -57,7 +57,7 @@ class ConfigRegistry:
         "project",  # name, language, platform, commands
         "git",
         "task_manager",
-        "ports",
+        "worktree",
         "llm",
         "webhook",
         "ship",
@@ -86,7 +86,6 @@ class ConfigRegistry:
             GitConfig,
             LLMConfig,
             PhaseConfig,
-            PortRangeConfig,
             ProjectConfig,
             RetryConfig,
             TaskManagerConfig,
@@ -107,10 +106,7 @@ class ConfigRegistry:
         self._settings["task_manager_labels"] = self._extract_from_model(
             TaskManagerLabelsConfig
         )
-        self._settings["worktree"] = self._extract_from_model(
-            WorktreeConfig, skip_nested=["port_range"]
-        )
-        self._settings["ports"] = self._extract_from_model(PortRangeConfig)
+        self._settings["worktree"] = self._extract_from_model(WorktreeConfig)
         self._settings["retry"] = self._extract_from_model(RetryConfig)
         self._settings["webhook"] = self._extract_webhook_settings(WebhookConfig)
         self._settings["webhook_provider"] = self._extract_from_model(ProviderConfig)

@@ -34,7 +34,6 @@ from adw.models.config import (
     HookConfig,
     LLMConfig,
     PhaseConfig,
-    PortRangeConfig,
     ProjectConfig,
     RetryConfig,
     TaskManagerConfig,
@@ -68,7 +67,6 @@ from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 from adw.models.task import TaskInfo
 from adw.models.webhook import ProviderConfig, WebhookConfig
 from adw.models.wizard import WizardState
-from adw.models.worktree import PortAllocation
 
 # Rebuild models to resolve forward references
 # This must happen after all models are imported
@@ -92,7 +90,6 @@ __all__: list[str] = [
     "HookConfig",
     "LLMConfig",
     "PhaseConfig",
-    "PortRangeConfig",
     "ProjectConfig",
     "RetryConfig",
     "TaskManagerConfig",
@@ -135,6 +132,4 @@ __all__: list[str] = [
     "WebhookConfig",
     # Wizard models
     "WizardState",
-    # Worktree models
-    "PortAllocation",
 ]

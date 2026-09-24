@@ -78,7 +78,7 @@ Include `adw validate` against a copy of a `project.yaml` that has a `security:`
 
 ## Phase 2.2 — Remove port allocation
 
-**Plan**: _not yet created_
+**Plan**: [02.2-remove-port-allocation](../plans/02.2-remove-port-allocation/PLAN.md) · status: done
 
 **Linear**: ADW-18 (https://linear.app/ivo-tsonev/issue/ADW-18)
 
@@ -96,11 +96,13 @@ Include `adw validate` against a copy of a `project.yaml` that has a `security:`
 
 ### Acceptance criteria
 
-- [ ] `grep -rn "PortAlloc\|port_range\|ports.env" src tests` returns nothing.
-- [ ] `adw list --running` shows no port columns.
-- [ ] A `project.yaml` that still has `worktree.port_range` loads without error.
-- [ ] `max_concurrent` is still enforced: a second run past the limit is refused.
-- [ ] Lint and tests pass.
+- [x] `grep -rn "PortAlloc\|port_range\|ports.env" src tests` returns nothing.
+  - `src` returns nothing. In `tests`, it matches only `tests/unit/models/test_config.py`, the regression test for the next criterion, which has to contain the key.
+- [x] `adw list --running` shows no port columns.
+- [x] A `project.yaml` that still has `worktree.port_range` loads without error.
+- [x] `max_concurrent` is still enforced: a second run past the limit is refused.
+  - This covers sequential starts. Simultaneous starts can race past the check (pre-existing, ADW-64).
+- [x] Lint and tests pass.
 
 ### Validation
 

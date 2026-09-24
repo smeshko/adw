@@ -121,7 +121,6 @@ class YAMLWithComments:
         # Get configs from wizard state (ship config is now in phase config file)
         basics = state.get_step_config("basics")
         git = state.get_step_config("git")
-        ports = state.get_step_config("ports")
         task_manager = state.get_step_config("task_manager")
         llm_retry = state.get_step_config("llm_retry")
         webhooks = state.get_step_config("webhooks")
@@ -175,29 +174,12 @@ class YAMLWithComments:
 
         lines.append("")
 
-        # === Worktree & Ports ===
-        lines.append("# === Worktree & Ports ===")
-        backend_port = ports.get("backend_port_start", 9100)
-        frontend_port = ports.get("frontend_port_start", 9200)
-        ports_customized = backend_port != 9100 or frontend_port != 9200
-
-        if ports_customized:
-            # Active worktree section when ports are customized
-            lines.append("worktree:")
-            lines.append("  # enabled: true  # Use worktree isolation")
-            lines.append('  # base_dir: "trees"  # Directory for worktrees')
-            lines.append("  # max_concurrent: 15  # Maximum concurrent runs")
-            lines.append("  port_range:")
-            lines.append(f"    backend_start: {backend_port}")
-            lines.append(f"    frontend_start: {frontend_port}")
-        else:
-            lines.append("# worktree:")
-            lines.append("#   enabled: true  # Use worktree isolation")
-            lines.append('#   base_dir: "trees"  # Directory for worktrees')
-            lines.append("#   max_concurrent: 15  # Maximum concurrent runs")
-            lines.append("#   port_range:")
-            lines.append("#     backend_start: 9100  # Backend port base")
-            lines.append("#     frontend_start: 9200  # Frontend port base")
+        # === Worktree ===
+        lines.append("# === Worktree ===")
+        lines.append("# worktree:")
+        lines.append("#   enabled: true  # Use worktree isolation")
+        lines.append('#   base_dir: "trees"  # Directory for worktrees')
+        lines.append("#   max_concurrent: 15  # Maximum concurrent runs")
 
         lines.append("")
 

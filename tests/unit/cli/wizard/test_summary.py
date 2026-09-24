@@ -38,7 +38,6 @@ class TestSummaryPanelGeneration:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {},
             "task_manager": {},
             "phases": {},
             "llm_retry": {},
@@ -63,7 +62,6 @@ class TestSummaryPanelGeneration:
             "git": {
                 "git_branch_prefix": "feature/",
             },
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": True, "type": "linear", "team_key": "RULE"},
             "phases": {
                 "customized": True,
@@ -102,7 +100,6 @@ class TestSummaryPanelGeneration:
         assert "api" in output
         assert "pytest" in output
         assert "Git:" in output
-        assert "Ports:" in output
         assert "Task Manager:" in output
         assert "Linear" in output.title() or "linear" in output.lower()
         assert "Phases:" in output
@@ -117,7 +114,6 @@ class TestSummaryPanelGeneration:
         state.collected_config = {
             "basics": {"language": "javascript", "platform": "web"},
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "phases": {"customized": False, "phases": {}},
             "ship": {
@@ -149,7 +145,6 @@ class TestSummaryPanelGeneration:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {},
             "task_manager": {},
             "phases": {
                 "customized": True,
@@ -183,7 +178,6 @@ class TestProjectYamlGeneration:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
@@ -208,7 +202,6 @@ class TestProjectYamlGeneration:
                 "build_command": "python -m build",
             },
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
@@ -229,7 +222,6 @@ class TestProjectYamlGeneration:
             "git": {
                 "git_branch_prefix": "feat/",
             },
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
@@ -246,7 +238,6 @@ class TestProjectYamlGeneration:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
@@ -264,7 +255,6 @@ class TestProjectYamlGeneration:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {
                 "enabled": True,
                 "type": "linear",
@@ -282,49 +272,12 @@ class TestProjectYamlGeneration:
         assert config["task_manager"]["team_key"] == "RULE"
         assert config["task_manager"]["sync_comments"] is True
 
-    def test_generate_project_yaml_custom_ports(self) -> None:
-        """Test project.yaml includes ports when non-default."""
-        state = WizardState()
-        state.collected_config = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "ports": {"backend_port_start": 8000, "frontend_port_start": 8100},
-            "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
-            "webhooks": {"enabled": False},
-        }
-
-        yaml_content = generate_project_yaml(state)
-        config = yaml.safe_load(yaml_content)
-
-        # Ports live under worktree.port_range
-        assert config["worktree"]["port_range"]["backend_start"] == 8000
-        assert config["worktree"]["port_range"]["frontend_start"] == 8100
-
-    def test_generate_project_yaml_omits_default_ports(self) -> None:
-        """Test project.yaml omits ports when using defaults."""
-        state = WizardState()
-        state.collected_config = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
-            "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
-            "webhooks": {"enabled": False},
-        }
-
-        yaml_content = generate_project_yaml(state)
-        config = yaml.safe_load(yaml_content)
-
-        assert "ports" not in config
-
     def test_generate_project_yaml_with_llm_retry(self) -> None:
         """Test project.yaml includes LLM retry when customized."""
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {
                 "retry_custom": True,
@@ -355,7 +308,6 @@ class TestProjectYamlGeneration:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "ship": {
                 "enabled": True,
@@ -389,7 +341,6 @@ class TestProjectYamlGeneration:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "ship": {
                 "enabled": True,
@@ -415,7 +366,6 @@ class TestProjectYamlGeneration:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "webhooks": {
@@ -447,7 +397,6 @@ class TestProjectYamlGeneration:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
@@ -712,7 +661,6 @@ class TestRunSummaryStep:
             state.collected_config = {
                 "basics": {"language": "python", "platform": "cli"},
                 "git": {},
-                "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
                 "task_manager": {"enabled": False, "type": "none"},
                 "phases": {"customized": False, "phases": {}},
                 "llm_retry": {"retry_custom": False},
@@ -738,7 +686,6 @@ class TestRunSummaryStep:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {},
             "task_manager": {},
             "phases": {},
             "llm_retry": {},
@@ -762,7 +709,6 @@ class TestRunSummaryStep:
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
-            "ports": {},
             "task_manager": {},
             "phases": {},
             "llm_retry": {},
@@ -792,7 +738,6 @@ class TestSummaryStepHandler:
             state.collected_config = {
                 "basics": {"language": "python", "platform": "cli"},
                 "git": {},
-                "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
                 "task_manager": {"enabled": False, "type": "none"},
                 "phases": {"customized": False, "phases": {}},
                 "llm_retry": {"retry_custom": False},

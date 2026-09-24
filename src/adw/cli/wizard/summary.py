@@ -174,7 +174,6 @@ def generate_summary_panel(state: WizardState) -> Panel:
     basics = state.get_step_config("basics")
     global_registry = state.get_step_config("global_registry")
     git = state.get_step_config("git")
-    ports = state.get_step_config("ports")
     task_manager = state.get_step_config("task_manager")
     phases = state.get_step_config("phases")
     ship = state.get_step_config("ship")
@@ -201,15 +200,6 @@ def generate_summary_panel(state: WizardState) -> Panel:
     # Git section
     branch_prefix = git.get("git_branch_prefix", "feature/")
     lines.append(f"[green]Git:[/] \u2713 Enabled ({branch_prefix})")
-
-    # Ports section
-    # Ports step returns: port_config_custom, backend_port_start, frontend_port_start
-    backend_port = ports.get("backend_port_start", 9100)
-    frontend_port = ports.get("frontend_port_start", 9200)
-    if backend_port == 9100 and frontend_port == 9200:
-        lines.append(f"[dim]Ports:[/] Default ({backend_port}/{frontend_port})")
-    else:
-        lines.append(f"[cyan]Ports:[/] Custom ({backend_port}/{frontend_port})")
 
     # Task Manager section
     tm_type = task_manager.get("type", "none")
