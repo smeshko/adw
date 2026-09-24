@@ -19,6 +19,14 @@ PLAN_SLUG = "04.1-adw-plans-module"
 NORMALISATIONS: list[tuple[re.Pattern[str], str]] = [
     # The creation date is today's date on both sides.
     (re.compile(r"^Created: \d{4}-\d{2}-\d{2}$", re.MULTILINE), "Created: <date>"),
+    # Final validation marks the epic phase done with ADW's own command; the
+    # skill's template names a script under the user's skills directory.
+    (
+        re.compile(
+            re.escape("python3 ~/.claude/skills/create-epic/scripts/link_plan.py")
+        ),
+        "adw plan link",
+    ),
 ]
 
 
@@ -247,3 +255,49 @@ class TestReading:
 
         assert result.exit_code == 1
         assert result.stderr.startswith("error: plan not found: ")
+
+
+class TestLink:
+    """adw plan link."""
+
+    @pytest.fixture
+    def root(self, tmp_path: Path) -> Path:
+        epics = tmp_path / "docs" / "artifacts" / "epics"
+        epics.mkdir(parents=True)
+        (epics / "04-plan-driven-runs.md").write_text(
+            "# Epic 04 — Plan-driven runs\n\n"
+            "## Phase 4.1 — adw.plans\n\n**Plan**: _not yet created_\n"
+        )
+        _install_fixture_plan(tmp_path)
+        return tmp_path
+
+    def test_link_prints_what_it_linked(self, runner: CliRunner, root: Path) -> None:
+        result = _plan(
+            runner,
+            *["link", "04", "--phase", "4.1", "--plan", PLAN_SLUG],
+            *["--status", "done", "--root", str(root)],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout.splitlines() == [
+            f"linked plan '{PLAN_SLUG}' <-> 04-plan-driven-runs phase 4.1 "
+            "(status: done)",
+            "epic_file=docs/artifacts/epics/04-plan-driven-runs.md",
+            f"plan_file=docs/artifacts/plans/{PLAN_SLUG}/PLAN.md",
+        ]
+        epic_text = (root / "docs/artifacts/epics/04-plan-driven-runs.md").read_text()
+        assert (
+            f"**Plan**: [{PLAN_SLUG}](../plans/{PLAN_SLUG}/PLAN.md) · status: done"
+            in epic_text
+        )
+
+    def test_link_to_an_unknown_phase_exits_1(
+        self, runner: CliRunner, root: Path
+    ) -> None:
+        result = _plan(
+            runner,
+            *["link", "04", "--phase", "4.9", "--plan", PLAN_SLUG, "--root", str(root)],
+        )
+
+        assert result.exit_code == 1
+        assert result.stderr.startswith("error: phase '4.9' heading not found in ")

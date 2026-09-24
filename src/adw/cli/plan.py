@@ -20,6 +20,7 @@ from adw.plans.authoring import (
     add_task,
     init_plan,
 )
+from adw.plans.epics import LINK_STATUSES, link_plan
 from adw.plans.reader import list_plans, load_plan
 
 plan_app = typer.Typer(
@@ -165,3 +166,26 @@ def show_command(
     }
     for key, value in fields.items():
         typer.echo(f"{key}={'none' if value is None else value}")
+
+
+@plan_app.command("link")
+def link_command(
+    epic: str = typer.Argument(..., help="Epic id or slug, e.g. 04"),
+    phase: str = typer.Option(..., "--phase", help="Phase id, e.g. 4.1"),
+    plan: str = typer.Option(..., "--plan", help="Plan slug"),
+    status: str = typer.Option(
+        "planned", "--status", help=f"One of: {', '.join(LINK_STATUSES)}"
+    ),
+    root: RootOption = None,
+) -> None:
+    """Link a plan and an epic phase both ways, with the phase's status."""
+    project_root = _root(root)
+    with _plan_errors():
+        epic_file, plan_md = link_plan(
+            project_root, epic, phase=phase, plan=plan, status=status
+        )
+    typer.echo(
+        f"linked plan '{plan}' <-> {epic_file.stem} phase {phase} (status: {status})"
+    )
+    typer.echo(f"epic_file={epic_file.relative_to(project_root).as_posix()}")
+    typer.echo(f"plan_file={plan_md.relative_to(project_root).as_posix()}")

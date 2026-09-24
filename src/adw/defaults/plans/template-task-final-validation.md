@@ -19,5 +19,5 @@ Confirm the plan is fully implemented and production-ready.
 ### Epic update (only if `PLAN.md`'s `Epic:`/`Phase:` are not `none`)
 
 - [ ] Tick this phase's `### Acceptance criteria` in `docs/artifacts/epics/<NN>-*.md`, plus any epic-level criteria this phase satisfies
-- [ ] Mark the phase done: `python3 ~/.claude/skills/create-epic/scripts/link_plan.py <NN> --phase <NN.M> --plan <plan-slug> --status done`
+- [ ] Mark the phase done: `adw plan link <NN> --phase <NN.M> --plan <plan-slug> --status done`
 - [ ] Update the epic's row in `docs/artifacts/epics/EPICS.md` (`In progress` after the first phase merges; `Done` when this is the last phase — then tick the remaining epic-level criteria and note any newly-unblocked epics)
