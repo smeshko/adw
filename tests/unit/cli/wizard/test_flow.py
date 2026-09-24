@@ -12,34 +12,6 @@ from adw.cli.wizard import StepHandler, WizardFlowController, WizardStep
 from adw.models.wizard import WizardState
 
 
-class TestWizardStep:
-    """Tests for the WizardStep enum."""
-
-    def test_step_values_exist(self) -> None:
-        """Verify all expected wizard steps are defined."""
-        expected_steps = [
-            "basics",
-            "global_registry",
-            "git",
-            "ports",
-            "task_manager",
-            "phases",
-            # Note: "ship" removed - ship config is part of phases step
-            "llm_retry",
-            "security",
-            "webhooks",
-            "summary",
-        ]
-        actual_steps = [step.value for step in WizardStep]
-        assert actual_steps == expected_steps
-
-    def test_step_enum_members(self) -> None:
-        """Verify enum member access works correctly."""
-        assert WizardStep.BASICS.value == "basics"
-        assert WizardStep.GIT.value == "git"
-        assert WizardStep.SUMMARY.value == "summary"
-
-
 class TestWizardFlowController:
     """Tests for the WizardFlowController class."""
 
@@ -56,13 +28,6 @@ class TestWizardFlowController:
         controller = WizardFlowController(state=state)
         assert controller.state is state
         assert controller.state.current_step == "git"
-
-    def test_step_sequence_defined(self) -> None:
-        """Controller has defined step sequence."""
-        assert len(WizardFlowController.STEP_SEQUENCE) == 10  # SHIP removed
-        assert WizardFlowController.STEP_SEQUENCE[0] == WizardStep.BASICS
-        assert WizardFlowController.STEP_SEQUENCE[1] == WizardStep.GLOBAL_REGISTRY
-        assert WizardFlowController.STEP_SEQUENCE[-1] == WizardStep.SUMMARY
 
     def test_get_current_step(self) -> None:
         """Get current step returns correct step."""

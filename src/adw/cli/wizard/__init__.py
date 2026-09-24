@@ -19,8 +19,6 @@ Exports:
     run_ports_step: Function to execute the ports step.
     RetryStepHandler: Handler for the LLM retry configuration step.
     run_retry_step: Function to execute the retry step.
-    SecurityStepHandler: Handler for the security configuration step.
-    run_security_step: Function to execute the security step.
     TaskManagerStepHandler: Handler for the task manager configuration step.
     run_task_manager_step: Function to execute the task manager step.
     WebhooksStepHandler: Handler for the webhooks configuration step.
@@ -80,13 +78,6 @@ from adw.cli.wizard.retry import (
     validate_max_retries,
     validate_multiplier,
 )
-from adw.cli.wizard.security import (
-    BUILTIN_BLOCKED_COMMANDS,
-    BUILTIN_BLOCKED_ENV_FILES,
-    SecurityStepHandler,
-    run_security_step,
-    validate_regex,
-)
 from adw.cli.wizard.ship import (
     ShipStepHandler,
     run_ship_step,
@@ -113,8 +104,6 @@ from adw.config.initializer import generate_gitignore
 
 __all__ = [
     "BasicsStepHandler",
-    "BUILTIN_BLOCKED_COMMANDS",
-    "BUILTIN_BLOCKED_ENV_FILES",
     "ConfigWriteError",
     "GitStepHandler",
     "GlobalRegistryStepHandler",
@@ -123,7 +112,6 @@ __all__ = [
     "PhasesStepHandler",
     "PortsStepHandler",
     "RetryStepHandler",
-    "SecurityStepHandler",
     "ShipStepHandler",
     "StepHandler",
     "SummaryStepHandler",
@@ -149,7 +137,6 @@ __all__ = [
     "run_phases_step",
     "run_ports_step",
     "run_retry_step",
-    "run_security_step",
     "run_ship_step",
     "run_summary_step",
     "run_task_manager_step",
@@ -160,6 +147,5 @@ __all__ = [
     "validate_max_retries",
     "validate_multiplier",
     "validate_port",
-    "validate_regex",
     "validate_team_key",
 ]

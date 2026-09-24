@@ -179,7 +179,6 @@ def generate_summary_panel(state: WizardState) -> Panel:
     phases = state.get_step_config("phases")
     ship = state.get_step_config("ship")
     llm_retry = state.get_step_config("llm_retry")
-    security = state.get_step_config("security")
     webhooks = state.get_step_config("webhooks")
 
     # Basics section
@@ -259,17 +258,6 @@ def generate_summary_panel(state: WizardState) -> Panel:
         )
     else:
         lines.append("[dim]LLM Retry:[/] Default")
-
-    # Security section
-    blocked_cmds = security.get("security_blocked_commands", [])
-    blocked_files = security.get("security_blocked_env_files", [])
-    if blocked_cmds or blocked_files:
-        lines.append(
-            f"[cyan]Security:[/] Custom ({len(blocked_cmds)} cmd, "
-            f"{len(blocked_files)} file patterns)"
-        )
-    else:
-        lines.append("[dim]Security:[/] Default")
 
     # Webhooks section
     if webhooks.get("enabled", False):

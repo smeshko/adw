@@ -46,7 +46,6 @@ class WizardStep(Enum):
     PHASES = "phases"
     # Note: SHIP step removed - ship phase config is now part of PHASES step
     LLM_RETRY = "llm_retry"
-    SECURITY = "security"
     WEBHOOKS = "webhooks"
     SUMMARY = "summary"
 
@@ -74,7 +73,6 @@ class WizardFlowController:
         WizardStep.PHASES,
         # Note: SHIP removed - ship config is part of PHASES step
         WizardStep.LLM_RETRY,
-        WizardStep.SECURITY,
         WizardStep.WEBHOOKS,
         WizardStep.SUMMARY,
     ]
@@ -88,7 +86,6 @@ class WizardFlowController:
         WizardStep.PHASES: "Phase Configuration",
         # Note: SHIP removed - ship config is part of PHASES step
         WizardStep.LLM_RETRY: "LLM Retry Settings",
-        WizardStep.SECURITY: "Security Settings",
         WizardStep.WEBHOOKS: "Webhook Configuration",
         WizardStep.SUMMARY: "Configuration Summary",
     }

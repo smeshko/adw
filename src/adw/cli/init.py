@@ -161,7 +161,6 @@ def _run_wizard_setup(project_root: Path) -> None:
         PhasesStepHandler,
         PortsStepHandler,
         RetryStepHandler,
-        SecurityStepHandler,
         SummaryStepHandler,
         TaskManagerStepHandler,
         WebhooksStepHandler,
@@ -191,7 +190,6 @@ def _run_wizard_setup(project_root: Path) -> None:
     controller.register_step_handler(WizardStep.PHASES, PhasesStepHandler())
     # Note: Ship config is part of PHASES step, no separate SHIP step needed
     controller.register_step_handler(WizardStep.LLM_RETRY, RetryStepHandler())
-    controller.register_step_handler(WizardStep.SECURITY, SecurityStepHandler())
     controller.register_step_handler(WizardStep.WEBHOOKS, WebhooksStepHandler())
     controller.register_step_handler(
         WizardStep.SUMMARY, SummaryStepHandler(project_root=project_root)
