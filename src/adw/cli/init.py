@@ -159,7 +159,6 @@ def _run_wizard_setup(project_root: Path) -> None:
         GitStepHandler,
         GlobalRegistryStepHandler,
         PhasesStepHandler,
-        PortsStepHandler,
         RetryStepHandler,
         SummaryStepHandler,
         TaskManagerStepHandler,
@@ -185,7 +184,6 @@ def _run_wizard_setup(project_root: Path) -> None:
         WizardStep.GLOBAL_REGISTRY, GlobalRegistryStepHandler()
     )
     controller.register_step_handler(WizardStep.GIT, GitStepHandler())
-    controller.register_step_handler(WizardStep.PORTS, PortsStepHandler())
     controller.register_step_handler(WizardStep.TASK_MANAGER, TaskManagerStepHandler())
     controller.register_step_handler(WizardStep.PHASES, PhasesStepHandler())
     # Note: Ship config is part of PHASES step, no separate SHIP step needed

@@ -23,7 +23,6 @@ class MockWizardState:
                 "platform": "cli",
             },
             "git": {},
-            "ports": {},
             "task_manager": {},
             "ship": {},
             "llm_retry": {},
@@ -115,7 +114,7 @@ class TestYAMLWithComments:
         assert "# === Commands ===" in yaml_content
         assert "# === Git Integration ===" in yaml_content
         assert "# === Task Manager ===" in yaml_content
-        assert "# === Worktree & Ports ===" in yaml_content
+        assert "# === Worktree ===" in yaml_content
         assert "# === LLM Configuration ===" in yaml_content
         assert "# === Security ===" not in yaml_content
         assert "# === Webhook Server ===" in yaml_content
@@ -151,23 +150,7 @@ class TestYAMLWithComments:
         assert parsed is not None
         assert "name" in parsed
         assert "language" in parsed
-
-    def test_generate_project_yaml_custom_ports(
-        self, generator: YAMLWithComments
-    ) -> None:
-        """Test that custom ports are shown as active config."""
-        state = MockWizardState(
-            {
-                "ports": {
-                    "backend_port_start": 8000,
-                    "frontend_port_start": 8100,
-                }
-            }
-        )
-        yaml_content = generator.generate_project_yaml(state)
-
-        assert "backend_start: 8000" in yaml_content
-        assert "frontend_start: 8100" in yaml_content
+        assert set(parsed["worktree"]) == {"enabled", "base_dir", "max_concurrent"}
 
 
 class TestPhaseYAMLGeneration:

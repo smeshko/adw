@@ -15,8 +15,6 @@ Exports:
     run_global_registry_step: Function to execute the global registry step.
     PhasesStepHandler: Handler for the phases configuration step.
     run_phases_step: Function to execute the phases step.
-    PortsStepHandler: Handler for the port configuration step.
-    run_ports_step: Function to execute the ports step.
     RetryStepHandler: Handler for the LLM retry configuration step.
     run_retry_step: Function to execute the retry step.
     TaskManagerStepHandler: Handler for the task manager configuration step.
@@ -63,13 +61,6 @@ from adw.cli.wizard.phases import (
     PhasesStepHandler,
     run_phases_step,
 )
-from adw.cli.wizard.ports import (
-    PortsStepHandler,
-    check_port_overlap,
-    is_common_port,
-    run_ports_step,
-    validate_port,
-)
 from adw.cli.wizard.retry import (
     RetryStepHandler,
     run_retry_step,
@@ -110,7 +101,6 @@ __all__ = [
     "NavigationError",
     "NavigationSignal",
     "PhasesStepHandler",
-    "PortsStepHandler",
     "RetryStepHandler",
     "ShipStepHandler",
     "StepHandler",
@@ -121,21 +111,18 @@ __all__ = [
     "WizardStep",
     "atomic_write_config",
     "check_navigation",
-    "check_port_overlap",
     "detect_language",
     "detect_test_command",
     "generate_gitignore",
     "generate_phase_configs",
     "generate_project_yaml",
     "generate_summary_panel",
-    "is_common_port",
     "nav_confirm_ask",
     "nav_prompt_ask",
     "run_basics_step",
     "run_git_step",
     "run_global_registry_step",
     "run_phases_step",
-    "run_ports_step",
     "run_retry_step",
     "run_ship_step",
     "run_summary_step",
@@ -146,6 +133,5 @@ __all__ = [
     "validate_max_delay",
     "validate_max_retries",
     "validate_multiplier",
-    "validate_port",
     "validate_team_key",
 ]

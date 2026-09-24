@@ -41,7 +41,6 @@ class WizardStep(Enum):
     BASICS = "basics"
     GLOBAL_REGISTRY = "global_registry"
     GIT = "git"
-    PORTS = "ports"
     TASK_MANAGER = "task_manager"
     PHASES = "phases"
     # Note: SHIP step removed - ship phase config is now part of PHASES step
@@ -68,7 +67,6 @@ class WizardFlowController:
         WizardStep.BASICS,
         WizardStep.GLOBAL_REGISTRY,
         WizardStep.GIT,
-        WizardStep.PORTS,
         WizardStep.TASK_MANAGER,
         WizardStep.PHASES,
         # Note: SHIP removed - ship config is part of PHASES step
@@ -81,7 +79,6 @@ class WizardFlowController:
         WizardStep.BASICS: "Project Basics",
         WizardStep.GLOBAL_REGISTRY: "Web Dashboard Registration",
         WizardStep.GIT: "Git Configuration",
-        WizardStep.PORTS: "Port Allocation",
         WizardStep.TASK_MANAGER: "Task Manager Integration",
         WizardStep.PHASES: "Phase Configuration",
         # Note: SHIP removed - ship config is part of PHASES step
