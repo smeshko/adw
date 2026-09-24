@@ -55,6 +55,6 @@ scripts/preflight.sh
 
 ## References
 
-- Epic: [02 — phase 2.2](../../epics/02-cleanup-remove-and-consolidate.md)
+- Epic: [02 — phase 2.2](../../../epics/02-cleanup-remove-and-consolidate.md)
 - Linear: ADW-18
 - Sibling plan for the same pattern: phase 2.3 on `feature/adw-19` (`docs/artifacts/plans/02.3-remove-webhook-server/`)
