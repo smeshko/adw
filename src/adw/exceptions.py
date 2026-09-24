@@ -145,6 +145,24 @@ class WorktreeError(ADWError):
     """
 
 
+class PlanError(ADWError):
+    """Exception for reading or writing plan directories.
+
+    Raised by adw.plans when a plan, task, epic or phase is missing, or when a
+    value would break the plan skills' format.
+
+    Common error codes:
+    - PLAN_NOT_FOUND: The plan directory or its PLAN.md doesn't exist
+    - PLAN_EXISTS: The plan directory already exists
+    - INVALID_PLAN: A bad value (risk, status, slug, task id) or a PLAN.md
+      missing a line the operation needs
+    - TASK_NOT_FOUND: PLAN.md has no checkbox line for the task
+    - EPIC_NOT_FOUND: No epic file matches the given id or slug
+    - PHASE_NOT_FOUND: The epic has no heading for the phase
+    - AMBIGUOUS_PLAN: More than one plan matches a branch
+    """
+
+
 class TaskError(ADWError):
     """Exception for task management errors.
 

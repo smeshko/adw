@@ -1,6 +1,6 @@
 # Plan: adw.plans: plan files in ADW
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-39
 Risk: medium
 Epic: 04 — Plan-driven runs ([epic](../../epics/04-plan-driven-runs.md))
@@ -102,7 +102,7 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Bundle the plan templates and port plan authoring
+- [x] TASK-001: Bundle the plan templates and port plan authoring
 - [ ] TASK-002: Parse PLAN.md into a Plan model and add list, show and tasks (depends on TASK-001)
 - [ ] TASK-003: Port the plan state updates (depends on TASK-002)
 - [ ] TASK-004: Port epic linking and status, and add adw plan link (depends on TASK-001)
