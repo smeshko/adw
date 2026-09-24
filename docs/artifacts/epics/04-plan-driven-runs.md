@@ -51,7 +51,7 @@ No prompt changes here; Epic 05 rewrites the prompts. Runs stay fully autonomous
 
 ## Phase 4.1 — adw.plans: plan files in ADW
 
-**Plan**: _not yet created_
+**Plan**: [04.1-adw-plans-module](../plans/04.1-adw-plans-module/PLAN.md) · status: planned
 
 **Linear**: ADW-39 (https://linear.app/ivo-tsonev/issue/ADW-39)
 
