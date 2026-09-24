@@ -13,6 +13,7 @@ from rich.console import Console
 from rich.table import Table
 
 from adw.cli.list_display import ListDisplay
+from adw.core.constants import project_runs_dir
 from adw.core.index_manager import IndexManager
 from adw.core.run_lookup import RunLookup
 from adw.format import format_duration, status_style
@@ -97,7 +98,8 @@ def list_runs(
         return
 
     # Determine data source: local runs or global index
-    runs_dir = _get_runs_dir()
+    local_runs_dir = project_runs_dir(Path.cwd())
+    runs_dir = local_runs_dir if local_runs_dir.is_dir() else None
     use_global = global_view or (runs_dir is None and not project)
 
     if use_global:
@@ -272,21 +274,6 @@ def _output_json_index_entries(entries: list[IndexEntry]) -> None:
         )
 
     console.print_json(json.dumps(output))
-
-
-def _get_runs_dir() -> Path | None:
-    """Get the runs directory path.
-
-    Returns:
-        Path to .adw/runs directory, or None if it doesn't exist.
-    """
-    cwd = Path.cwd()
-    runs_dir = cwd / ".adw" / "runs"
-
-    if not runs_dir.exists():
-        return None
-
-    return runs_dir
 
 
 def _output_json_list(runs: list[RunContext]) -> None:

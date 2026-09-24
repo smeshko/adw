@@ -19,13 +19,12 @@ runner = CliRunner()
 
 
 @pytest.fixture
-def mock_runs_dir(tmp_path: Path):
-    """Fixture that creates a runs directory and patches _get_runs_dir."""
+def mock_runs_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Create tmp_path/.adw/runs and run the command from tmp_path."""
     runs_dir = tmp_path / ".adw" / "runs"
     runs_dir.mkdir(parents=True)
-
-    with patch("adw.cli.list._get_runs_dir", return_value=runs_dir):
-        yield runs_dir
+    monkeypatch.chdir(tmp_path)
+    return runs_dir
 
 
 def create_run(
@@ -232,13 +231,13 @@ class TestListEmptyStates:
         assert result.exit_code == 0
         assert "No runs found" in result.output
 
-    def test_no_adw_directory(self, tmp_path: Path) -> None:
+    def test_no_adw_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test message when .adw directory doesn't exist and global index empty."""
-        # Patch to return None (no runs dir) and mock global index as empty
-        with (
-            patch("adw.cli.list._get_runs_dir", return_value=None),
-            patch("adw.cli.list.IndexManager") as mock_index,
-        ):
+        # An empty cwd has no runs dir; mock the global index as empty
+        monkeypatch.chdir(tmp_path)
+        with patch("adw.cli.list.IndexManager") as mock_index:
             mock_index.return_value.get_recent_runs.return_value = []
             result = runner.invoke(app, ["list"])
 

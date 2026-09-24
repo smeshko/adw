@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 from rich.prompt import Confirm
 
-from adw.cli.bootstrap import get_runs_dir
+from adw.cli.bootstrap import require_runs_dir
 from adw.core import ContextManager, InterruptionHandler, SnapshotManager
 from adw.exceptions import ConfigError, StateError
 from adw.models.context import RunStatus
@@ -37,7 +37,7 @@ def abort_command(
         adw abort 01HQXK5P3Z7V8R2M4N6T9W1Y3C
         adw abort 01HQXK5P3Z7V8R2M4N6T9W1Y3C --force
     """
-    runs_dir = get_runs_dir()
+    runs_dir = require_runs_dir()
     context_manager = ContextManager(runs_dir)
     snapshot_manager = SnapshotManager(runs_dir)
 

@@ -13,6 +13,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from adw.core.constants import project_runs_dir
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
 from adw.core.stats_aggregator import StatsAggregator
@@ -581,7 +582,7 @@ def _run_exists(project_path: str, run_id: str) -> bool:
     """
     from pathlib import Path
 
-    run_dir = Path(project_path) / ".adw" / "runs" / run_id
+    run_dir = project_runs_dir(Path(project_path)) / run_id
     return run_dir.exists()
 
 

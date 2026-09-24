@@ -172,7 +172,10 @@ class WorktreeManager:
             >>> run_dir.exists()
             True
         """
-        run_dir = worktree_path / ".adw" / "runs" / run_id
+        # Imported here: adw.core's package init imports this module
+        from adw.core.constants import project_runs_dir
+
+        run_dir = project_runs_dir(worktree_path) / run_id
 
         # Create the main run directory and subdirectories
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -226,8 +229,10 @@ class WorktreeManager:
         if artifacts_to_preserve is None:
             artifacts_to_preserve = DEFAULT_PRESERVE_ARTIFACTS
 
-        source_run_dir = worktree_path / ".adw" / "runs" / run_id
-        target_run_dir = self.project_root / ".adw" / "runs" / run_id
+        from adw.core.constants import project_runs_dir
+
+        source_run_dir = project_runs_dir(worktree_path) / run_id
+        target_run_dir = project_runs_dir(self.project_root) / run_id
 
         # Ensure target directory exists
         target_run_dir.mkdir(parents=True, exist_ok=True)

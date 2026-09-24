@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 import filelock
 
-from adw.core.constants import CONTEXT_FILE
+from adw.core.constants import CONTEXT_FILE, project_runs_dir
 from adw.exceptions import StateError
 from adw.fs import atomic_write
 
@@ -61,7 +61,7 @@ class RunDirectoryManager:
             project_root: Path to the project root directory.
         """
         self.project_root = project_root
-        self.runs_dir = project_root / ".adw" / "runs"
+        self.runs_dir = project_runs_dir(project_root)
 
     def create(self, context: "RunContext") -> Path:
         """Create run directory structure and save initial context.

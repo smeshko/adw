@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from adw.core.constants import project_runs_dir
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
 from adw.models.context import RunStatus
@@ -241,7 +242,7 @@ class StatsAggregator:
             entry_date = entry.started_at.date()
             if entry_date in daily_input:
                 project_path = Path(entry.project_path)
-                run_dir = project_path / ".adw" / "runs" / entry.run_id
+                run_dir = project_runs_dir(project_path) / entry.run_id
                 run_tokens = self._parse_llm_response_files(run_dir)
                 daily_input[entry_date] += run_tokens.input_tokens
                 daily_output[entry_date] += run_tokens.output_tokens
@@ -289,7 +290,7 @@ class StatsAggregator:
         for entry in entries:
             project_path = Path(entry.project_path)
             context_path = (
-                project_path / ".adw" / "runs" / entry.run_id / "context.json"
+                project_runs_dir(project_path) / entry.run_id / "context.json"
             )
             if not context_path.exists():
                 continue
@@ -339,7 +340,7 @@ class StatsAggregator:
         model_totals: dict[str, dict[str, int]] = {}
         for entry in entries:
             project_path = Path(entry.project_path)
-            llm_dir = project_path / ".adw" / "runs" / entry.run_id / "llm"
+            llm_dir = project_runs_dir(project_path) / entry.run_id / "llm"
             if not llm_dir.exists():
                 continue
             for response_file in llm_dir.glob("*_response.json"):
@@ -489,7 +490,7 @@ class StatsAggregator:
 
         for entry in entries:
             project_path = Path(entry.project_path)
-            run_dir = project_path / ".adw" / "runs" / entry.run_id
+            run_dir = project_runs_dir(project_path) / entry.run_id
 
             # Parse LLM files for this run
             run_tokens = self._parse_llm_response_files(run_dir)

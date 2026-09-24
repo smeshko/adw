@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import yaml
 
+from adw.core.constants import project_runs_dir
 from adw.git import HOOK_TIMEOUT, git
 from adw.models.command import ShipCommandConfig, get_config_class
 
@@ -146,9 +147,7 @@ class ShipExtension:
 
         # Check if ship phase merged a PR
         merge_record_path = (
-            context.worktree_path
-            / ".adw"
-            / "runs"
+            project_runs_dir(context.worktree_path)
             / context.run_id
             / "artifacts"
             / "ship"

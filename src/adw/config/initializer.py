@@ -12,6 +12,7 @@ from typing import Any
 from adw.config.detector import ProjectTypeDetector
 from adw.config.registry import ConfigRegistry
 from adw.config.yaml_generator import YAMLWithComments
+from adw.core.constants import project_runs_dir
 
 
 def generate_gitignore() -> str:
@@ -113,7 +114,7 @@ class ProjectInitializer:
     def _create_directories(self) -> None:
         """Create .adw/ directory structure."""
         self.adw_dir.mkdir(exist_ok=True)
-        (self.adw_dir / "runs").mkdir(exist_ok=True)
+        project_runs_dir(self.project_root).mkdir(exist_ok=True)
         (self.adw_dir / "commands").mkdir(exist_ok=True)
 
     def _generate_config(self, project_type: str) -> dict[str, Any]:

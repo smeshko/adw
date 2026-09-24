@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.prompt import Confirm
 from rich.table import Table
 
-from adw.cli.bootstrap import get_runs_dir
+from adw.cli.bootstrap import require_runs_dir
 from adw.core import ContextManager
 from adw.exceptions import ConfigError, StateError, WorktreeError
 from adw.git import delete_branch as delete_local_branch
@@ -56,7 +56,7 @@ def cleanup_command(
         # Force cleanup (skip confirmations, delete even with uncommitted changes)
         adw cleanup 01HQXK5P3Z7V8R2M4N6T9W1Y3C --force --delete-branch
     """
-    runs_dir = get_runs_dir()
+    runs_dir = require_runs_dir()
     context_manager = ContextManager(runs_dir)
 
     # Try to load context to get worktree info
@@ -224,7 +224,7 @@ def cleanup_orphans_command(
         base_dir=manager.base_dir,
     )
     # Context manager for loading branch names from context files
-    runs_dir = get_runs_dir()
+    runs_dir = require_runs_dir()
     context_manager = ContextManager(runs_dir)
 
     removed_count = 0

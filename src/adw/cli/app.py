@@ -25,7 +25,7 @@ from adw.cli.unregister import unregister as unregister_command
 from adw.cli.validate_config import validate_config_command
 from adw.cli.validators import validate_phase
 from adw.config.loader import ConfigLoader
-from adw.core.constants import PHASE_SEQUENCE
+from adw.core.constants import PHASE_SEQUENCE, project_runs_dir
 from adw.exceptions import ADWError, ConfigError
 from adw.logging import setup_logging
 from adw.models.config import ProjectConfig
@@ -241,7 +241,7 @@ def run(
     if from_run is not None and feature is None:
         from adw.core.context_manager import ContextManager
 
-        runs_dir = Path.cwd() / ".adw" / "runs"
+        runs_dir = project_runs_dir(Path.cwd())
         try:
             source_context = ContextManager(runs_dir).load(from_run)
             feature = source_context.feature_description
@@ -355,7 +355,7 @@ def run(
             dry_run_config = None
 
         # Determine runs directory for artifact lookup
-        runs_dir = Path.cwd() / ".adw" / "runs"
+        runs_dir = project_runs_dir(Path.cwd())
 
         # Show detailed dry-run preview
         dry_run_display = DryRunDisplay(console)
@@ -369,7 +369,7 @@ def run(
         return
 
     # Calculate run directory for file logging
-    runs_dir = Path.cwd() / ".adw" / "runs"
+    runs_dir = project_runs_dir(Path.cwd())
     run_dir = runs_dir / run_id
 
     # Replace the console-only handlers with the console plus the run's

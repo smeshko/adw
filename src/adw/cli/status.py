@@ -14,7 +14,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from adw.cli.bootstrap import get_runs_dir
+from adw.cli.bootstrap import require_runs_dir
 from adw.cli.status_display import StatusDisplay, output_json
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ADWError, ConfigError, StateError
@@ -83,7 +83,7 @@ def _find_run(run_id: str | None) -> RunContext:
         StateError: If run context is corrupted.
         typer.Exit: If no runs exist (user-friendly exit).
     """
-    runs_dir = get_runs_dir()
+    runs_dir = require_runs_dir()
     lookup = RunLookup(runs_dir)
 
     if run_id:

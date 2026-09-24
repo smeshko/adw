@@ -12,7 +12,6 @@ import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
-from adw.cli.list import _get_runs_dir
 from adw.models import RunContext
 
 
@@ -228,25 +227,6 @@ class TestListCommand:
             # Test -s for --status
             result = runner.invoke(app, ["list", "-s", "completed"])
             assert result.exit_code == 0
-
-
-class TestGetRunsDir:
-    """Tests for _get_runs_dir helper."""
-
-    def test_returns_none_when_no_adw_dir(self, tmp_path: Path) -> None:
-        """Test that None is returned when .adw/runs doesn't exist."""
-        with patch("adw.cli.list.Path.cwd", return_value=tmp_path):
-            result = _get_runs_dir()
-            assert result is None
-
-    def test_returns_path_when_exists(self, tmp_path: Path) -> None:
-        """Test that path is returned when .adw/runs exists."""
-        runs_dir = tmp_path / ".adw" / "runs"
-        runs_dir.mkdir(parents=True)
-
-        with patch("adw.cli.list.Path.cwd", return_value=tmp_path):
-            result = _get_runs_dir()
-            assert result == runs_dir
 
 
 class TestGlobalIndexFlags:

@@ -280,5 +280,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-005: Add adw.format and use it everywhere
 - [x] TASK-006: One status style map for the CLI and the dashboard (depends on TASK-004,TASK-005)
 - [x] TASK-007: One atomic_write for state files
-- [ ] TASK-008: One runs directory path, created only by adw run (depends on TASK-003,TASK-005,TASK-006,TASK-007)
+- [x] TASK-008: One runs directory path, created only by adw run (depends on TASK-003,TASK-005,TASK-006,TASK-007)
 - [ ] TASK-009: Final Validation

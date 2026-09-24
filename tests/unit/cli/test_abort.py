@@ -40,7 +40,7 @@ class TestAbortCommand:
         runner: CliRunner,
     ) -> None:
         """Test abort fails when run not found."""
-        with patch("adw.cli.abort.get_runs_dir") as mock_runs_dir:
+        with patch("adw.cli.abort.require_runs_dir") as mock_runs_dir:
             mock_runs_dir.return_value = Path("/tmp/runs")
 
             with patch("adw.cli.abort.ContextManager") as mock_cm:
@@ -68,7 +68,7 @@ class TestAbortCommand:
             update={"status": RunStatus.COMPLETED}
         )
 
-        with patch("adw.cli.abort.get_runs_dir") as mock_runs_dir:
+        with patch("adw.cli.abort.require_runs_dir") as mock_runs_dir:
             mock_runs_dir.return_value = Path("/tmp/runs")
 
             with patch("adw.cli.abort.ContextManager") as mock_cm:
@@ -87,7 +87,7 @@ class TestAbortCommand:
         sample_context: RunContext,
     ) -> None:
         """Test abort with --force skips confirmation."""
-        with patch("adw.cli.abort.get_runs_dir") as mock_runs_dir:
+        with patch("adw.cli.abort.require_runs_dir") as mock_runs_dir:
             mock_runs_dir.return_value = Path("/tmp/runs")
 
             with (
@@ -110,7 +110,7 @@ class TestAbortCommand:
         sample_context: RunContext,
     ) -> None:
         """Test abort cancelled when user declines confirmation."""
-        with patch("adw.cli.abort.get_runs_dir") as mock_runs_dir:
+        with patch("adw.cli.abort.require_runs_dir") as mock_runs_dir:
             mock_runs_dir.return_value = Path("/tmp/runs")
 
             with (

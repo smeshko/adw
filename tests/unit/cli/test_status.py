@@ -44,7 +44,7 @@ class TestStatusNoRuns:
         runs_dir = tmp_path / ".adw" / "runs"
         runs_dir.mkdir(parents=True)
 
-        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+        with patch("adw.cli.status.require_runs_dir", return_value=runs_dir):
             result = runner.invoke(app, ["status"])
 
         # Should show "No runs found" message
@@ -67,7 +67,7 @@ class TestStatusCorruptedContext:
         # Write corrupted JSON
         (run_dir / "context.json").write_text("{ invalid json }")
 
-        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+        with patch("adw.cli.status.require_runs_dir", return_value=runs_dir):
             result = runner.invoke(app, ["status", run_id])
 
         # Should indicate corrupted state with snapshot suggestion
@@ -109,7 +109,7 @@ class TestStatusWithValidRun:
         }
         (run_dir / "context.json").write_text(json.dumps(context_data))
 
-        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+        with patch("adw.cli.status.require_runs_dir", return_value=runs_dir):
             result = runner.invoke(app, ["status", run_id])
 
         assert result.exit_code == 0
@@ -143,7 +143,7 @@ class TestStatusWithValidRun:
         }
         (run_dir / "context.json").write_text(json.dumps(context_data))
 
-        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+        with patch("adw.cli.status.require_runs_dir", return_value=runs_dir):
             result = runner.invoke(app, ["status"])
 
         assert result.exit_code == 0
@@ -176,7 +176,7 @@ class TestStatusWithValidRun:
         }
         (run_dir / "context.json").write_text(json.dumps(context_data))
 
-        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+        with patch("adw.cli.status.require_runs_dir", return_value=runs_dir):
             result = runner.invoke(app, ["status", "--json"])
 
         assert result.exit_code == 0
@@ -212,7 +212,7 @@ class TestStatusWithValidRun:
         }
         (run_dir / "context.json").write_text(json.dumps(context_data))
 
-        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+        with patch("adw.cli.status.require_runs_dir", return_value=runs_dir):
             result = runner.invoke(app, ["status", "-v"])
 
         assert result.exit_code == 0

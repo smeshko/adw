@@ -21,7 +21,8 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from ulid import ULID
 
-from adw.core.constants import CONTEXT_FILE, LIVE_LOG, project_runs_dir
+from adw.cli.bootstrap import require_runs_dir
+from adw.core.constants import CONTEXT_FILE, LIVE_LOG
 from adw.format import format_size
 from adw.models.context import RunStatus
 
@@ -215,24 +216,6 @@ logs_app = typer.Typer(
 )
 
 
-def _get_runs_dir() -> Path:
-    """Get the runs directory path.
-
-    Returns:
-        Path to .adw/runs directory.
-
-    Raises:
-        typer.Exit: If .adw directory not found.
-    """
-    cwd = Path.cwd()
-    adw_dir = cwd / ".adw"
-    if not adw_dir.exists():
-        console.print("[red]Error:[/] No .adw directory found")
-        console.print("[dim]Suggestion:[/] Run 'adw init' first")
-        raise typer.Exit(1)
-    return project_runs_dir(cwd)
-
-
 def _get_run_dir(run_id: str, *, debug: bool = False) -> Path:
     """Get the run directory path with improved error handling.
 
@@ -246,7 +229,7 @@ def _get_run_dir(run_id: str, *, debug: bool = False) -> Path:
     Raises:
         typer.Exit: If run not found or invalid format.
     """
-    runs_dir = _get_runs_dir()
+    runs_dir = require_runs_dir()
 
     if debug:
         console.print(f"[dim]Searching in: {runs_dir}[/]")
