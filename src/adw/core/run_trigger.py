@@ -1,7 +1,6 @@
 """Core run trigger logic for starting ADW runs.
 
-Extracted from ``webhook/runner.py`` so that both the dashboard and
-webhook modules can trigger runs without cross-importing.
+Starts the runs requested by the dashboard's New Run form.
 """
 
 from __future__ import annotations
@@ -34,21 +33,14 @@ class RunTriggerResult:
 class RunTrigger:
     """Triggers ADW runs as background subprocesses.
 
-    Provides the core trigger logic used by both the dashboard and
-    webhook modules. Spawns ADW as a detached subprocess so the
-    caller can return immediately.
+    Used by the dashboard's New Run. Spawns ADW as a detached subprocess
+    so the caller can return immediately.
 
     Attributes:
-        _project_dir: Default project directory to run ADW in.
         _adw_command: The ADW CLI command to execute.
     """
 
-    def __init__(
-        self,
-        project_dir: Path | str | None = None,
-        adw_command: str = "adw",
-    ) -> None:
-        self._project_dir = Path(project_dir) if project_dir else Path.cwd()
+    def __init__(self, adw_command: str = "adw") -> None:
         self._adw_command = adw_command
 
     def _build_command(

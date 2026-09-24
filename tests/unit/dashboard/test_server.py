@@ -52,13 +52,6 @@ class TestCreateDashboardApp:
         assert data["status"] == "healthy"
         assert data["service"] == "dashboard"
 
-    def test_health_includes_request_id(self) -> None:
-        """Health endpoint response has x-request-id from shared middleware."""
-        app = create_dashboard_app()
-        client = TestClient(app)
-        response = client.get("/health")
-        assert "x-request-id" in response.headers
-
     def test_overview_page_returns_html(self) -> None:
         """Overview page returns HTML content."""
         app = create_dashboard_app()

@@ -5,11 +5,11 @@
 
 ## Overview
 
-Adds the ability to start new ADW runs directly from the dashboard via a DaisyUI modal dialog. The feature extracts core run-triggering logic from the webhook module into a shared `core/run_trigger.py`, introduces the first CSRF-protected POST endpoint in the dashboard (`/runs/start`), and establishes the reusable HTMX modal pattern with server-side form validation and inline error rendering.
+Adds the ability to start new ADW runs directly from the dashboard via a DaisyUI modal dialog. The feature puts the run-triggering logic in `core/run_trigger.py`, introduces the first CSRF-protected POST endpoint in the dashboard (`/runs/start`), and establishes the reusable HTMX modal pattern with server-side form validation and inline error rendering.
 
 ## What Was Built
 
-- **Core run trigger** (`core/run_trigger.py`): Shared run-launching logic extracted from `webhook/runner.py`, usable by both dashboard and webhook without cross-importing
+- **Core run trigger** (`core/run_trigger.py`): Run-launching logic behind the dashboard's New Run
 - **Mutations router** (`dashboard/mutations.py`): First POST endpoint in the dashboard with CSRF validation, form validation, and HTMX-aware responses
 - **New run modal** (`partials/new_run_modal.html`): DaisyUI `<dialog>` modal with project select, feature textarea, CSRF token, and inline validation errors
 - **Success confirmation** (`partials/run_started.html`): Post-submission view with OOB swap to clear the modal container
@@ -26,7 +26,6 @@ Adds the ability to start new ADW runs directly from the dashboard via a DaisyUI
 - `src/adw/dashboard/dependencies.py`: `get_run_trigger()` DI provider returns a `RunTrigger` instance
 - `src/adw/dashboard/templates/partials/new_run_modal.html`: DaisyUI modal template with HTMX form submission
 - `src/adw/dashboard/templates/partials/run_started.html`: Success view with OOB modal clearing
-- `src/adw/webhook/runner.py`: Refactored to delegate to `core/run_trigger.py` via composition
 
 ### Key Patterns
 
@@ -36,7 +35,7 @@ Adds the ability to start new ADW runs directly from the dashboard via a DaisyUI
 
 - **Validation Error Re-rendering**: On validation failure, the server returns the modal HTML with error context and sets `HX-Retarget: #modal-container` + `HX-Reswap: innerHTML` headers. This redirects HTMX to re-render the modal in place (instead of the original `#main` target) with inline `text-error` messages below each field.
 
-- **Core Extraction Pattern**: Shared logic lives in `core/` and is used by both `dashboard/` and `webhook/` via dependency injection. The webhook module wraps core with correlation IDs and structured logging; the dashboard uses core directly.
+- **Core Extraction Pattern**: Run-launching logic lives in `core/`; the dashboard reaches it through the `get_run_trigger` dependency, so tests can inject a mock.
 
 ### Code Examples
 
@@ -98,5 +97,4 @@ No additional configuration required. The run trigger uses the default `adw` CLI
 - The `RunTrigger` spawns a detached subprocess (`start_new_session=True`) so the dashboard response returns immediately without waiting for the run to complete
 - CSRF tokens are per-process and rotate on server restart; this is acceptable for a single-user development dashboard
 - The modal container `<div id="modal-container">` is placed outside `<main id="main">` to prevent modal state from being lost during HTMX main-content swaps
-- `WebhookRunTrigger` now delegates to `RunTrigger` internally, maintaining full backward compatibility for the webhook module
 - The `HX-Retarget` / `HX-Reswap` headers on validation failure are essential: without them, HTMX would swap the error response into `#main` (the form's `hx-target`), destroying the page content

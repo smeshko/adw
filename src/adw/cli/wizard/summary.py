@@ -130,7 +130,6 @@ def generate_summary_panel(cfg: WizardConfig) -> Panel:
     git = cfg.get("git", {})
     task_manager = cfg.get("task_manager", {})
     phases = cfg.get("phases", {})
-    webhooks = cfg.get("webhooks", {})
 
     # Basics section
     lines.append("[bold]Basics:[/]")
@@ -169,20 +168,6 @@ def generate_summary_panel(cfg: WizardConfig) -> Panel:
         lines.append(f"[cyan]Phases:[/] {phase_list}")
     else:
         lines.append("[dim]Phases:[/] Default")
-
-    # Webhooks section
-    if webhooks.get("enabled", False):
-        providers = webhooks.get("providers", {})
-        enabled_providers = [
-            p for p, provider in providers.items() if provider.get("enabled", False)
-        ]
-        if enabled_providers:
-            provider_str = ", ".join(f"{p.title()} \u2713" for p in enabled_providers)
-            lines.append(f"[cyan]Webhooks:[/] {provider_str}")
-        else:
-            lines.append("[dim]Webhooks:[/] Enabled (no providers)")
-    else:
-        lines.append("[dim]Webhooks:[/] Disabled")
 
     lines.append("")
 

@@ -122,7 +122,6 @@ class YAMLWithComments:
         basics = cfg.get("basics", {})
         git = cfg.get("git", {})
         task_manager = cfg.get("task_manager", {})
-        webhooks = cfg.get("webhooks", {})
 
         # === Core Settings ===
         lines.append("# === Core Settings ===")
@@ -192,11 +191,6 @@ class YAMLWithComments:
                 f"#     {field_name}: {_format_yaml_value(field.default)}"
                 f"  # {field.description}"
             )
-
-        lines.append("")
-
-        # === Webhook ===
-        self._add_webhook_section(lines, webhooks)
 
         lines.append("")
 
@@ -289,68 +283,6 @@ class YAMLWithComments:
             lines.append("#   labels:")
             lines.append("#     enabled: true  # Enable label management")
             lines.append('#     prefix: "adw:"  # Prefix for ADW-managed labels')
-
-    def _add_webhook_section(self, lines: list[str], webhooks: dict[str, Any]) -> None:
-        """Add webhook server section.
-
-        Args:
-            lines: List of output lines to append to.
-            webhooks: Webhook configuration dict from the wizard's answers.
-        """
-        lines.append("# === Webhook Server ===")
-        webhook_enabled = webhooks.get("enabled", False)
-
-        if webhook_enabled:
-            lines.append("webhook:")
-            lines.append(f"  port: {webhooks.get('port', 8000)}")
-            lines.append(f'  host: "{webhooks.get("host", "0.0.0.0")}"')
-
-            providers = webhooks.get("providers", {})
-            if providers:
-                lines.append("  providers:")
-                for name, pcfg in providers.items():
-                    if pcfg.get("enabled", False):
-                        lines.append(f"    {name}:")
-                        lines.append("      enabled: true")
-                        if pcfg.get("secret_env"):
-                            lines.append(f"      secret_env: {pcfg['secret_env']}")
-
-                        # command_prefix
-                        cmd_prefix = pcfg.get("command_prefix", "/adw")
-                        if cmd_prefix != "/adw":
-                            val = _format_yaml_value(cmd_prefix)
-                            lines.append(f"      command_prefix: {val}")
-                        else:
-                            lines.append(
-                                '      # command_prefix: "/adw"  # Command prefix'
-                            )
-
-                        # trigger_label
-                        trig_label = pcfg.get("trigger_label", "adw")
-                        if trig_label != "adw":
-                            lines.append(
-                                f"      trigger_label: {_format_yaml_value(trig_label)}"
-                            )
-                        else:
-                            lines.append("      # trigger_label: adw  # Trigger label")
-
-            # Mappings
-            mappings = webhooks.get("mappings")
-            if mappings:
-                lines.append("  mappings:")
-                for provider_name, events in mappings.items():
-                    lines.append(f"    {provider_name}:")
-                    for event_type, event_cfg in events.items():
-                        lines.append(f"      {event_type}:")
-                        for cfg_key, cfg_val in event_cfg.items():
-                            lines.append(
-                                f"        {cfg_key}: {_format_yaml_value(cfg_val)}"
-                            )
-        else:
-            lines.append("# webhook:")
-            lines.append("#   enabled: false  # Enable webhook server")
-            lines.append("#   port: 8000")
-            lines.append('#   host: "0.0.0.0"')
 
     def generate_phase_yaml(
         self,

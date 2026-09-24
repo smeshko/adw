@@ -13,6 +13,32 @@ from adw.config.checker import (
     _extract_executable,
 )
 
+# The webhook block the pre-epic wizard wrote, captured before phase 2.3
+# removed the webhook server.
+LEGACY_WEBHOOK_PROJECT_YAML = """\
+name: legacy
+language: python
+webhook:
+  port: 9000
+  host: "127.0.0.1"
+  providers:
+    linear:
+      enabled: true
+      secret_env: LINEAR_WEBHOOK_SECRET
+      command_prefix: /run
+      trigger_label: ai
+    github:
+      enabled: true
+      secret_env: GITHUB_WEBHOOK_SECRET
+      # command_prefix: "/adw"  # Command prefix
+      # trigger_label: adw  # Trigger label
+  mappings:
+    linear:
+      issue.created:
+        trigger: true
+        require_label: "adw:auto"
+"""
+
 
 class TestSeverity:
     """Tests for Severity enum."""
@@ -195,6 +221,20 @@ class TestConfigCheckerProjectConfig:
         checker = ConfigChecker(project_root=tmp_path)
         report = checker.check_project_config()
         assert report.is_valid
+
+    def test_removed_webhook_section_warns(self, tmp_path: Path) -> None:
+        """A leftover webhook: section should warn, not fail."""
+        adw_dir = tmp_path / ".adw"
+        adw_dir.mkdir()
+        (adw_dir / "project.yaml").write_text(
+            LEGACY_WEBHOOK_PROJECT_YAML, encoding="utf-8"
+        )
+        checker = ConfigChecker(project_root=tmp_path)
+        report = checker.check_project_config()
+        assert report.errors == []
+        assert len(report.warnings) == 1
+        assert report.warnings[0].field == "webhook"
+        assert "ignored" in report.warnings[0].message
 
     def test_semantic_warning_test_command_not_found(self, tmp_path: Path) -> None:
         """test_command with nonexistent executable should warn."""

@@ -14,7 +14,6 @@ This package contains all Pydantic models used throughout ADW:
 - pr: PRDescription
 - task: TaskInfo
 - resume: ResumeInfo, ResumeStatus
-- webhook: WebhookConfig, ProviderConfig
 - registry: RegisteredProject, ProjectRegistry
 - stats: TokenUsage, ProjectStatistics, GlobalStatistics
 """
@@ -64,7 +63,6 @@ from adw.models.registry import ProjectRegistry, RegisteredProject
 from adw.models.resume import ResumeInfo, ResumeStatus
 from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 from adw.models.task import TaskInfo
-from adw.models.webhook import ProviderConfig, WebhookConfig
 
 # Rebuild models to resolve forward references
 # This must happen after all models are imported
@@ -125,7 +123,4 @@ __all__: list[str] = [
     "ResumeStatus",
     # Task models
     "TaskInfo",
-    # Webhook models
-    "ProviderConfig",
-    "WebhookConfig",
 ]

@@ -22,14 +22,13 @@ from adw.cli.wizard.flow import run_wizard
 from adw.cli.wizard.summary import ConfigWriteError
 from adw.core.constants import PHASE_SEQUENCE
 
-SECTIONS = ["basics", "global_registry", "git", "task_manager", "phases", "webhooks"]
+SECTIONS = ["basics", "global_registry", "git", "task_manager", "phases"]
 TITLES = [
     "Project Basics",
     "Web Dashboard Registration",
     "Git Configuration",
     "Task Manager Integration",
     "Phase Configuration",
-    "Webhook Configuration",
     "Configuration Summary",
 ]
 # Every prompt takes its default on an empty line; unread lines are ignored.

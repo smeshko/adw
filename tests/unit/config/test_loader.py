@@ -12,6 +12,32 @@ from adw.config.loader import ConfigLoader
 from adw.exceptions import ConfigError
 from adw.models import ProjectConfig
 
+# The webhook block the pre-epic wizard wrote, captured before phase 2.3
+# removed the webhook server.
+LEGACY_WEBHOOK_PROJECT_YAML = """\
+name: legacy
+language: python
+webhook:
+  port: 9000
+  host: "127.0.0.1"
+  providers:
+    linear:
+      enabled: true
+      secret_env: LINEAR_WEBHOOK_SECRET
+      command_prefix: /run
+      trigger_label: ai
+    github:
+      enabled: true
+      secret_env: GITHUB_WEBHOOK_SECRET
+      # command_prefix: "/adw"  # Command prefix
+      # trigger_label: adw  # Trigger label
+  mappings:
+    linear:
+      issue.created:
+        trigger: true
+        require_label: "adw:auto"
+"""
+
 
 class TestConfigLoader:
     """Tests for ConfigLoader class."""
@@ -46,6 +72,18 @@ framework: fastapi
         assert config.language == "python"
         assert config.test_command == "pytest --cov"
         assert config.framework == "fastapi"
+
+    def test_load_ignores_removed_webhook_section(self, tmp_path) -> None:
+        """A project.yaml with a leftover webhook: section still loads."""
+        config_dir = tmp_path / ".adw"
+        config_dir.mkdir()
+        (config_dir / "project.yaml").write_text(LEGACY_WEBHOOK_PROJECT_YAML)
+
+        config = ConfigLoader(project_root=tmp_path).load()
+
+        assert isinstance(config, ProjectConfig)
+        assert config.name == "legacy"
+        assert "webhook" not in config.model_dump()
 
     def test_load_uses_defaults_when_no_project_config(self, tmp_path) -> None:
         """Test fallback to defaults when no .adw/project.yaml exists."""

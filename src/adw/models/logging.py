@@ -84,7 +84,6 @@ class LogCategory(str, Enum):
     - STATE: State transition events
     - ERROR: Error and exception events
     - PERFORMANCE: Timing and performance metrics
-    - WEBHOOK: Webhook server events
     """
 
     PHASE = "phase"
@@ -93,7 +92,6 @@ class LogCategory(str, Enum):
     STATE = "state"
     ERROR = "error"
     PERFORMANCE = "performance"
-    WEBHOOK = "webhook"
 
 
 class LogContext(BaseModel):

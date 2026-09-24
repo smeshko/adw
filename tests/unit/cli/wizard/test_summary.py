@@ -39,7 +39,6 @@ class TestSummaryPanelGeneration:
             "git": {},
             "task_manager": {},
             "phases": {},
-            "webhooks": {},
         }
 
         panel = generate_summary_panel(cfg)
@@ -64,7 +63,6 @@ class TestSummaryPanelGeneration:
                 "customized": True,
                 "phases": {"plan": {"enabled": True}},
             },
-            "webhooks": {"enabled": True, "providers": {"linear": {"enabled": True}}},
         }
 
         panel = generate_summary_panel(cfg)
@@ -85,7 +83,7 @@ class TestSummaryPanelGeneration:
         assert "Linear" in output.title() or "linear" in output.lower()
         assert "Phases:" in output
         assert "Security:" not in output
-        assert "Webhooks:" in output
+        assert "Webhooks:" not in output
 
     def test_summary_panel_shows_disabled_features(self) -> None:
         """Test that disabled features show appropriate indicators."""
@@ -94,7 +92,6 @@ class TestSummaryPanelGeneration:
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
             "phases": {"customized": False, "phases": {}},
-            "webhooks": {"enabled": False},
         }
 
         panel = generate_summary_panel(cfg)
@@ -117,7 +114,6 @@ class TestSummaryPanelGeneration:
                 "customized": True,
                 "phases": {"plan": {"enabled": True}, "build": {"enabled": True}},
             },
-            "webhooks": {},
         }
 
         panel = generate_summary_panel(cfg)
@@ -143,7 +139,6 @@ class TestProjectYamlGeneration:
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(cfg)
@@ -165,7 +160,6 @@ class TestProjectYamlGeneration:
             },
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(cfg)
@@ -183,7 +177,6 @@ class TestProjectYamlGeneration:
                 "git_branch_prefix": "feat/",
             },
             "task_manager": {"enabled": False, "type": "none"},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(cfg)
@@ -197,7 +190,6 @@ class TestProjectYamlGeneration:
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(cfg)
@@ -217,7 +209,6 @@ class TestProjectYamlGeneration:
                 "team_key": "RULE",
                 "sync_comments": True,
             },
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(cfg)
@@ -237,7 +228,6 @@ class TestProjectYamlGeneration:
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(cfg)
@@ -245,42 +235,12 @@ class TestProjectYamlGeneration:
 
         assert "ship" not in config
 
-    def test_generate_project_yaml_with_webhooks(self) -> None:
-        """Test project.yaml includes webhooks when enabled."""
-        cfg = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "task_manager": {"enabled": False, "type": "none"},
-            "webhooks": {
-                "enabled": True,
-                "port": 9000,
-                "host": "127.0.0.1",
-                "providers": {
-                    "linear": {
-                        "enabled": True,
-                        "secret_env": "LINEAR_SECRET",
-                        "command_prefix": "/run",
-                        "trigger_label": "ai",
-                    }
-                },
-            },
-        }
-
-        yaml_content = generate_project_yaml(cfg)
-        config = yaml.safe_load(yaml_content)
-
-        assert config["webhook"]["port"] == 9000
-        assert config["webhook"]["host"] == "127.0.0.1"
-        assert config["webhook"]["providers"]["linear"]["enabled"] is True
-        assert config["webhook"]["providers"]["linear"]["secret_env"] == "LINEAR_SECRET"
-
     def test_generate_project_yaml_includes_header_comment(self) -> None:
         """Test project.yaml includes header comment with date."""
         cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "webhooks": {"enabled": False},
         }
 
         yaml_content = generate_project_yaml(cfg)
@@ -560,7 +520,6 @@ class TestRunSummaryStep:
         "git": {},
         "task_manager": {"enabled": False, "type": "none"},
         "phases": {"customized": False, "phases": {}},
-        "webhooks": {"enabled": False},
     }
 
     def test_confirm_writes_files_and_returns_true(self, tmp_path: Path) -> None:

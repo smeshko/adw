@@ -112,7 +112,7 @@ Include `adw list --running` output with one mocked run active, and the `adw val
 
 ## Phase 2.3 — Remove the webhook server
 
-**Plan**: _not yet created_
+**Plan**: [02.3-remove-webhook-server](../plans/02.3-remove-webhook-server/PLAN.md) · status: done
 
 **Linear**: ADW-19 (https://linear.app/ivo-tsonev/issue/ADW-19)
 
@@ -133,11 +133,11 @@ Include `adw list --running` output with one mocked run active, and the `adw val
 
 ### Acceptance criteria
 
-- [ ] `adw --help` lists no `webhook` group.
-- [ ] `grep -rn "adw.webhook\|adw.server\|WebhookConfig" src tests` returns nothing.
-- [ ] A `project.yaml` with a `webhook:` section loads without error.
-- [ ] `adw dashboard web` starts, the overview page returns 200, and New Run starts a mocked run.
-- [ ] Lint and tests pass.
+- [x] `adw --help` lists no `webhook` group.
+- [x] `grep -rn "adw.webhook\|adw.server\|WebhookConfig" src tests` returns nothing.
+- [x] A `project.yaml` with a `webhook:` section loads without error.
+- [x] `adw dashboard web` starts, the overview page returns 200, and New Run starts a mocked run.
+- [x] Lint and tests pass.
 
 ### Validation
 

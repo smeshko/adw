@@ -27,6 +27,11 @@ from adw.models.config import ProjectConfig
 
 __all__ = ["CheckReport", "CheckResult", "ConfigChecker", "Severity"]
 
+# Top-level project.yaml sections that ADW no longer reads, mapped to why.
+REMOVED_PROJECT_SECTIONS: dict[str, str] = {
+    "webhook": "the webhook server was removed",
+}
+
 
 class Severity(Enum):
     """Severity level for a check result."""
@@ -194,6 +199,9 @@ class ConfigChecker:
             )
             return report
 
+        if isinstance(data, dict):
+            self._check_removed_sections(data, rel_path, report)
+
         # Layer 3: Schema
         try:
             config = ProjectConfig.model_validate(data)
@@ -320,6 +328,26 @@ class ConfigChecker:
         self._check_phase_semantics(config, rel_path, report)
 
         return report
+
+    def _check_removed_sections(
+        self, data: dict[str, Any], rel_path: str, report: CheckReport
+    ) -> None:
+        """Warn about top-level sections listed in REMOVED_PROJECT_SECTIONS.
+
+        Runs on the raw YAML dict, because the model silently drops unknown
+        keys. Later removals (phases 2.1 and 2.2) extend the map.
+        """
+        for key, reason in REMOVED_PROJECT_SECTIONS.items():
+            if key in data:
+                report.add(
+                    CheckResult(
+                        severity=Severity.WARNING,
+                        file_path=rel_path,
+                        message=f"'{key}' is no longer used and is ignored: {reason}",
+                        field=key,
+                        suggestion=f"Delete the '{key}:' section from project.yaml",
+                    )
+                )
 
     def _check_project_semantics(
         self, config: ProjectConfig, rel_path: str, report: CheckReport

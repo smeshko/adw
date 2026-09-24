@@ -58,7 +58,6 @@ CATEGORY_COLORS: dict[LogCategory, str] = {
     LogCategory.STATE: "green",
     LogCategory.ERROR: "red",
     LogCategory.PERFORMANCE: "dim",
-    LogCategory.WEBHOOK: "cyan",
 }
 
 

@@ -19,7 +19,6 @@ from adw.cli.wizard.global_registry import run_global_registry_step
 from adw.cli.wizard.phases import run_phases_step
 from adw.cli.wizard.summary import run_summary_step
 from adw.cli.wizard.task_manager import run_task_manager_step
-from adw.cli.wizard.webhooks import run_webhooks_step
 
 Step = Callable[[Console], dict[str, Any]]
 
@@ -42,7 +41,6 @@ def run_wizard(root: Path) -> bool:
         ("git", "Git Configuration", run_git_step),
         ("task_manager", "Task Manager Integration", run_task_manager_step),
         ("phases", "Phase Configuration", run_phases_step),
-        ("webhooks", "Webhook Configuration", run_webhooks_step),
     ]
     total = len(steps) + 1  # the summary is the last step
 

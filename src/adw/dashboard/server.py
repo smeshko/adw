@@ -1,7 +1,7 @@
 """Dashboard FastAPI application factory.
 
-Uses the shared ``server.app.create_app`` factory and layers on
-dashboard-specific routes, Jinja2 templates, and static file serving.
+Builds the dashboard's FastAPI app with its routes, Jinja2 templates,
+and static file serving.
 """
 
 from __future__ import annotations
@@ -15,8 +15,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from rich.console import Console
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
-from adw.server.app import create_app as _create_base_app
 
 console = Console()
 
@@ -67,16 +65,14 @@ def create_dashboard_app(
     """
     from starlette.templating import Jinja2Templates
 
-    app = _create_base_app(
+    app = FastAPI(
         title="ADW Dashboard",
         description="Web dashboard for ADW run monitoring",
         version="0.1.0",
         lifespan=_dashboard_lifespan,
-        state={
-            "dashboard_host": host,
-            "dashboard_port": port,
-        },
     )
+    app.state.dashboard_host = host
+    app.state.dashboard_port = port
 
     # Jinja2 templates
     templates = Jinja2Templates(directory=str(_TEMPLATE_DIR))

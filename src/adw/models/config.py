@@ -9,7 +9,6 @@ from typing import Any, Literal, Self
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from adw.models.command import PhaseLLMConfig
-from adw.models.webhook import WebhookConfig
 
 # NOTE: ValidationConfig removed - validation settings now in ValidateCommandConfig
 # NOTE: ShipConfig classes moved to command.py as ShipCommandConfig
@@ -458,10 +457,6 @@ class ProjectConfig(BaseModel):
     task_manager: TaskManagerConfig = Field(
         default_factory=TaskManagerConfig,
         description="Task manager integration configuration",
-    )
-    webhook: WebhookConfig = Field(
-        default_factory=WebhookConfig,
-        description="Webhook server configuration",
     )
 
     @model_validator(mode="before")
