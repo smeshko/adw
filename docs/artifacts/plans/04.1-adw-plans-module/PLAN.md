@@ -106,6 +106,6 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-002: Parse PLAN.md into a Plan model and add list, show and tasks (depends on TASK-001)
 - [x] TASK-003: Port the plan state updates (depends on TASK-002)
 - [x] TASK-004: Port epic linking and status, and add adw plan link (depends on TASK-001)
-- [ ] TASK-005: Archive a plan and repair its relative links (depends on TASK-001)
+- [x] TASK-005: Archive a plan and repair its relative links (depends on TASK-001)
 - [ ] TASK-006: Document adw.plans for agents (depends on TASK-001,TASK-002,TASK-003,TASK-004,TASK-005)
 - [ ] TASK-007: Final Validation
