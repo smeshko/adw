@@ -64,5 +64,5 @@ uv run pytest tests/unit/cli tests/unit/config tests/unit/models tests/unit/dash
 
 ## References
 
-- Epic: [02 — Cleanup: remove inert features and consolidate](../../epics/02-cleanup-remove-and-consolidate.md), phase 2.1.
+- Epic: [02 — Cleanup: remove inert features and consolidate](../../../epics/02-cleanup-remove-and-consolidate.md), phase 2.1.
 - ADR-001: `docs/architecture/adrs/ADR-001-test-reduction-strategy.md`.
