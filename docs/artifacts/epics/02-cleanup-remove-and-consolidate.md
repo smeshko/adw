@@ -42,7 +42,7 @@ It then consolidates what remains, so each shared concern has one implementation
 
 ## Phase 2.1 — Remove the security package
 
-**Plan**: _not yet created_
+**Plan**: [2026-09-24-02.1-remove-the-security-package](../plans/2026-09-24-02.1-remove-the-security-package/PLAN.md) · status: planned
 
 **Linear**: ADW-17 (https://linear.app/ivo-tsonev/issue/ADW-17)
 
