@@ -1,0 +1,24 @@
+# Before: staging (bc66b08c), main checkout's .venv/bin/adw
+$ adw status; echo "exit=$?"; ls -a; ls .adw
+No runs found
+Use 'adw run "feature"' to start a new run
+exit=0
+.
+..
+.adw
+runs
+
+# After: this branch, worktree .venv/bin/adw
+$ adw status; echo "exit=$?"; ls -a
+Error: No .adw directory found
+Suggestion: Run 'adw init' first
+exit=1
+.
+..
+
+$ adw abort 01ARZ3NDEKTSV4RRFFQ69G5FAV; echo "exit=$?"; ls -a
+Error: No .adw directory found
+Suggestion: Run 'adw init' first
+exit=1
+.
+..

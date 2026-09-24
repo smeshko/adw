@@ -1,6 +1,6 @@
 # Plan: One home for git, formatting, paths and run status
 
-Status: in-progress
+Status: done
 Branch: feature/adw-23
 Risk: large
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -235,22 +235,22 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 
 ## Acceptance Criteria
 
-- [ ] **Every `git` and `gh` subprocess goes through `adw.git`:**
+- [x] **Every `git` and `gh` subprocess goes through `adw.git`:**
   - `rg -U 'subprocess\.(run|Popen)\(\s*\[\s*"(git|gh)"' src` prints nothing.
   - `rg -l 'import subprocess' src` lists only `src/adw/git.py` and `src/adw/core/run_trigger.py`.
   - `hooks/git_branch.py`, `hooks/git_commit.py`, `hooks/git_diff.py` and `worktree/branch.py` are gone.
 
   Evidence: the command output.
-- [ ] **A timed-out git command raises instead of hanging, and cleans up after itself.** A `git fetch` through the helper, run against a fake `git` that sleeps 30 s, raises `GIT_TIMEOUT` in under 5 s. git gets SIGTERM first and SIGKILL only after the grace period, on a timeout and on an interrupt. Evidence: `test_git_fetch_times_out_against_a_sleeping_git` RED then GREEN with its duration, plus `test_timeout_sends_sigterm_first`, `test_escalates_to_sigkill_only_after_the_grace_period` (both triggers, elapsed ≥ timeout + grace) and `test_interrupt_stops_git_and_propagates`.
-- [ ] **Each formatter and the status-style map is defined exactly once:**
+- [x] **A timed-out git command raises instead of hanging, and cleans up after itself.** A `git fetch` through the helper, run against a fake `git` that sleeps 30 s, raises `GIT_TIMEOUT` in under 5 s. git gets SIGTERM first and SIGKILL only after the grace period, on a timeout and on an interrupt. Evidence: `test_git_fetch_times_out_against_a_sleeping_git` RED then GREEN with its duration, plus `test_timeout_sends_sigterm_first`, `test_escalates_to_sigkill_only_after_the_grace_period` (both triggers, elapsed ≥ timeout + grace) and `test_interrupt_stops_git_and_propagates`.
+- [x] **Each formatter and the status-style map is defined exactly once:**
   - `rg -n 'def _?(format_(duration|elapsed|tokens|cost|size|file_size|relative_time|duration_ms|duration_from_seconds)|relative_time)\b' src` lists only the five `adw.format` functions.
   - `rg -n 'STATUS_COLORS|STATUS_ICONS|_get_status_style' src` prints nothing.
   - `rg -n ':,?\.2f\}' src` prints only `format_cost` in `src/adw/format.py`.
   - The badge macro holds no status map.
 
   Evidence: the greps, and the list of formatters in the PR.
-- [ ] **`adw list` and `adw status` colour every status identically,** and the dashboard badge takes its icon and classes from the same map. Evidence: `test_list_and_status_colour_each_status_alike`, plus ANSI transcripts of `adw list` and `adw status <id>` from a scratch project with one run per status.
-- [ ] **Run status is a `RunStatus` everywhere in `src`:**
+- [x] **`adw list` and `adw status` colour every status identically,** and the dashboard badge takes its icon and classes from the same map. Evidence: `test_list_and_status_colour_each_status_alike`, plus ANSI transcripts of `adw list` and `adw status <id>` from a scratch project with one run per status.
+- [x] **Run status is a `RunStatus` everywhere in `src`:**
   - `RunContext.status` and `IndexEntry.status` are `RunStatus`.
   - Both greps in TASK-004's Acceptance print nothing. They cover writes, `==`/`!=` comparisons, and hand-written tuples and sets. The phase-pipeline `phase_status` strings are excluded.
   - `IndexManager.update_run` validates, so a string status given to it is stored as a member.
@@ -258,15 +258,15 @@ See [RESEARCH.md](./RESEARCH.md). In short:
   - A `context.json` written today loads, and re-serialises with the same `"status"` string.
 
   Evidence: the grep, the suite tail and `test_context_json_status_round_trips`.
-- [ ] **One helper writes state files atomically.** A write that fails partway leaves the old file intact and no temp file behind. A replaced file keeps its mode, and a new file gets the umask default. `rg -n 'os\.fsync|\.tmp"|\.rename\(' src` finds only `adw/fs.py`. Evidence: `tests/unit/test_fs.py`, RED then GREEN, and the grep.
-- [ ] **Paths, writes and lists each have one source.**
+- [x] **One helper writes state files atomically.** A write that fails partway leaves the old file intact and no temp file behind. A replaced file keeps its mode, and a new file gets the umask default. `rg -n 'os\.fsync|\.tmp"|\.rename\(' src` finds only `adw/fs.py`. Evidence: `tests/unit/test_fs.py`, RED then GREEN, and the grep.
+- [x] **Paths, writes and lists each have one source.**
   - `rg -n '/ "runs"' src` prints only `src/adw/core/constants.py`.
   - `rg -n 'atomic_write\(' src | rg -v 'def |atomic_write_config'` lists the seven callers named in Scope.
   - `rg -n "VALID_STATUSES|AVAILABLE_PHASES|canonical_phases" src tests` prints nothing.
 
   Evidence: the greps.
-- [ ] **`adw status` in a directory without `.adw` exits with an error and creates nothing.** Neither do `abort`, `resume`, `pr`, `cleanup` and `logs`. Evidence: `test_read_only_commands_outside_a_project_create_nothing`, RED then GREEN, and a scratch-dir transcript with `echo $?` and `ls -a`.
-- [ ] **Lint and tests pass.** Evidence: `scripts/preflight.sh`, and the tail of `uv run pytest` with coverage ≥ 80%, against the baseline of 2982 passed, 5 skipped, 84.79% on `7b61e72a`.
+- [x] **`adw status` in a directory without `.adw` exits with an error and creates nothing.** Neither do `abort`, `resume`, `pr`, `cleanup` and `logs`. Evidence: `test_read_only_commands_outside_a_project_create_nothing`, RED then GREEN, and a scratch-dir transcript with `echo $?` and `ls -a`.
+- [x] **Lint and tests pass.** Evidence: `scripts/preflight.sh`, and the tail of `uv run pytest` with coverage ≥ 80%, against the baseline of 2982 passed, 5 skipped, 84.79% on `7b61e72a`.
 
 ## Tasks
 
@@ -281,4 +281,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-006: One status style map for the CLI and the dashboard (depends on TASK-004,TASK-005)
 - [x] TASK-007: One atomic_write for state files
 - [x] TASK-008: One runs directory path, created only by adw run (depends on TASK-003,TASK-005,TASK-006,TASK-007)
-- [ ] TASK-009: Final Validation
+- [x] TASK-009: Final Validation
