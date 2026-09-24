@@ -90,5 +90,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-002: Remove port variables and .ports.env sourcing from hook environments
 - [x] TASK-004: Remove the ports step from the init wizard
 - [x] TASK-003: Delete PortAllocator, PortAllocation and the port error code (depends on TASK-002, TASK-004)
-- [ ] TASK-005: Drop WorktreeConfig.port_range and keep old configs loading (depends on TASK-004)
+- [x] TASK-005: Drop WorktreeConfig.port_range and keep old configs loading (depends on TASK-004)
 - [ ] TASK-006: Final Validation

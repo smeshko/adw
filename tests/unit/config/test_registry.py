@@ -147,13 +147,3 @@ class TestConfigRegistry:
         setting_names = {s.name for s in settings}
 
         assert "enabled" in setting_names
-
-    def test_ports_section_has_defaults(self, registry: ConfigRegistry) -> None:
-        """Test ports section has expected defaults."""
-        settings = registry.get_all_settings("ports")
-        settings_dict = {s.name: s for s in settings}
-
-        assert "backend_start" in settings_dict
-        assert "frontend_start" in settings_dict
-        assert settings_dict["backend_start"].default == 9100
-        assert settings_dict["frontend_start"].default == 9200
