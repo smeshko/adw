@@ -18,7 +18,6 @@ from adw.cli.wizard.webhooks import (
     DEFAULT_SECRET_ENVS,
     DEFAULT_TRIGGER_LABEL,
     EVENT_TYPES,
-    WebhooksStepHandler,
     _configure_event,
     _configure_event_mappings,
     _configure_provider,
@@ -26,7 +25,6 @@ from adw.cli.wizard.webhooks import (
     _prompt_server_config,
     run_webhooks_step,
 )
-from adw.models.wizard import WizardState
 
 
 class TestConstants:
@@ -68,10 +66,9 @@ class TestWebhooksDisabled:
     def test_webhook_disabled_returns_default_config(self) -> None:
         """Test that declining webhooks returns disabled config with defaults."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with patch("adw.cli.wizard.webhooks.Confirm.ask", return_value=False):
-            result = run_webhooks_step(state, console)
+            result = run_webhooks_step(console)
 
         assert result["enabled"] is False
         assert result["port"] == DEFAULT_PORT
@@ -180,7 +177,6 @@ class TestProviderSelection:
     def test_no_providers_selected_disables_webhooks(self) -> None:
         """Test that selecting no providers after enabling returns disabled config."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.webhooks.Confirm.ask") as mock_confirm,
@@ -189,7 +185,7 @@ class TestProviderSelection:
         ):
             # Enable webhooks, configure server, then no providers
             mock_confirm.side_effect = [True, False, False]
-            result = run_webhooks_step(state, console)
+            result = run_webhooks_step(console)
 
         assert result["enabled"] is False
         assert result["providers"] == {}
@@ -383,30 +379,12 @@ class TestEventMappingConfiguration:
         assert config["parse_command"] is False
 
 
-class TestWebhooksStepHandler:
-    """Tests for WebhooksStepHandler class."""
-
-    def test_handler_delegates_to_run_webhooks_step(self) -> None:
-        """Test that handler properly delegates to run_webhooks_step."""
-        handler = WebhooksStepHandler()
-        state = WizardState()
-        console = Console(force_terminal=True)
-
-        with patch("adw.cli.wizard.webhooks.Confirm.ask", return_value=False):
-            result = handler.execute(state, console)
-
-        assert result["enabled"] is False
-        assert result["providers"] == {}
-        assert result["mappings"] == {}
-
-
 class TestFullFlow:
     """Tests for full webhook configuration flow."""
 
     def test_full_flow_with_linear_provider(self) -> None:
         """Test full flow configuring Linear provider with events."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.webhooks.Confirm.ask") as mock_confirm,
@@ -434,7 +412,7 @@ class TestFullFlow:
                 "@adw",  # comment mention
             ]
 
-            result = run_webhooks_step(state, console)
+            result = run_webhooks_step(console)
 
         assert result["enabled"] is True
         assert result["port"] == 8080
@@ -453,7 +431,6 @@ class TestFullFlow:
     def test_full_flow_with_both_providers(self) -> None:
         """Test full flow configuring both Linear and GitHub providers."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.webhooks.Confirm.ask") as mock_confirm,
@@ -479,7 +456,7 @@ class TestFullFlow:
                 "adw",  # github trigger label
             ]
 
-            result = run_webhooks_step(state, console)
+            result = run_webhooks_step(console)
 
         assert result["enabled"] is True
         assert "linear" in result["providers"]
@@ -492,7 +469,6 @@ class TestFullFlow:
     def test_all_providers_disabled_returns_disabled_config(self) -> None:
         """Test that disabling all providers results in enabled=False."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.webhooks.Confirm.ask") as mock_confirm,
@@ -506,46 +482,9 @@ class TestFullFlow:
                 False,  # disable linear (!)
             ]
 
-            result = run_webhooks_step(state, console)
+            result = run_webhooks_step(console)
 
         # Global enabled should be False when all providers are disabled
         assert result["enabled"] is False
         assert result["providers"] == {}
         assert result["mappings"] == {}
-
-
-class TestStateIntegration:
-    """Tests for integration with wizard state."""
-
-    def test_config_can_be_stored_in_state(self) -> None:
-        """Test that webhook config can be stored via flow controller pattern."""
-        console = Console(force_terminal=True)
-        state = WizardState()
-
-        with patch("adw.cli.wizard.webhooks.Confirm.ask", return_value=False):
-            config = run_webhooks_step(state, console)
-
-        # Simulate what flow controller does
-        state.update_config("webhooks", config)
-        state.mark_completed("webhooks")
-
-        # Verify storage
-        stored = state.get_step_config("webhooks")
-        assert stored["enabled"] is False
-        assert "webhooks" in state.completed_steps
-
-
-class TestPackageExports:
-    """Tests for package exports."""
-
-    def test_webhooks_step_handler_exported(self) -> None:
-        """Test that WebhooksStepHandler is exported from package."""
-        from adw.cli.wizard import WebhooksStepHandler
-
-        assert WebhooksStepHandler is not None
-
-    def test_run_webhooks_step_exported(self) -> None:
-        """Test that run_webhooks_step is exported from package."""
-        from adw.cli.wizard import run_webhooks_step
-
-        assert run_webhooks_step is not None

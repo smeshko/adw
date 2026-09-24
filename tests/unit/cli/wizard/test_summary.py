@@ -6,8 +6,10 @@ file generation, and atomic write functionality.
 
 from __future__ import annotations
 
+import signal
 import tempfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -17,7 +19,6 @@ from rich.panel import Panel
 
 from adw.cli.wizard.summary import (
     ConfigWriteError,
-    SummaryStepHandler,
     atomic_write_config,
     generate_env_template,
     generate_gitignore,
@@ -26,7 +27,6 @@ from adw.cli.wizard.summary import (
     generate_summary_panel,
     run_summary_step,
 )
-from adw.models.wizard import WizardState
 
 
 class TestSummaryPanelGeneration:
@@ -34,25 +34,22 @@ class TestSummaryPanelGeneration:
 
     def test_generate_summary_panel_returns_panel(self) -> None:
         """Test that generate_summary_panel returns a Rich Panel."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {},
             "phases": {},
-            "llm_retry": {},
             "webhooks": {},
         }
 
-        panel = generate_summary_panel(state)
+        panel = generate_summary_panel(cfg)
 
         assert isinstance(panel, Panel)
         assert panel.title == "Configuration Summary"
 
     def test_summary_panel_shows_all_sections(self) -> None:
         """Test that summary panel includes all configuration sections."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {
                 "language": "python",
                 "platform": "api",
@@ -67,26 +64,10 @@ class TestSummaryPanelGeneration:
                 "customized": True,
                 "phases": {"plan": {"enabled": True}},
             },
-            "ship": {
-                "enabled": True,
-                "commands": {
-                    "version_bump": "npm version patch",
-                },
-                "pr": {
-                    "merge_on_success": True,
-                    "delete_branch_on_merge": True,
-                    "merge_method": "squash",
-                },
-            },
-            "llm_retry": {
-                "retry_custom": True,
-                "retry_max_retries": 5,
-                "retry_base_delay": 2.0,
-            },
             "webhooks": {"enabled": True, "providers": {"linear": {"enabled": True}}},
         }
 
-        panel = generate_summary_panel(state)
+        panel = generate_summary_panel(cfg)
 
         # Convert panel to string for content inspection
         console = Console(force_terminal=True, width=100)
@@ -103,33 +84,20 @@ class TestSummaryPanelGeneration:
         assert "Task Manager:" in output
         assert "Linear" in output.title() or "linear" in output.lower()
         assert "Phases:" in output
-        assert "Ship:" in output
-        assert "LLM Retry:" in output
         assert "Security:" not in output
         assert "Webhooks:" in output
 
     def test_summary_panel_shows_disabled_features(self) -> None:
         """Test that disabled features show appropriate indicators."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "javascript", "platform": "web"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
             "phases": {"customized": False, "phases": {}},
-            "ship": {
-                "enabled": True,
-                "commands": {},
-                "pr": {
-                    "merge_on_success": False,
-                    "delete_branch_on_merge": True,
-                    "merge_method": "squash",
-                },
-            },
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
-        panel = generate_summary_panel(state)
+        panel = generate_summary_panel(cfg)
 
         console = Console(force_terminal=True, width=100)
         with console.capture() as capture:
@@ -141,8 +109,7 @@ class TestSummaryPanelGeneration:
 
     def test_summary_panel_lists_files_to_create(self) -> None:
         """Test that summary panel lists files that will be created."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {},
@@ -150,12 +117,10 @@ class TestSummaryPanelGeneration:
                 "customized": True,
                 "phases": {"plan": {"enabled": True}, "build": {"enabled": True}},
             },
-            "ship": {"enabled": True, "commands": {}, "pr": {}},
-            "llm_retry": {},
             "webhooks": {},
         }
 
-        panel = generate_summary_panel(state)
+        panel = generate_summary_panel(cfg)
 
         console = Console(force_terminal=True, width=100)
         with console.capture() as capture:
@@ -174,16 +139,14 @@ class TestProjectYamlGeneration:
 
     def test_generate_project_yaml_basic(self) -> None:
         """Test project.yaml generation with minimal config."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
-        yaml_content = generate_project_yaml(state)
+        yaml_content = generate_project_yaml(cfg)
         config = yaml.safe_load(yaml_content)
 
         assert config["name"] == "python"  # Falls back to language
@@ -192,8 +155,7 @@ class TestProjectYamlGeneration:
 
     def test_generate_project_yaml_with_commands(self) -> None:
         """Test project.yaml includes test and build commands."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {
                 "project_name": "my-project",
                 "language": "python",
@@ -203,11 +165,10 @@ class TestProjectYamlGeneration:
             },
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
-        yaml_content = generate_project_yaml(state)
+        yaml_content = generate_project_yaml(cfg)
         config = yaml.safe_load(yaml_content)
 
         assert config["name"] == "my-project"
@@ -216,34 +177,30 @@ class TestProjectYamlGeneration:
 
     def test_generate_project_yaml_with_git(self) -> None:
         """Test project.yaml includes git config."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {
                 "git_branch_prefix": "feat/",
             },
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
-        yaml_content = generate_project_yaml(state)
+        yaml_content = generate_project_yaml(cfg)
         config = yaml.safe_load(yaml_content)
 
         assert config["git"]["branch_prefix"] == "feat/"
 
     def test_generate_project_yaml_always_has_git_section(self) -> None:
         """Test project.yaml always includes git section with defaults."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
-        yaml_content = generate_project_yaml(state)
+        yaml_content = generate_project_yaml(cfg)
         config = yaml.safe_load(yaml_content)
 
         assert "git" in config
@@ -251,8 +208,7 @@ class TestProjectYamlGeneration:
 
     def test_generate_project_yaml_with_task_manager(self) -> None:
         """Test project.yaml includes task manager when configured."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {
@@ -261,75 +217,15 @@ class TestProjectYamlGeneration:
                 "team_key": "RULE",
                 "sync_comments": True,
             },
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
-        yaml_content = generate_project_yaml(state)
+        yaml_content = generate_project_yaml(cfg)
         config = yaml.safe_load(yaml_content)
 
         assert config["task_manager"]["type"] == "linear"
         assert config["task_manager"]["team_key"] == "RULE"
         assert config["task_manager"]["sync_comments"] is True
-
-    def test_generate_project_yaml_with_llm_retry(self) -> None:
-        """Test project.yaml includes LLM retry when customized."""
-        state = WizardState()
-        state.collected_config = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {
-                "retry_custom": True,
-                "retry_max_retries": 5,
-                "retry_base_delay": 2.0,
-                "retry_max_delay": 120.0,
-                "retry_multiplier": 3.0,
-            },
-            "webhooks": {"enabled": False},
-        }
-
-        yaml_content = generate_project_yaml(state)
-        config = yaml.safe_load(yaml_content)
-
-        assert config["llm"]["retry"]["max_retries"] == 5
-        assert config["llm"]["retry"]["base_delay_seconds"] == 2.0
-        assert config["llm"]["retry"]["max_delay_seconds"] == 120.0
-        assert config["llm"]["retry"]["multiplier"] == 3.0
-
-    def test_generate_project_yaml_ship_moved_to_phase_config(self) -> None:
-        """Test project.yaml omits ship, which lives in the phase config.
-
-        Ship configuration has been moved from project.yaml to the phase-specific
-        config file at .adw/commands/ship/config.yaml. This test verifies that
-        the ship section is no longer generated in project.yaml.
-        """
-        state = WizardState()
-        state.collected_config = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "task_manager": {"enabled": False, "type": "none"},
-            "ship": {
-                "enabled": True,
-                "commands": {
-                    "version_bump": "npm version patch",
-                    "publish": "npm publish",
-                },
-                "pr": {
-                    "merge_on_success": True,
-                    "delete_branch_on_merge": True,
-                    "merge_method": "squash",
-                },
-            },
-            "llm_retry": {"retry_custom": False},
-            "webhooks": {"enabled": False},
-        }
-
-        yaml_content = generate_project_yaml(state)
-        config = yaml.safe_load(yaml_content)
-
-        # Ship config is now in .adw/commands/ship/config.yaml, not project.yaml
-        assert "ship" not in config
 
     def test_generate_project_yaml_omits_ship_section(self) -> None:
         """Test project.yaml omits ship section entirely.
@@ -337,37 +233,24 @@ class TestProjectYamlGeneration:
         After the refactoring, ship config is always in phase config,
         not in project.yaml.
         """
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "ship": {
-                "enabled": True,
-                "commands": {},
-                "pr": {
-                    "merge_on_success": False,
-                    "delete_branch_on_merge": True,
-                    "merge_method": "squash",
-                },
-            },
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
-        yaml_content = generate_project_yaml(state)
+        yaml_content = generate_project_yaml(cfg)
         config = yaml.safe_load(yaml_content)
 
         assert "ship" not in config
 
     def test_generate_project_yaml_with_webhooks(self) -> None:
         """Test project.yaml includes webhooks when enabled."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {
                 "enabled": True,
                 "port": 9000,
@@ -383,7 +266,7 @@ class TestProjectYamlGeneration:
             },
         }
 
-        yaml_content = generate_project_yaml(state)
+        yaml_content = generate_project_yaml(cfg)
         config = yaml.safe_load(yaml_content)
 
         assert config["webhook"]["port"] == 9000
@@ -393,16 +276,14 @@ class TestProjectYamlGeneration:
 
     def test_generate_project_yaml_includes_header_comment(self) -> None:
         """Test project.yaml includes header comment with date."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {},
             "task_manager": {"enabled": False, "type": "none"},
-            "llm_retry": {"retry_custom": False},
             "webhooks": {"enabled": False},
         }
 
-        yaml_content = generate_project_yaml(state)
+        yaml_content = generate_project_yaml(cfg)
 
         # The file starts with the title, then generation info
         assert "# ADW Project Configuration" in yaml_content
@@ -418,12 +299,11 @@ class TestPhaseConfigGeneration:
         The new behavior generates config files for all phases, not just
         customized ones, to provide full visibility into available options.
         """
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "phases": {"customized": False, "phases": {}},
         }
 
-        files = generate_phase_configs(state)
+        files = generate_phase_configs(cfg)
 
         # Configs are generated for ALL phases
         assert "commands/plan/config.yaml" in files
@@ -434,8 +314,7 @@ class TestPhaseConfigGeneration:
 
     def test_generate_phase_configs_for_customized_phases(self) -> None:
         """Test phase configs generated only for customized phases."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "phases": {
                 "customized": True,
                 "phases": {
@@ -445,7 +324,7 @@ class TestPhaseConfigGeneration:
             },
         }
 
-        files = generate_phase_configs(state)
+        files = generate_phase_configs(cfg)
 
         assert "commands/plan/config.yaml" in files
         assert "commands/build/config.yaml" in files
@@ -458,8 +337,7 @@ class TestPhaseConfigGeneration:
 
     def test_generate_phase_configs_with_input_files(self) -> None:
         """Test phase config with input_files mapping."""
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "phases": {
                 "customized": True,
                 "phases": {
@@ -470,7 +348,7 @@ class TestPhaseConfigGeneration:
             },
         }
 
-        files = generate_phase_configs(state)
+        files = generate_phase_configs(cfg)
 
         plan_config = yaml.safe_load(files["commands/plan/config.yaml"])
         assert plan_config["input_files"]["prd"] == "docs/prd.md"
@@ -482,8 +360,7 @@ class TestPhaseConfigGeneration:
         With the new YAML generator, customized values are output as active
         YAML while defaults appear as comments.
         """
-        state = WizardState()
-        state.collected_config = {
+        cfg = {
             "phases": {
                 "customized": True,
                 "phases": {
@@ -494,7 +371,7 @@ class TestPhaseConfigGeneration:
             },
         }
 
-        files = generate_phase_configs(state)
+        files = generate_phase_configs(cfg)
 
         assert "commands/validate/config.yaml" in files
         validate_content = files["commands/validate/config.yaml"]
@@ -505,6 +382,31 @@ class TestPhaseConfigGeneration:
         # Verify it's valid YAML
         validate_config = yaml.safe_load(validate_content)
         assert validate_config["enabled"] is False
+
+    def test_customized_ship_commands_reach_ship_config(self) -> None:
+        """Ship commands set in the phases step land in the ship config file."""
+        cfg = {
+            "phases": {
+                "customized": True,
+                "phases": {
+                    "ship": {
+                        "enabled": True,
+                        "commands": {
+                            "version_bump": "npm version patch",
+                            "publish": "npm publish",
+                        },
+                    },
+                },
+            },
+        }
+
+        files = generate_phase_configs(cfg)
+
+        ship_config = yaml.safe_load(files["commands/ship/config.yaml"])
+        assert ship_config["commands"] == {
+            "version_bump": "npm version patch",
+            "publish": "npm publish",
+        }
 
 
 class TestGitignoreGeneration:
@@ -653,106 +555,60 @@ class TestAtomicWrite:
 class TestRunSummaryStep:
     """Tests for the main run_summary_step function."""
 
-    def test_run_summary_step_confirmed(self) -> None:
-        """Test full flow when user confirms."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            console = Console(force_terminal=True)
-            state = WizardState()
-            state.collected_config = {
-                "basics": {"language": "python", "platform": "cli"},
-                "git": {},
-                "task_manager": {"enabled": False, "type": "none"},
-                "phases": {"customized": False, "phases": {}},
-                "llm_retry": {"retry_custom": False},
-                "webhooks": {"enabled": False},
-            }
+    CFG: dict[str, dict[str, Any]] = {  # noqa: RUF012
+        "basics": {"language": "python", "platform": "cli"},
+        "git": {},
+        "task_manager": {"enabled": False, "type": "none"},
+        "phases": {"customized": False, "phases": {}},
+        "webhooks": {"enabled": False},
+    }
 
-            with patch("adw.cli.wizard.summary.Confirm.ask", return_value=True):
-                result = run_summary_step(state, console, Path(tmpdir))
-
-            assert result["confirmed"] is True
-            assert result["action"] == "complete"
-            assert len(result["files_created"]) > 0
-
-            # Verify files were created
-            adw_dir = Path(tmpdir) / ".adw"
-            assert (adw_dir / "project.yaml").exists()
-            assert (adw_dir / ".gitignore").exists()
-
-    def test_run_summary_step_start_over(self) -> None:
-        """Test flow when user declines and chooses start over."""
+    def test_confirm_writes_files_and_returns_true(self, tmp_path: Path) -> None:
+        """Confirming writes the files and reports it."""
         console = Console(force_terminal=True)
-        state = WizardState()
-        state.collected_config = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "task_manager": {},
-            "phases": {},
-            "llm_retry": {},
-            "webhooks": {},
-        }
 
-        with (
-            patch("adw.cli.wizard.summary.Confirm.ask", return_value=False),
-            patch("adw.cli.wizard.summary.Prompt.ask", return_value="s"),
-        ):
-            result = run_summary_step(state, console)
+        with patch("adw.cli.wizard.summary.Confirm.ask", return_value=True):
+            written = run_summary_step(self.CFG, console, tmp_path)
 
-        assert result["confirmed"] is False
-        assert result["action"] == "start_over"
-        assert result["files_created"] == []
+        assert written is True
+        assert (tmp_path / ".adw" / "project.yaml").exists()
+        assert (tmp_path / ".adw" / ".gitignore").exists()
 
-    def test_run_summary_step_cancel(self) -> None:
-        """Test flow when user declines and chooses cancel."""
+    def test_decline_writes_nothing_and_returns_false(self, tmp_path: Path) -> None:
+        """Declining writes nothing and reports it."""
         console = Console(force_terminal=True)
-        state = WizardState()
-        state.collected_config = {
-            "basics": {"language": "python", "platform": "cli"},
-            "git": {},
-            "task_manager": {},
-            "phases": {},
-            "llm_retry": {},
-            "webhooks": {},
+
+        with patch("adw.cli.wizard.summary.Confirm.ask", return_value=False):
+            written = run_summary_step(self.CFG, console, tmp_path)
+
+        assert written is False
+        assert not (tmp_path / ".adw").exists()
+
+    def test_write_holds_off_ctrl_c(self, tmp_path: Path) -> None:
+        """Ctrl+C is ignored while the files are written, registered and reported."""
+        cfg = {
+            **self.CFG,
+            "global_registry": {
+                "global_registry_enabled": True,
+                "global_registry_name": "p",
+            },
         }
+        recorded: list[object] = []
 
+        def record(*_: object, **__: object) -> None:
+            recorded.append(signal.getsignal(signal.SIGINT))
+
+        before = signal.getsignal(signal.SIGINT)
         with (
-            patch("adw.cli.wizard.summary.Confirm.ask", return_value=False),
-            patch("adw.cli.wizard.summary.Prompt.ask", return_value="c"),
+            patch("adw.cli.wizard.summary.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.summary.atomic_write_config", side_effect=record),
+            patch(
+                "adw.cli.wizard.summary._register_in_global_dashboard",
+                side_effect=record,
+            ),
+            patch("adw.cli.wizard.summary._show_success_message", side_effect=record),
         ):
-            result = run_summary_step(state, console)
+            run_summary_step(cfg, Console(force_terminal=True), tmp_path)
 
-        assert result["confirmed"] is False
-        assert result["action"] == "cancel"
-        assert result["files_created"] == []
-
-
-class TestSummaryStepHandler:
-    """Tests for SummaryStepHandler class."""
-
-    def test_handler_uses_project_root(self) -> None:
-        """Test that handler respects project_root parameter."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            handler = SummaryStepHandler(project_root=Path(tmpdir))
-            console = Console(force_terminal=True)
-            state = WizardState()
-            state.collected_config = {
-                "basics": {"language": "python", "platform": "cli"},
-                "git": {},
-                "task_manager": {"enabled": False, "type": "none"},
-                "phases": {"customized": False, "phases": {}},
-                "llm_retry": {"retry_custom": False},
-                "webhooks": {"enabled": False},
-            }
-
-            with patch("adw.cli.wizard.summary.Confirm.ask", return_value=True):
-                result = handler.execute(state, console)
-
-            assert result["confirmed"] is True
-            # Files should be in the specified project root
-            adw_dir = Path(tmpdir) / ".adw"
-            assert adw_dir.exists()
-
-    def test_handler_defaults_to_cwd(self) -> None:
-        """Test that handler defaults to current working directory."""
-        handler = SummaryStepHandler()
-        assert handler.project_root == Path.cwd()
+        assert recorded == [signal.SIG_IGN] * 3
+        assert signal.getsignal(signal.SIGINT) == before

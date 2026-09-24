@@ -208,7 +208,7 @@ Include screenshots of the settings page, the route list from `app.routes`, and 
 
 ## Phase 2.6 — Collapse the init wizard into a straight sequence
 
-**Plan**: _not yet created_
+**Plan**: [02.6-collapse-init-wizard](../plans/02.6-collapse-init-wizard/PLAN.md) · status: done
 
 **Linear**: ADW-22 (https://linear.app/ivo-tsonev/issue/ADW-22)
 
@@ -228,10 +228,10 @@ Include screenshots of the settings page, the route list from `app.routes`, and 
 
 ### Acceptance criteria
 
-- [ ] `adw init --wizard` in a scratch repo, accepting the defaults, produces files that `adw validate` accepts.
-- [ ] Cancelling at the summary writes no files, prints that nothing was written, and exits non-zero.
-- [ ] `grep -rn "WizardFlowController\|WizardState\|StepHandler\|nav_prompt_ask" src tests` returns nothing.
-- [ ] Lint and tests pass.
+- [x] `adw init --wizard` in a scratch repo, accepting the defaults, produces files that `adw validate` accepts.
+- [x] Cancelling at the summary writes no files, prints that nothing was written, and exits non-zero.
+- [x] `grep -rn "WizardFlowController\|WizardState\|StepHandler\|nav_prompt_ask" src tests` returns nothing.
+- [x] Lint and tests pass.
 
 ### Validation
 

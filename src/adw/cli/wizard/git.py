@@ -9,46 +9,17 @@ from __future__ import annotations
 
 import re
 import subprocess
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
-
-if TYPE_CHECKING:
-    from adw.models.wizard import WizardState
 
 # Branch prefix validation pattern:
 # - Must start with a letter (a-zA-Z)
 # - Can contain alphanumeric, hyphens, underscores, and slashes
 # - Must end with a slash
 BRANCH_PREFIX_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9_/-]*/$")
-
-
-class GitStepHandler:
-    """Handler for the git integration wizard step.
-
-    This step:
-    - Requires a git repository (exits wizard if not)
-    - Prompts for branch prefix configuration
-    - Git is always enabled (not optional)
-    """
-
-    def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
-        """Execute the git integration step.
-
-        Args:
-            state: Current wizard state.
-            console: Console for output.
-
-        Returns:
-            Configuration collected from this step containing:
-            - git_branch_prefix: The configured branch prefix
-
-        Raises:
-            SystemExit: If not in a git repository.
-        """
-        return run_git_step(state, console)
 
 
 def prompt_skip_hooks(console: Console) -> bool:
@@ -84,17 +55,13 @@ def prompt_base_branch(console: Console) -> str | None:
     return value if value else None
 
 
-def run_git_step(
-    state: WizardState,  # noqa: ARG001 - state reserved for future use
-    console: Console,
-) -> dict[str, Any]:
+def run_git_step(console: Console) -> dict[str, Any]:
     """Execute the git integration step.
 
     This is the main entry point for the git step, implementing
     the full interactive flow for git configuration.
 
     Args:
-        state: Current wizard state.
         console: Console for output.
 
     Returns:

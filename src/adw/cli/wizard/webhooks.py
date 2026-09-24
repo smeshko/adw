@@ -6,15 +6,11 @@ webhook integrations for triggering ADW runs from external events.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.rule import Rule
-
-if TYPE_CHECKING:
-    from adw.models.wizard import WizardState
-
 
 # Available webhook providers
 AVAILABLE_PROVIDERS: list[str] = ["linear", "github"]
@@ -33,48 +29,13 @@ DEFAULT_TRIGGER_LABEL = "adw"
 EVENT_TYPES: list[str] = ["issue_created", "issue_updated", "comment_created"]
 
 
-class WebhooksStepHandler:
-    """Handler for the webhook configuration wizard step.
-
-    This step:
-    - Prompts if user wants to set up webhook server
-    - If yes, configures server port and host
-    - Allows multi-select of providers to configure (Linear, GitHub)
-    - For each selected provider, configures:
-      - Secret environment variable name
-      - Command prefix
-      - Trigger label
-      - Event mappings (optional)
-    """
-
-    def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
-        """Execute the webhook configuration step.
-
-        Args:
-            state: Current wizard state.
-            console: Console for output.
-
-        Returns:
-            Configuration collected from this step containing:
-            - enabled: Whether webhooks are enabled
-            - port: Server port
-            - host: Server host
-            - providers: Dict of provider configurations
-        """
-        return run_webhooks_step(state, console)
-
-
-def run_webhooks_step(
-    state: WizardState,
-    console: Console,
-) -> dict[str, Any]:
+def run_webhooks_step(console: Console) -> dict[str, Any]:
     """Execute the webhook configuration step.
 
     This is the main entry point for the webhooks step, implementing
     the full interactive flow for webhook configuration.
 
     Args:
-        state: Current wizard state.
         console: Console for output.
 
     Returns:

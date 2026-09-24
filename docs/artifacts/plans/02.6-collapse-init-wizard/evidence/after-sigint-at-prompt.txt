@@ -1,0 +1,31 @@
+
+Starting guided setup wizard...
+
+
+╭────────────────────────────── ADW Setup Wizard ──────────────────────────────╮
+│ Welcome to the ADW Configuration Wizard!                                     │
+│                                                                              │
+│ The wizard asks a few questions, shows a summary, and writes                 │
+│ nothing to .adw/ until you confirm it.                                       │
+│ Press Enter to accept a default, Ctrl+C to cancel.                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+Step 1/7: Project Basics
+──────────────────────────────────────────────────
+
+Available languages:
+  1. python
+  2. javascript
+  3. go
+  4. rust
+  5. java
+  6. ruby
+  7. php
+  Or type a custom language name
+
+Language (python): 
+Setup cancelled. No files created.
+exit=130
+.
+..
+.git

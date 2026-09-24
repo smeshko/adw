@@ -285,12 +285,13 @@ class TestInitWizardFlags:
             # Simulate user cancelling the wizard
             result = runner.invoke(app, ["init", "--wizard"], input="c\n")
 
-            # Wizard was entered (may exit with 0 or non-zero depending on cancel handling)
-            # Key is that wizard output appears
+            # Wizard was entered, ran out of input and cancelled cleanly
             assert (
                 "guided setup" in result.output.lower()
                 or "wizard" in result.output.lower()
             )
+            assert result.exit_code == 1
+            assert not (Path.cwd() / ".adw").exists()
 
     def test_no_interactive_flag_skips_wizard(self, tmp_path: Path) -> None:
         """Test that --no-interactive flag uses minimal setup."""

@@ -12,9 +12,9 @@ from rich.console import Console
 
 from adw.cli.wizard.phases import (
     AVAILABLE_PHASES,
-    PhasesStepHandler,
     _configure_document_phase,
     _configure_phase,
+    _configure_ship_phase,
     _parse_int,
     _parse_phase_selection,
     _prompt_doc_mappings,
@@ -22,7 +22,6 @@ from adw.cli.wizard.phases import (
     _prompt_phase_selection,
     run_phases_step,
 )
-from adw.models.wizard import WizardState
 
 
 class TestConstants:
@@ -39,10 +38,9 @@ class TestNoCustomization:
     def test_no_customize_returns_empty_config(self) -> None:
         """Test that declining customization returns empty config."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with patch("adw.cli.wizard.phases.Confirm.ask", return_value=False):
-            result = run_phases_step(state, console)
+            result = run_phases_step(console)
 
         assert result["customized"] is False
         assert result["phases"] == {}
@@ -90,13 +88,12 @@ class TestPhaseSelection:
     def test_no_phases_selected_returns_empty_result(self) -> None:
         """Test that empty selection after opting to customize returns empty config."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.phases.Prompt.ask", return_value=""),
         ):
-            result = run_phases_step(state, console)
+            result = run_phases_step(console)
 
         assert result["customized"] is False
         assert result["phases"] == {}
@@ -197,10 +194,8 @@ class TestBasePhaseConfiguration:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
-            # enabled=True
-            mock_confirm.return_value = True
+            mock_confirm.side_effect = [True, False]  # enabled, add input files
             # model selection (empty = use default)
             mock_prompt.side_effect = [""]
 
@@ -218,7 +213,6 @@ class TestBasePhaseConfiguration:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask") as mock_nav,
         ):
             mock_confirm.return_value = False  # enabled=False
 
@@ -227,7 +221,7 @@ class TestBasePhaseConfiguration:
         assert config == {"enabled": False}
         # No further prompts should have been called
         mock_prompt.assert_not_called()
-        mock_nav.assert_not_called()
+        mock_confirm.assert_called_once()
 
     def test_configure_phase_with_llm_settings(self) -> None:
         """Test phase configuration with LLM model override."""
@@ -236,9 +230,8 @@ class TestBasePhaseConfiguration:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
-            mock_confirm.return_value = True
+            mock_confirm.side_effect = [True, False]  # enabled, add input files
             # model override
             mock_prompt.side_effect = ["claude-3-opus"]
 
@@ -365,9 +358,8 @@ class TestValidatePhaseNoSpecialOptions:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
-            mock_confirm.return_value = True  # enabled
+            mock_confirm.side_effect = [True, False]  # enabled, add input files
             mock_prompt.side_effect = [
                 "",  # model override (skip)
                 "",  # lint command (skip)
@@ -388,6 +380,35 @@ class TestValidatePhaseNoSpecialOptions:
         assert "linter_commands" not in config
 
 
+class TestShipPhaseOptions:
+    """Tests for the ship phase's special options."""
+
+    def test_ship_phase_asks_only_version_bump_and_publish(self) -> None:
+        """The ship options ask only for answers that reach the ship config."""
+        console = Console(force_terminal=True)
+        questions: list[str] = []
+        answers = {
+            "Version bump command": "npm version patch",
+            "Publish command": "npm publish",
+        }
+
+        def answer(question: str, **_: object) -> str:
+            questions.append(question)
+            return answers.get(question, "")
+
+        with (
+            patch("adw.cli.wizard.phases.Prompt.ask", side_effect=answer),
+            patch("adw.cli.wizard.phases.Confirm.ask", return_value=False),
+        ):
+            config = _configure_ship_phase(console)
+
+        assert not any("Build command" in q for q in questions)
+        assert config["commands"] == {
+            "version_bump": "npm version patch",
+            "publish": "npm publish",
+        }
+
+
 class TestInputFileLoop:
     """Tests for input file key=path loop."""
 
@@ -395,7 +416,7 @@ class TestInputFileLoop:
         """Test declining to add input files."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False):
+        with patch("adw.cli.wizard.phases.Confirm.ask", return_value=False):
             result = _prompt_input_files(console)
 
         assert result == {}
@@ -405,7 +426,7 @@ class TestInputFileLoop:
         console = Console(force_terminal=True)
 
         with (
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=True),
+            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             mock_prompt.side_effect = ["prd=docs/prd.md", ""]
@@ -418,7 +439,7 @@ class TestInputFileLoop:
         console = Console(force_terminal=True)
 
         with (
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=True),
+            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             mock_prompt.side_effect = [
@@ -440,7 +461,7 @@ class TestInputFileLoop:
         console = Console(force_terminal=True)
 
         with (
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=True),
+            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             mock_prompt.side_effect = [
@@ -459,7 +480,7 @@ class TestInputFileLoop:
         console = Console(force_terminal=True)
 
         with (
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=True),
+            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             mock_prompt.side_effect = [
@@ -487,22 +508,6 @@ class TestParseInt:
         assert _parse_int("abc", 100) == 100
         assert _parse_int("", 50) == 50
         assert _parse_int("12.5", 10) == 10
-
-
-class TestPhasesStepHandler:
-    """Tests for PhasesStepHandler class."""
-
-    def test_handler_delegates_to_run_phases_step(self) -> None:
-        """Test that handler properly delegates to run_phases_step."""
-        handler = PhasesStepHandler()
-        state = WizardState()
-        console = Console(force_terminal=True)
-
-        with patch("adw.cli.wizard.phases.Confirm.ask", return_value=False):
-            result = handler.execute(state, console)
-
-        assert result["customized"] is False
-        assert result["phases"] == {}
 
 
 class TestDocumentPhaseSpecialOptions:
@@ -546,12 +551,12 @@ class TestDocumentPhaseSpecialOptions:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
             # Base config: enabled=True
             # Document special: add_mappings=True
             mock_confirm.side_effect = [
                 True,  # enabled
+                False,  # add input files
                 True,  # add doc_mappings
             ]
             mock_prompt.side_effect = [
@@ -641,23 +646,22 @@ class TestFullFlow:
     def test_full_flow_customize_single_phase(self) -> None:
         """Test full flow customizing a single non-validate phase."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
             mock_confirm.side_effect = [
                 True,  # customize phases
                 True,  # enabled
+                False,  # add input files
             ]
             mock_prompt.side_effect = [
                 "1",  # select plan phase
                 "",  # model override (skip)
             ]
 
-            result = run_phases_step(state, console)
+            result = run_phases_step(console)
 
         assert result["customized"] is True
         assert "plan" in result["phases"]
@@ -666,16 +670,15 @@ class TestFullFlow:
     def test_full_flow_customize_validate_phase(self) -> None:
         """Test full flow customizing only the validate phase (base options only)."""
         console = Console(force_terminal=True)
-        state = WizardState()
 
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
             mock_confirm.side_effect = [
                 True,  # customize phases
                 True,  # enabled
+                False,  # add input files
             ]
             mock_prompt.side_effect = [
                 "3",  # select validate phase
@@ -683,7 +686,7 @@ class TestFullFlow:
                 "",  # lint command (skip)
             ]
 
-            result = run_phases_step(state, console)
+            result = run_phases_step(console)
 
         assert result["customized"] is True
         assert "validate" in result["phases"]
@@ -693,40 +696,3 @@ class TestFullFlow:
         assert "lint_command" not in validate_config
         assert "enable_review" not in validate_config
         assert "enable_tests" not in validate_config
-
-
-class TestStateIntegration:
-    """Tests for integration with wizard state."""
-
-    def test_config_can_be_stored_in_state(self) -> None:
-        """Test that phases config can be stored via flow controller pattern."""
-        console = Console(force_terminal=True)
-        state = WizardState()
-
-        with patch("adw.cli.wizard.phases.Confirm.ask", return_value=False):
-            config = run_phases_step(state, console)
-
-        # Simulate what flow controller does
-        state.update_config("phases", config)
-        state.mark_completed("phases")
-
-        # Verify storage
-        stored = state.get_step_config("phases")
-        assert stored["customized"] is False
-        assert "phases" in state.completed_steps
-
-
-class TestPackageExports:
-    """Tests for package exports."""
-
-    def test_phases_step_handler_exported(self) -> None:
-        """Test that PhasesStepHandler is exported from package."""
-        from adw.cli.wizard import PhasesStepHandler
-
-        assert PhasesStepHandler is not None
-
-    def test_run_phases_step_exported(self) -> None:
-        """Test that run_phases_step is exported from package."""
-        from adw.cli.wizard import run_phases_step
-
-        assert run_phases_step is not None

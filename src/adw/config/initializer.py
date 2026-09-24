@@ -12,7 +12,6 @@ from typing import Any
 from adw.config.detector import ProjectTypeDetector
 from adw.config.registry import ConfigRegistry
 from adw.config.yaml_generator import YAMLWithComments
-from adw.models.wizard import WizardState
 
 
 def generate_gitignore() -> str:
@@ -141,11 +140,10 @@ class ProjectInitializer:
         Args:
             config: Configuration dictionary to write.
         """
-        state = WizardState()
-        state.update_config(
-            "basics", {"project_name": self.project_root.name, **config}
+        basics = {"project_name": self.project_root.name, **config}
+        config_content = YAMLWithComments(ConfigRegistry()).generate_project_yaml(
+            {"basics": basics}
         )
-        config_content = YAMLWithComments(ConfigRegistry()).generate_project_yaml(state)
 
         config_path = self.adw_dir / "project.yaml"
         config_path.write_text(config_content)
