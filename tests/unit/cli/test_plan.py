@@ -1,6 +1,7 @@
 """Tests for the `adw plan` command group."""
 
 import re
+import shutil
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,7 @@ from adw.cli.app import app
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "plans"
 GOLDEN_SLUG = "add-a-dry-run-flag-to-the-importer"
+PLAN_SLUG = "04.1-adw-plans-module"
 
 # The only differences tolerated between the skill scripts' tree and ADW's.
 NORMALISATIONS: list[tuple[re.Pattern[str], str]] = [
@@ -27,6 +29,13 @@ def runner() -> CliRunner:
 
 def _plan(runner: CliRunner, *args: str) -> Result:
     return runner.invoke(app, ["plan", *args])
+
+
+def _install_fixture_plan(root: Path) -> Path:
+    """Copy this repo's own create-plan plan into root's plans dir."""
+    destination = root / "docs" / "artifacts" / "plans" / PLAN_SLUG
+    shutil.copytree(FIXTURES / PLAN_SLUG, destination)
+    return destination
 
 
 def normalise(text: str) -> str:
@@ -122,3 +131,79 @@ class TestAuthoring:
 
         assert result.exit_code == 0, result.output
         assert (tmp_path / "docs/artifacts/plans/no-repo/PLAN.md").is_file()
+
+
+class TestReading:
+    """adw plan list, tasks and show."""
+
+    def test_list_prints_active_plans_and_skips_archived_ones(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        plans = tmp_path / "docs" / "artifacts" / "plans"
+        for slug, text in [
+            ("b-plan", "# Plan: Second plan\n\nStatus: ready\n"),
+            ("a-plan", "# Plan: First plan\n\nRisk: small\n"),
+            ("archive/2026-09-01-old", "# Plan: Old\n\nStatus: done\n"),
+        ]:
+            (plans / slug).mkdir(parents=True)
+            (plans / slug / "PLAN.md").write_text(text)
+        (plans / "notes").mkdir()
+        (plans / "README.md").write_text("not a plan")
+
+        result = _plan(runner, "list", "--root", str(tmp_path))
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout == (
+            "a-plan\tunknown\tFirst plan\nb-plan\tready\tSecond plan\n"
+        )
+
+    def test_tasks_prints_one_row_per_task(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        _install_fixture_plan(tmp_path)
+
+        result = _plan(runner, "tasks", PLAN_SLUG, "--root", str(tmp_path))
+
+        assert result.exit_code == 0, result.output
+        rows = [line.split("\t") for line in result.stdout.splitlines()]
+        assert [row[:2] for row in rows] == [["TASK-001", "done"]] + [
+            [f"TASK-00{n}", "pending"] for n in range(2, 8)
+        ]
+        assert rows[0] == [
+            "TASK-001",
+            "done",
+            f"docs/artifacts/plans/{PLAN_SLUG}/tasks/"
+            "TASK-001-bundle-the-plan-templates-and-port-plan-authoring.md",
+            "Bundle the plan templates and port plan authoring",
+        ]
+
+    def test_show_prints_key_value_lines(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        _install_fixture_plan(tmp_path)
+
+        result = _plan(runner, "show", PLAN_SLUG, "--root", str(tmp_path))
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout.splitlines() == [
+            f"slug={PLAN_SLUG}",
+            "title=adw.plans: plan files in ADW",
+            "status=in-progress",
+            "risk=medium",
+            "epic=04",
+            "phase=4.1",
+            "linear=ADW-39",
+            "branch=feature/adw-39",
+            "created=2026-09-24",
+            f"dir=docs/artifacts/plans/{PLAN_SLUG}",
+            "tasks=1/7",
+        ]
+
+    @pytest.mark.parametrize("command", ["show", "tasks"])
+    def test_a_missing_plan_exits_1(
+        self, runner: CliRunner, tmp_path: Path, command: str
+    ) -> None:
+        result = _plan(runner, command, "nope", "--root", str(tmp_path))
+
+        assert result.exit_code == 1
+        assert result.stderr.startswith("error: plan not found: ")

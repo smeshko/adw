@@ -20,6 +20,7 @@ from adw.plans.authoring import (
     add_task,
     init_plan,
 )
+from adw.plans.reader import list_plans, load_plan
 
 plan_app = typer.Typer(
     name="plan",
@@ -116,3 +117,51 @@ def add_final_command(
     with _plan_errors():
         task_id = add_final_task(_root(root), slug)
     typer.echo(task_id)
+
+
+@plan_app.command("list")
+def list_command(root: RootOption = None) -> None:
+    """Print each plan as slug, status and title, tab-separated."""
+    for plan in list_plans(_root(root)):
+        typer.echo(f"{plan.slug}\t{plan.status}\t{plan.title}")
+
+
+@plan_app.command("tasks")
+def tasks_command(
+    slug: str = typer.Argument(..., help="Plan slug"),
+    root: RootOption = None,
+) -> None:
+    """Print each task as id, done|pending, file and title, tab-separated."""
+    project_root = _root(root)
+    with _plan_errors():
+        plan = load_plan(project_root, slug)
+    for task in plan.tasks:
+        state = "done" if task.done else "pending"
+        file = task.file.relative_to(project_root).as_posix() if task.file else ""
+        typer.echo(f"{task.id}\t{state}\t{file}\t{task.title}")
+
+
+@plan_app.command("show")
+def show_command(
+    slug: str = typer.Argument(..., help="Plan slug"),
+    root: RootOption = None,
+) -> None:
+    """Print a plan's header fields and task count as key=value lines."""
+    project_root = _root(root)
+    with _plan_errors():
+        plan = load_plan(project_root, slug)
+    fields = {
+        "slug": plan.slug,
+        "title": plan.title,
+        "status": plan.status,
+        "risk": plan.risk,
+        "epic": plan.epic,
+        "phase": plan.phase,
+        "linear": plan.linear,
+        "branch": plan.branch,
+        "created": plan.created,
+        "dir": plan.path.relative_to(project_root).as_posix(),
+        "tasks": f"{sum(task.done for task in plan.tasks)}/{len(plan.tasks)}",
+    }
+    for key, value in fields.items():
+        typer.echo(f"{key}={'none' if value is None else value}")
