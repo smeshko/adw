@@ -23,7 +23,9 @@ from adw.format import (
     format_relative_time,
     format_size,
     format_tokens,
+    status_style,
 )
+from adw.models.context import RunStatus
 
 console = Console()
 
@@ -60,7 +62,7 @@ async def _dashboard_lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 
 def build_templates() -> Jinja2Templates:
-    """Build the dashboard's Jinja environment with its filters registered."""
+    """Build the dashboard's Jinja environment with its filters and globals."""
     templates = Jinja2Templates(directory=str(_TEMPLATE_DIR))
     templates.env.filters.update(
         duration=format_duration,
@@ -68,6 +70,9 @@ def build_templates() -> Jinja2Templates:
         relative_time=format_relative_time,
         cost=format_cost,
         filesize=format_size,
+    )
+    templates.env.globals.update(
+        status_style=status_style, run_statuses=list(RunStatus)
     )
     return templates
 

@@ -27,7 +27,7 @@ from rich.progress import (
 )
 
 from adw.core.constants import PHASE_SEQUENCE, PR_DESCRIPTION_ARTIFACT
-from adw.format import format_duration, format_tokens
+from adw.format import format_duration, format_tokens, status_style
 from adw.logging.console import set_active_live
 
 if TYPE_CHECKING:
@@ -48,7 +48,6 @@ class ProgressDisplay:
     Attributes:
         console: Rich Console instance for output.
         PHASE_COLORS: Mapping of phase names to Rich colors.
-        STATUS_ICONS: Mapping of status names to display icons.
 
     Example:
         >>> from rich.console import Console
@@ -64,15 +63,6 @@ class ProgressDisplay:
         "validate": "magenta",
         "document": "green",
         "ship": "yellow",
-    }
-
-    STATUS_ICONS: dict[str, str] = {
-        "pending": "·",
-        "running": "►",
-        "completed": "✓",
-        "failed": "✗",
-        "aborted": "⊘",
-        "interrupted": "⏸",
     }
 
     def __init__(
@@ -284,15 +274,7 @@ class ProgressDisplay:
             total_duration_ms / 1000 if total_duration_ms is not None else None
         )
 
-        # Status color: green for completed, orange for aborted, red for failed
-        if status == "completed":
-            status_color = "green"
-        elif status == "aborted":
-            status_color = "dark_orange"  # Distinct orange for aborted status
-        elif status == "interrupted":
-            status_color = "cyan"
-        else:
-            status_color = "red"
+        status_color = status_style(status).color
 
         # Build content with optional PR description path
         content_lines = [

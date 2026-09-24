@@ -16,7 +16,13 @@ from rich.table import Table
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
 from adw.core.stats_aggregator import StatsAggregator
-from adw.format import format_cost, format_duration, format_relative_time, format_tokens
+from adw.format import (
+    format_cost,
+    format_duration,
+    format_relative_time,
+    format_tokens,
+    status_style,
+)
 from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
 from adw.models.stats import GlobalStatistics
@@ -63,25 +69,6 @@ def parse_duration(duration_str: str) -> datetime:
     return datetime.now(UTC) - unit_map[unit]
 
 
-def _get_status_style(status: str) -> str:
-    """Get Rich style for status value.
-
-    Args:
-        status: Run status string.
-
-    Returns:
-        Rich style string.
-    """
-    styles = {
-        "running": "blue",
-        "completed": "green",
-        "failed": "red",
-        "interrupted": "yellow",
-        "aborted": "magenta",
-    }
-    return styles.get(status, "white")
-
-
 def _display_global_runs(
     entries: list[IndexEntry],
     title: str,
@@ -104,7 +91,7 @@ def _display_global_runs(
 
     for entry in entries:
         # Format status with color
-        status_style = _get_status_style(entry.status)
+        color = status_style(entry.status).color
 
         # Format duration
         ended = entry.completed_at or datetime.now(UTC)
@@ -127,7 +114,7 @@ def _display_global_runs(
             entry.run_id,
             project_name,
             feature,
-            f"[{status_style}]{entry.status}[/{status_style}]",
+            f"[{color}]{entry.status}[/{color}]",
             duration,
             started,
         )

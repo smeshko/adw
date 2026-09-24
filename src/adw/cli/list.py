@@ -15,7 +15,7 @@ from rich.table import Table
 from adw.cli.list_display import ListDisplay
 from adw.core.index_manager import IndexManager
 from adw.core.run_lookup import RunLookup
-from adw.format import format_duration
+from adw.format import format_duration, status_style
 from adw.models import RunContext
 from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
@@ -217,7 +217,7 @@ def _display_index_entries(entries: list[IndexEntry]) -> None:
 
     for entry in entries:
         # Format status with color
-        status_style = _get_status_style(entry.status)
+        color = status_style(entry.status).color
 
         # Format started time
         if entry.started_at:
@@ -237,31 +237,12 @@ def _display_index_entries(entries: list[IndexEntry]) -> None:
             run_id_short,
             entry.project_name,
             feature,
-            f"[{status_style}]{entry.status}[/{status_style}]",
+            f"[{color}]{entry.status}[/{color}]",
             started,
             entry.phase_reached or "-",
         )
 
     console.print(table)
-
-
-def _get_status_style(status: str) -> str:
-    """Get Rich style for status value.
-
-    Args:
-        status: Run status string.
-
-    Returns:
-        Rich style string.
-    """
-    styles = {
-        "running": "blue",
-        "completed": "green",
-        "failed": "red",
-        "interrupted": "yellow",
-        "aborted": "magenta",
-    }
-    return styles.get(status, "white")
 
 
 def _output_json_index_entries(entries: list[IndexEntry]) -> None:

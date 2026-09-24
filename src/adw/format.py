@@ -1,11 +1,42 @@
 """Display formatting shared by the CLI, Linear comments, live.log and the dashboard.
 
 One formatter each for durations, token counts, relative times, costs and file
-sizes, so every surface prints the same value the same way. The dashboard
-registers them as Jinja filters.
+sizes, and one style per run status, so every surface prints the same value the
+same way. The dashboard registers them as Jinja filters and globals.
 """
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
+from typing import Final, NamedTuple
+
+from adw.models.context import RunStatus
+
+
+class StatusStyle(NamedTuple):
+    """How a run status looks: a Rich colour, an icon and DaisyUI badge classes."""
+
+    color: str
+    icon: str
+    badge: str
+
+
+STATUS_STYLES: Final[Mapping[RunStatus, StatusStyle]] = {
+    RunStatus.RUNNING: StatusStyle("yellow", "●", "badge-warning phase-active"),
+    RunStatus.COMPLETED: StatusStyle("green", "✓", "badge-success badge-soft"),
+    RunStatus.FAILED: StatusStyle("red", "✗", "badge-error"),
+    RunStatus.INTERRUPTED: StatusStyle("orange1", "⊘", "badge-warning badge-outline"),
+    RunStatus.ABORTED: StatusStyle("bright_black", "⦻", "badge-ghost"),
+}
+
+UNKNOWN_STATUS_STYLE: Final = StatusStyle("white", "?", "badge-ghost")
+
+
+def status_style(status: str) -> StatusStyle:
+    """Return the style for a run status; unknown values get UNKNOWN_STATUS_STYLE."""
+    try:
+        return STATUS_STYLES[RunStatus(status)]
+    except ValueError:
+        return UNKNOWN_STATUS_STYLE
 
 
 def format_duration(seconds: float | None) -> str:

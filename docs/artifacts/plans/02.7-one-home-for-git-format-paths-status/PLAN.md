@@ -278,7 +278,7 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-003: Route the remaining git and gh calls through adw.git (depends on TASK-002)
 - [x] TASK-004: Type run status as a RunStatus StrEnum
 - [x] TASK-005: Add adw.format and use it everywhere
-- [ ] TASK-006: One status style map for the CLI and the dashboard (depends on TASK-004,TASK-005)
+- [x] TASK-006: One status style map for the CLI and the dashboard (depends on TASK-004,TASK-005)
 - [ ] TASK-007: One atomic_write for state files
 - [ ] TASK-008: One runs directory path, created only by adw run (depends on TASK-003,TASK-005,TASK-006,TASK-007)
 - [ ] TASK-009: Final Validation

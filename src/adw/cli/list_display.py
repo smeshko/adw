@@ -7,6 +7,7 @@ as formatted Rich tables.
 from rich.console import Console
 from rich.table import Table
 
+from adw.format import status_style
 from adw.models import RunContext
 
 __all__ = ["ListDisplay"]
@@ -26,14 +27,6 @@ class ListDisplay:
         >>> display = ListDisplay(Console())
         >>> display.show_runs(runs)
     """
-
-    STATUS_COLORS: dict[str, str] = {
-        "running": "yellow",
-        "completed": "green",
-        "failed": "red",
-        "interrupted": "orange1",
-        "aborted": "bright_black",
-    }
 
     def __init__(self, console: Console | None = None) -> None:
         """Initialize the ListDisplay.
@@ -65,7 +58,7 @@ class ListDisplay:
             feature = self._truncate_text(run.feature_description, max_length=27)
 
             # Color-code status
-            color = self.STATUS_COLORS.get(run.status, "white")
+            color = status_style(run.status).color
             status = f"[{color}]{run.status}[/]"
 
             # Format timestamp

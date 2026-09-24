@@ -5,12 +5,16 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from adw.format import (
+    STATUS_STYLES,
+    UNKNOWN_STATUS_STYLE,
     format_cost,
     format_duration,
     format_relative_time,
     format_size,
     format_tokens,
+    status_style,
 )
+from adw.models.context import RunStatus
 
 
 @pytest.mark.parametrize(
@@ -110,3 +114,10 @@ def test_format_cost(amount: float, expected: str) -> None:
 )
 def test_format_size(size: int, expected: str) -> None:
     assert format_size(size) == expected
+
+
+def test_status_style_covers_every_run_status() -> None:
+    assert set(STATUS_STYLES) == set(RunStatus)
+    for status in RunStatus:
+        assert status_style(status.value) is STATUS_STYLES[status]
+    assert status_style("paused") is UNKNOWN_STATUS_STYLE

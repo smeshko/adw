@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from adw.core.constants import PHASE_SEQUENCE
-from adw.format import format_duration
+from adw.format import format_duration, status_style
 from adw.models import RunContext
 from adw.models.context import RunStatus
 
@@ -23,11 +23,7 @@ __all__ = ["StatusDisplay", "output_json"]
 class StatusDisplay:
     """Display run status using Rich.
 
-    Implements status display with color coding:
-    - Green: completed
-    - Red: failed
-    - Yellow: running
-    - Orange: interrupted
+    Status colours come from adw.format.STATUS_STYLES.
 
     Attributes:
         console: Rich Console instance for output.
@@ -38,14 +34,6 @@ class StatusDisplay:
         >>> display = StatusDisplay(console)
         >>> display.show_status(context)
     """
-
-    STATUS_COLORS = {
-        "running": "yellow",
-        "completed": "green",
-        "failed": "red",
-        "interrupted": "orange1",
-        "aborted": "red",
-    }
 
     def __init__(self, console: Console | None = None) -> None:
         """Initialize the StatusDisplay.
@@ -67,7 +55,7 @@ class StatusDisplay:
             context: The run context to display.
             verbose: Show detailed information.
         """
-        status_color = self.STATUS_COLORS.get(context.status, "white")
+        status_color = status_style(context.status).color
 
         # Truncate long feature descriptions
         feature = context.feature_description

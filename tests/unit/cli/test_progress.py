@@ -55,24 +55,6 @@ class TestPhaseColors:
             assert color in valid_colors
 
 
-class TestStatusIcons:
-    """Tests for status icon configuration."""
-
-    def test_all_status_icons_defined(self) -> None:
-        """Test that all required status icons are defined."""
-        progress = ProgressDisplay()
-        required_statuses = {"pending", "running", "completed", "failed"}
-        for status in required_statuses:
-            assert status in progress.STATUS_ICONS
-
-    def test_status_icons_are_strings(self) -> None:
-        """Test that all status icons are non-empty strings."""
-        progress = ProgressDisplay()
-        for icon in progress.STATUS_ICONS.values():
-            assert isinstance(icon, str)
-            assert len(icon) > 0
-
-
 class TestPhaseStart:
     """Tests for phase start display."""
 
