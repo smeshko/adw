@@ -11,94 +11,71 @@ from unittest.mock import patch
 
 import pytest
 from rich.console import Console
+from rich.text import Text
 
 from adw.cli.wizard.basics import (
-    LANGUAGE_MARKERS,
     SUPPORTED_LANGUAGES,
     SUPPORTED_PLATFORMS,
     BasicsStepHandler,
-    detect_language,
-    detect_test_command,
     run_basics_step,
 )
+from adw.config.detector import ProjectTypeDetector
 from adw.models.wizard import WizardState
 
 
-class TestLanguageDetection:
-    """Tests for detect_language function."""
+class TestDetection:
+    """The wizard detects what ProjectTypeDetector detects."""
 
     @pytest.mark.parametrize(
-        "marker_file,expected_language",
+        ("marker", "language"),
         [
-            ("pyproject.toml", "python"),
-            ("setup.py", "python"),
+            ("requirements.txt", "python"),
             ("setup.cfg", "python"),
             ("package.json", "javascript"),
-            ("go.mod", "go"),
-            ("Cargo.toml", "rust"),
-            ("pom.xml", "java"),
             ("build.gradle", "java"),
             ("build.gradle.kts", "java"),
-            ("Gemfile", "ruby"),
             ("composer.json", "php"),
         ],
     )
-    def test_detect_language_from_marker(
-        self, marker_file: str, expected_language: str, tmp_path: Path
+    def test_detected_defaults_match_project_type_detector(
+        self, marker: str, language: str
     ) -> None:
-        """Test language detection from various marker files."""
-        (tmp_path / marker_file).touch()
-        assert detect_language(tmp_path) == expected_language
+        """Accepting every default yields the detector's language and test command."""
+        (Path.cwd() / marker).touch()
 
-    def test_detect_language_unknown_when_no_markers(self, tmp_path: Path) -> None:
-        """Test returns 'unknown' when no marker files exist."""
-        assert detect_language(tmp_path) == "unknown"
+        with (
+            patch(
+                "adw.cli.wizard.basics.Confirm.ask", return_value=True
+            ) as mock_confirm,
+            patch(
+                "adw.cli.wizard.basics.Prompt.ask",
+                side_effect=lambda *_, **kw: kw["default"],
+            ),
+        ):
+            result = run_basics_step(WizardState(), Console(force_terminal=True))
 
-    def test_detect_language_priority_first_match(self, tmp_path: Path) -> None:
-        """Test that first matching language wins when multiple markers exist.
+        question = Text.from_markup(mock_confirm.call_args.args[0]).plain
+        assert mock_confirm.call_count == 1
+        assert f"Language detected: {language}" in question
+        expected = ProjectTypeDetector().get_defaults(language)
+        assert result["language"] == expected["language"]
+        assert result["test_command"] == expected["test_command"]
 
-        Python markers come before JavaScript in LANGUAGE_MARKERS dict,
-        and Python dicts maintain insertion order (3.7+), so Python wins.
-        """
-        # Create multiple markers
-        (tmp_path / "pyproject.toml").touch()
-        (tmp_path / "package.json").touch()
+    def test_chosen_language_sets_test_command_default(self) -> None:
+        """Rejecting the detection offers the chosen language's test command."""
+        (Path.cwd() / "package.json").touch()
 
-        # Python should be detected first (order in LANGUAGE_MARKERS dict)
-        result = detect_language(tmp_path)
-        assert result == "python"  # First language in LANGUAGE_MARKERS wins
+        with (
+            patch("adw.cli.wizard.basics.Confirm.ask", return_value=False),
+            patch(
+                "adw.cli.wizard.basics.Prompt.ask",
+                side_effect=lambda q, **kw: "go" if q == "Language" else kw["default"],
+            ),
+        ):
+            result = run_basics_step(WizardState(), Console(force_terminal=True))
 
-
-class TestTestCommandDetection:
-    """Tests for detect_test_command function."""
-
-    @pytest.mark.parametrize(
-        "language,expected_command",
-        [
-            ("python", "pytest"),
-            ("javascript", "npm test"),
-            ("go", "go test ./..."),
-            ("rust", "cargo test"),
-            ("java", "./gradlew test"),
-            ("ruby", "bundle exec rspec"),
-            ("php", "./vendor/bin/phpunit"),
-        ],
-    )
-    def test_detect_test_command_for_known_language(
-        self, language: str, expected_command: str
-    ) -> None:
-        """Test test command detection for all supported languages."""
-        assert detect_test_command(language) == expected_command
-
-    def test_detect_test_command_unknown_returns_empty(self) -> None:
-        """Test returns empty string for unknown language."""
-        assert detect_test_command("unknown") == ""
-
-    def test_detect_test_command_custom_language_returns_empty(self) -> None:
-        """Test returns empty string for custom/unsupported languages."""
-        assert detect_test_command("kotlin") == ""
-        assert detect_test_command("scala") == ""
-        assert detect_test_command("my-custom-lang") == ""
+        assert result["language"] == "go"
+        assert result["test_command"] == "go test ./..."
 
 
 class TestPromptLanguage:
@@ -109,8 +86,9 @@ class TestPromptLanguage:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "pyproject.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
             patch(
                 "adw.cli.wizard.basics.Confirm.ask", return_value=True
             ) as mock_confirm,
@@ -129,8 +107,9 @@ class TestPromptLanguage:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "pyproject.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=False),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -146,7 +125,6 @@ class TestPromptLanguage:
         state = WizardState()
 
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="unknown"),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
             # Direct entry: "kotlin" (custom language), "cli" (platform), test, build
@@ -161,7 +139,6 @@ class TestPromptLanguage:
         state = WizardState()
 
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="unknown"),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
             # Simulate: enter "" (rejected), enter "swift"
@@ -176,7 +153,6 @@ class TestPromptLanguage:
         state = WizardState()
 
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="unknown"),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
             # Select "1" (python), platform, test, build
@@ -194,8 +170,9 @@ class TestPromptPlatform:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "pyproject.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -209,8 +186,9 @@ class TestPromptPlatform:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "pyproject.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -225,8 +203,9 @@ class TestPromptPlatform:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "pyproject.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -245,8 +224,9 @@ class TestPromptCommands:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "pyproject.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -261,8 +241,9 @@ class TestPromptCommands:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "pyproject.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -276,8 +257,9 @@ class TestPromptCommands:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "pyproject.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -291,8 +273,9 @@ class TestPromptCommands:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "package.json").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="javascript"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -335,8 +318,9 @@ class TestStateIntegration:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "Cargo.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="rust"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -360,8 +344,9 @@ class TestStateIntegration:
         console = Console(force_terminal=True)
         state = WizardState()
 
+        (Path.cwd() / "pyproject.toml").touch()
+
         with (
-            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
             patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
@@ -388,9 +373,3 @@ class TestConstants:
     def test_supported_platforms_includes_other(self) -> None:
         """Test that 'other' is in supported platforms."""
         assert "other" in SUPPORTED_PLATFORMS
-
-    def test_language_markers_covers_major_languages(self) -> None:
-        """Test that all major languages have markers defined."""
-        expected = {"python", "javascript", "go", "rust", "java", "ruby", "php"}
-        actual = set(LANGUAGE_MARKERS.keys())
-        assert expected == actual

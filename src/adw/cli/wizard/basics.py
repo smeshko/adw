@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
+from adw.config.detector import ProjectTypeDetector
+
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
 
@@ -29,61 +31,6 @@ SUPPORTED_LANGUAGES: list[str] = [
 
 # Supported platform types
 SUPPORTED_PLATFORMS: list[str] = ["cli", "web", "api", "other"]
-
-# Language detection markers - maps language to file markers
-LANGUAGE_MARKERS: dict[str, list[str]] = {
-    "python": ["pyproject.toml", "setup.py", "setup.cfg"],
-    "javascript": ["package.json"],
-    "go": ["go.mod"],
-    "rust": ["Cargo.toml"],
-    "java": ["pom.xml", "build.gradle", "build.gradle.kts"],
-    "ruby": ["Gemfile"],
-    "php": ["composer.json"],
-}
-
-# Default test commands by language
-DEFAULT_TEST_COMMANDS: dict[str, str] = {
-    "python": "pytest",
-    "javascript": "npm test",
-    "go": "go test ./...",
-    "rust": "cargo test",
-    "java": "./gradlew test",  # Alternative: mvn test
-    "ruby": "bundle exec rspec",
-    "php": "./vendor/bin/phpunit",
-}
-
-
-def detect_language(project_root: Path) -> str:
-    """Detect project language from marker files.
-
-    Checks the project root for common language marker files and returns
-    the detected language. If no markers are found, returns "unknown".
-
-    Args:
-        project_root: The project root directory to check.
-
-    Returns:
-        Lowercase language name (e.g., "python", "javascript") or "unknown".
-    """
-    for language, markers in LANGUAGE_MARKERS.items():
-        if any((project_root / marker).exists() for marker in markers):
-            return language
-    return "unknown"
-
-
-def detect_test_command(language: str) -> str:
-    """Get the default test command for a language.
-
-    Returns the conventional test command for the given language.
-    For unknown or custom languages, returns an empty string.
-
-    Args:
-        language: The detected or selected language (lowercase).
-
-    Returns:
-        Default test command string, or empty string if unknown.
-    """
-    return DEFAULT_TEST_COMMANDS.get(language, "")
 
 
 class BasicsStepHandler:
@@ -143,16 +90,19 @@ def run_basics_step(
         directory name), language, platform, test_command and build_command.
     """
     root = project_root or Path.cwd()
+    detector = ProjectTypeDetector()
 
     # Step 1: Language detection and confirmation
-    detected_language = detect_language(root)
-    language = _prompt_language(console, detected_language)
+    detected: str = (
+        detector.get_defaults(detector.detect(root))["language"] or "unknown"
+    )
+    language = _prompt_language(console, detected)
 
     # Step 2: Platform selection
     platform = _prompt_platform(console)
 
-    # Step 3: Test command (auto-detect based on final language, allow override)
-    default_test_cmd = detect_test_command(language)
+    # Step 3: Test command (default follows the final language, allow override)
+    default_test_cmd = detector.get_defaults(language)["test_command"] or ""
     test_command = _prompt_test_command(console, default_test_cmd)
 
     # Step 4: Build command (optional)

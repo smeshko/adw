@@ -36,8 +36,6 @@ Exports:
 
 from adw.cli.wizard.basics import (
     BasicsStepHandler,
-    detect_language,
-    detect_test_command,
     run_basics_step,
 )
 from adw.cli.wizard.flow import StepHandler, WizardFlowController, WizardStep
@@ -111,8 +109,6 @@ __all__ = [
     "WizardStep",
     "atomic_write_config",
     "check_navigation",
-    "detect_language",
-    "detect_test_command",
     "generate_gitignore",
     "generate_phase_configs",
     "generate_project_yaml",

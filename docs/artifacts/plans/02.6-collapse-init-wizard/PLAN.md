@@ -1,6 +1,6 @@
 # Plan: Collapse the init wizard into a straight sequence
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-22
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -82,7 +82,7 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Detect the language and test command with ProjectTypeDetector
+- [x] TASK-001: Detect the language and test command with ProjectTypeDetector
 - [ ] TASK-002: Stop asking for a ship build command and delete ship.py
 - [ ] TASK-003: Drop the LLM retry step
 - [ ] TASK-004: Replace the flow controller and WizardState with run_wizard (depends on TASK-001,TASK-002,TASK-003)

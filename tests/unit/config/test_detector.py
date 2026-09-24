@@ -3,11 +3,25 @@
 Tests for project type detection based on filesystem markers.
 """
 
+import pytest
+
 from adw.config.detector import ProjectTypeDetector
 
 
 class TestProjectTypeDetector:
     """Tests for ProjectTypeDetector class."""
+
+    @pytest.mark.parametrize(
+        ("marker", "expected"),
+        [("setup.cfg", "python"), ("build.gradle.kts", "java")],
+    )
+    def test_detects_markers_the_wizard_used(
+        self, tmp_path, marker: str, expected: str
+    ) -> None:
+        """Markers the init wizard's own table knew are detected too."""
+        (tmp_path / marker).touch()
+
+        assert ProjectTypeDetector().detect(tmp_path) == expected
 
     def test_detect_python_via_pyproject_toml(self, tmp_path) -> None:
         """Test Python detection via pyproject.toml."""

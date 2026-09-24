@@ -36,11 +36,11 @@ class ProjectTypeDetector:
 
     # Marker files mapped to project types (dict format for compatibility)
     MARKERS: dict[str, list[str]] = {
-        "python": ["pyproject.toml", "setup.py", "requirements.txt"],
+        "python": ["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt"],
         "nodejs": ["package.json"],
         "go": ["go.mod"],
         "rust": ["Cargo.toml"],
-        "java": ["build.gradle", "pom.xml"],
+        "java": ["build.gradle", "build.gradle.kts", "pom.xml"],
         "ruby": ["Gemfile"],
         "php": ["composer.json"],
     }
