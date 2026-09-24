@@ -39,4 +39,5 @@ Work moves through the plan skills: `create-plan` → `validate-plan` → `imple
 - `test_command` / `build_command` live only on `ProjectConfig`; `PhaseRunner` injects them into the validate and ship templates.
 - Built-in phases live in `src/adw/defaults/commands/<phase>/` (`config.yaml`, `prompt.md`, optional `pre.sh` / `post.sh`). Their BMAD-derived workflow files point at `{project-root}/_bmad/...` inside *target* projects — product code, kept on purpose.
 - `YAMLWithComments` (`src/adw/config/yaml_generator.py`) renders `project.yaml` and phase configs.
+- `adw.plans` (`src/adw/plans/`, CLI `adw plan`) is ADW's copy of the plan skills' directory format. `src/adw/defaults/plans/` copies the skills' templates byte for byte, except final validation's `adw plan link` line. When a plan skill's script or template changes, update that copy and regenerate the golden tree per `tests/fixtures/plans/golden/README.md`.
 - Runtime state is gitignored: `.adw/` (runs, this repo's own ADW config) and `trees/` (worktrees ADW creates for its runs).
