@@ -440,38 +440,6 @@ class TestPhasePipelineComputation:
         assert phases[4] == {"name": "Ship", "status": "active"}
 
 
-class TestElapsedTimeFormatting:
-    """Tests for elapsed time formatting."""
-
-    def test_format_elapsed_seconds_only(self) -> None:
-        """Elapsed time under a minute shows Xs."""
-        from adw.dashboard.partials import _format_elapsed
-
-        result = _format_elapsed(timedelta(seconds=42))
-        assert result == "42s"
-
-    def test_format_elapsed_minutes_and_seconds(self) -> None:
-        """Elapsed time with minutes shows Xm Ys."""
-        from adw.dashboard.partials import _format_elapsed
-
-        result = _format_elapsed(timedelta(minutes=3, seconds=15))
-        assert result == "3m 15s"
-
-    def test_format_elapsed_hours(self) -> None:
-        """Elapsed time over an hour shows minutes correctly."""
-        from adw.dashboard.partials import _format_elapsed
-
-        result = _format_elapsed(timedelta(hours=1, minutes=5, seconds=30))
-        assert result == "65m 30s"
-
-    def test_format_elapsed_zero(self) -> None:
-        """Zero elapsed time shows 0s."""
-        from adw.dashboard.partials import _format_elapsed
-
-        result = _format_elapsed(timedelta(seconds=0))
-        assert result == "0s"
-
-
 class TestActiveRunsInOverview:
     """Tests for active runs section appearing in the overview page."""
 

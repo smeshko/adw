@@ -38,6 +38,13 @@ from adw.dashboard.dependencies import (
 )
 from adw.dashboard.settings import settings_context
 from adw.exceptions import StateError
+from adw.format import (
+    format_cost,
+    format_duration,
+    format_relative_time,
+    format_size,
+    format_tokens,
+)
 from adw.models.context import RunStatus
 from adw.models.stats import TokenUsage
 
@@ -55,27 +62,6 @@ router = APIRouter()
 
 # Run statuses whose current phase shows as failed
 _FAILED_STATUSES = frozenset({RunStatus.FAILED, RunStatus.ABORTED})
-
-
-def _relative_time(dt: datetime | None) -> str:
-    """Return a human-readable relative time string like '5s ago'."""
-    if dt is None:
-        return "—"
-    now = datetime.now(UTC)
-    delta = now - dt
-    seconds = int(delta.total_seconds())
-    if seconds < 0:
-        return "just now"
-    if seconds < 60:
-        return f"{seconds}s ago"
-    minutes = seconds // 60
-    if minutes < 60:
-        return f"{minutes}m ago"
-    hours = minutes // 60
-    if hours < 24:
-        return f"{hours}h ago"
-    days = hours // 24
-    return f"{days}d ago"
 
 
 def _build_page_context(
@@ -117,7 +103,7 @@ def _build_page_context(
         "projects": project_names,
         "selected_project": project or None,
         "active_run_count": active_run_count,
-        "last_updated_ago": _relative_time(last_updated_dt),
+        "last_updated_ago": format_relative_time(last_updated_dt),
     }
 
 
@@ -468,13 +454,9 @@ def _build_detail_phase_pipeline(
             phase_status = "pending"
 
         duration_ms = durations.get(phase)
-        if duration_ms is not None:
-            total_seconds = duration_ms // 1000
-            minutes = total_seconds // 60
-            seconds = total_seconds % 60
-            duration_display = f"{minutes}m {seconds}s"
-        else:
-            duration_display = ""
+        duration_display = (
+            format_duration(duration_ms / 1000) if duration_ms is not None else ""
+        )
 
         pipeline.append(
             {
@@ -484,19 +466,6 @@ def _build_detail_phase_pipeline(
             }
         )
     return pipeline
-
-
-def _format_duration_from_seconds(total_seconds: int) -> str:
-    """Format seconds as 'Xs', 'Xm Ys', or 'Xh Ym'."""
-    if total_seconds < 60:
-        return f"{total_seconds}s"
-    minutes = total_seconds // 60
-    seconds = total_seconds % 60
-    if minutes < 60:
-        return f"{minutes}m {seconds}s"
-    hours = minutes // 60
-    remaining_minutes = minutes % 60
-    return f"{hours}h {remaining_minutes}m"
 
 
 def _build_run_detail_context(
@@ -520,7 +489,6 @@ def _build_run_detail_context(
     Returns:
         Dict with all template variables for run_detail.html.
     """
-    from adw.dashboard.partials import _format_tokens
 
     run_id = run_entry.run_id
     project_name: str = run_entry.project_name
@@ -582,10 +550,10 @@ def _build_run_detail_context(
     # Duration
     if completed_at and started_at:
         delta_seconds = max(0, int((completed_at - started_at).total_seconds()))
-        duration_display = _format_duration_from_seconds(delta_seconds)
+        duration_display = format_duration(delta_seconds)
     elif started_at:
         elapsed = int((datetime.now(UTC) - started_at).total_seconds())
-        duration_display = _format_duration_from_seconds(elapsed)
+        duration_display = format_duration(elapsed)
     else:
         duration_display = "—"
 
@@ -655,8 +623,8 @@ def _build_run_detail_context(
                 "status": phase_status,
                 "status_icon": status_icon,
                 "tokens": tokens,
-                "tokens_display": _format_tokens(tokens) if tokens else "—",
-                "cost_display": f"${cost:.2f}" if cost > 0 else "—",
+                "tokens_display": format_tokens(tokens) if tokens else "—",
+                "cost_display": format_cost(cost) if cost > 0 else "—",
                 "duration": "",  # Duration per phase not yet tracked
             }
         )
@@ -682,12 +650,12 @@ def _build_run_detail_context(
         "status": status,
         "started_at": started_at,
         "completed_at": completed_at,
-        "started_ago": _relative_time(started_at),
+        "started_ago": format_relative_time(started_at),
         "duration_display": duration_display,
         "branch_name": branch_name,
         "total_tokens": total_tokens,
-        "tokens_display": _format_tokens(total_tokens) if total_tokens else "—",
-        "estimated_cost": f"${estimated_cost:.2f}" if estimated_cost > 0 else "—",
+        "tokens_display": format_tokens(total_tokens) if total_tokens else "—",
+        "estimated_cost": format_cost(estimated_cost) if estimated_cost > 0 else "—",
         "pr_url": pr_url,
         "linear_url": linear_url,
         "task_id": task_id,
@@ -773,15 +741,6 @@ async def run_detail(
         "pages/run_detail.html",
         context,
     )
-
-
-def _format_file_size(size_bytes: int) -> str:
-    """Format file size in human-readable form."""
-    if size_bytes < 1024:
-        return f"{size_bytes} B"
-    if size_bytes < 1024 * 1024:
-        return f"{size_bytes / 1024:.1f} KB"
-    return f"{size_bytes / (1024 * 1024):.1f} MB"
 
 
 def _find_run_entry(
@@ -956,7 +915,7 @@ async def phase_detail(
                     {
                         "name": art["name"],
                         "size": art["size"],
-                        "size_display": _format_file_size(art["size"]),
+                        "size_display": format_size(art["size"]),
                     }
                 )
         except (StateError, OSError):
@@ -1397,8 +1356,6 @@ async def run_events_sse(
 
     async def event_generator() -> AsyncGenerator[str]:
         """Yield SSE events by polling RunContext for state changes."""
-        from adw.dashboard.partials import _format_elapsed
-
         last_phase: str | None = None
         last_status: str | None = None
 
@@ -1425,7 +1382,7 @@ async def run_events_sse(
             # Emit phase-update if phase changed
             if current_phase != last_phase:
                 elapsed = datetime.now(UTC) - ctx.started_at
-                elapsed_display = _format_elapsed(elapsed)
+                elapsed_display = format_duration(elapsed.total_seconds())
 
                 # Build updated phase pipeline HTML with OOB swap
                 phases = _build_detail_phase_pipeline(

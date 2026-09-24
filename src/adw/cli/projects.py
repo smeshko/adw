@@ -10,7 +10,7 @@ Examples:
 """
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +20,7 @@ from rich.table import Table
 
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
+from adw.format import format_relative_time
 
 console = Console()
 
@@ -118,7 +119,12 @@ def _output_table(
     # Add rows
     for project in project_data:
         # Format "Since" as relative time
-        since = _format_relative_time(project["registered_at"])
+        try:
+            since = format_relative_time(
+                datetime.fromisoformat(project["registered_at"])
+            )
+        except (ValueError, TypeError):
+            since = "unknown"
         table.add_row(
             project["name"],
             _truncate_path(project["path"]),
@@ -134,31 +140,6 @@ def _output_table(
         console.print(
             "[dim]Tip:[/] Run 'adw register' in a project to add it to the registry."
         )
-
-
-def _format_relative_time(iso_timestamp: str) -> str:
-    """Format a timestamp as relative time (e.g., '3d ago')."""
-    try:
-        dt = datetime.fromisoformat(iso_timestamp.replace("Z", "+00:00"))
-        now = datetime.now(UTC)
-        delta = now - dt
-
-        if delta.days > 30:
-            months = delta.days // 30
-            return f"{months}mo ago"
-        elif delta.days > 0:
-            return f"{delta.days}d ago"
-        elif delta.seconds > 3600:
-            hours = delta.seconds // 3600
-            return f"{hours}h ago"
-        elif delta.seconds > 60:
-            minutes = delta.seconds // 60
-            return f"{minutes}m ago"
-        else:
-            return "just now"
-    except (ValueError, AttributeError, TypeError):
-        # TypeError handles naive datetime subtraction from aware datetime
-        return "unknown"
 
 
 def _truncate_path(path: str, max_length: int = 40) -> str:

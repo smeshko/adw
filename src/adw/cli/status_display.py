@@ -13,6 +13,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from adw.core.constants import PHASE_SEQUENCE
+from adw.format import format_duration
 from adw.models import RunContext
 from adw.models.context import RunStatus
 
@@ -74,7 +75,8 @@ class StatusDisplay:
             feature = f"{feature[:57]}..."
 
         # Calculate duration
-        duration = self._format_duration(context)
+        ended = context.completed_at or datetime.now(UTC)
+        duration = format_duration((ended - context.started_at).total_seconds())
 
         # Build status table
         table = Table(show_header=False, box=None, padding=(0, 2))
@@ -164,23 +166,6 @@ class StatusDisplay:
         }
 
         return base_suggestions + phase_specific.get(phase or "", [])
-
-    def _format_duration(self, context: RunContext) -> str:
-        """Format run duration in human-readable form."""
-        if context.completed_at and context.started_at:
-            delta = context.completed_at - context.started_at
-            total_seconds = int(delta.total_seconds())
-        elif context.started_at:
-            delta = datetime.now(UTC) - context.started_at
-            total_seconds = int(delta.total_seconds())
-        else:
-            return "—"
-
-        if total_seconds < 60:
-            return f"{total_seconds}s"
-        minutes = total_seconds // 60
-        seconds = total_seconds % 60
-        return f"{minutes}m {seconds}s"
 
     def _format_timestamp(self, dt: datetime | None) -> str:
         """Format timestamp for display."""

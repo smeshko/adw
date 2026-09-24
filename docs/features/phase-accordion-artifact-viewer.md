@@ -20,7 +20,7 @@ The phase accordion adds collapsible per-phase sections to the run detail page, 
 
 ### Key Files
 
-- `src/adw/dashboard/routes.py`: Phase detail route (`phase_detail`), artifact viewer route (`artifact_viewer`), helper functions (`_format_file_size`, `_find_run_entry`), and per-phase data enrichment in `_build_run_detail_context()`
+- `src/adw/dashboard/routes.py`: Phase detail route (`phase_detail`), artifact viewer route (`artifact_viewer`), helper functions (`_find_run_entry`; sizes use `adw.format.format_size`), and per-phase data enrichment in `_build_run_detail_context()`
 - `src/adw/dashboard/templates/partials/run_detail.html`: Accordion section iterating over `phases_detail`, each with `hx-get` for lazy loading and a loading spinner as default content; includes `#artifact-viewer` target div
 - `src/adw/dashboard/templates/partials/phase_detail.html`: HTML fragment with hooks card (type badge, status icon, script name, duration, error) and artifacts card (filename, size, View button with `hx-get` targeting `#artifact-viewer`)
 - `src/adw/dashboard/templates/partials/artifact_viewer.html`: Inline viewer card with filename title, close button, prose div for markdown, pre block for text files

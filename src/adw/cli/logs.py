@@ -22,6 +22,7 @@ from rich.syntax import Syntax
 from ulid import ULID
 
 from adw.core.constants import CONTEXT_FILE, LIVE_LOG, project_runs_dir
+from adw.format import format_size
 from adw.models.context import RunStatus
 
 console = Console()
@@ -782,4 +783,4 @@ def logs_export(
                 tar.add(tmp_path, arcname=run_id)
 
     console.print(f"[green]✓[/] Exported to: {output_path}")
-    console.print(f"[dim]Size: {output_path.stat().st_size / 1024:.1f} KB[/]")
+    console.print(f"[dim]Size: {format_size(output_path.stat().st_size)}[/]")

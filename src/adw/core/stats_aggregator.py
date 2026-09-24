@@ -71,7 +71,7 @@ class StatsAggregator:
         >>> aggregator = StatsAggregator()
         >>> stats = aggregator.get_global_stats()
         >>> print(f"Total runs: {stats.total_runs}")
-        >>> print(f"Cost: ${stats.estimated_cost:.2f}")
+        >>> print(f"Cost: {format_cost(stats.estimated_cost)}")
     """
 
     def __init__(

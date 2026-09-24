@@ -23,7 +23,7 @@
             <div class="font-semibold text-sm">{{ p.name }}</div>
             <div class="text-xs">{{ p.total_runs }} run{{ 's' if p.total_runs != 1 }}</div>
             <div class="text-xs {% if p.success_rate >= 0.8 %}text-success{% elif p.success_rate >= 0.5 %}text-warning{% else %}text-error{% endif %}">{{ (p.success_rate * 100) | round(0) | int }}% success</div>
-            <div class="font-mono text-xs">${{ "%.2f" | format(p.estimated_cost) }}</div>
+            <div class="font-mono text-xs">{{ p.estimated_cost | cost }}</div>
           </div>
         </div>
       {% endfor %}

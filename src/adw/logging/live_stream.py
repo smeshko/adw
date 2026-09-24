@@ -20,6 +20,8 @@ from datetime import UTC, datetime
 from io import TextIOWrapper
 from pathlib import Path
 
+from adw.format import format_duration
+
 # ANSI color codes
 COLORS = {
     "reset": "\033[0m",
@@ -178,7 +180,7 @@ class LiveStreamHandler(logging.FileHandler):
         if token_count > 0:
             stats_parts.append(f"{token_count:,} tokens")
         if duration_ms > 0:
-            stats_parts.append(f"{duration_ms / 1000:.1f}s")
+            stats_parts.append(format_duration(duration_ms / 1000))
         stats = f" ({', '.join(stats_parts)})" if stats_parts else ""
         stamp = _utc_stamp(time.time())
         self._write_line(f"\n[{stamp}] {label} {marker} ", f"Token stream ends{stats}")

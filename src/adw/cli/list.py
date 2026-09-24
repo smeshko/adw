@@ -15,6 +15,7 @@ from rich.table import Table
 from adw.cli.list_display import ListDisplay
 from adw.core.index_manager import IndexManager
 from adw.core.run_lookup import RunLookup
+from adw.format import format_duration
 from adw.models import RunContext
 from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
@@ -374,7 +375,7 @@ def _display_running_runs(
     for run in active_runs:
         # Calculate elapsed time
         elapsed = now - run.start_time
-        elapsed_str = _format_elapsed(elapsed.total_seconds())
+        elapsed_str = format_duration(elapsed.total_seconds())
 
         # Truncate worktree path for display
         worktree_str = str(run.worktree_path)
@@ -388,29 +389,6 @@ def _display_running_runs(
         )
 
     console.print(table)
-
-
-def _format_elapsed(seconds: float) -> str:
-    """Format elapsed time in human-readable format.
-
-    Args:
-        seconds: Total seconds elapsed.
-
-    Returns:
-        Formatted string like "5m 23s" or "1h 30m".
-    """
-    total_seconds = int(seconds)
-
-    if total_seconds < 60:
-        return f"{total_seconds}s"
-    elif total_seconds < 3600:
-        minutes = total_seconds // 60
-        secs = total_seconds % 60
-        return f"{minutes}m {secs}s"
-    else:
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        return f"{hours}h {minutes}m"
 
 
 def _output_json_running(

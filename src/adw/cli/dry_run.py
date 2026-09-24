@@ -18,6 +18,7 @@ from rich.table import Table
 
 from adw.commands.resolver import CommandResolver
 from adw.core.constants import PHASE_SEQUENCE
+from adw.format import format_size
 from adw.models.command import CommandConfig
 
 logger = logging.getLogger(__name__)
@@ -260,7 +261,7 @@ class DryRunDisplay:
             table.add_column("Size", style="dim", justify="right")
 
             for artifact in artifacts:
-                size_str = self._format_size(artifact["size"])
+                size_str = format_size(artifact["size"])
                 table.add_row(artifact["phase"], artifact["name"], size_str)
 
             self.console.print(table)
@@ -274,19 +275,3 @@ class DryRunDisplay:
                     border_style="cyan",
                 )
             )
-
-    def _format_size(self, size_bytes: int) -> str:
-        """Format file size in human-readable format.
-
-        Args:
-            size_bytes: Size in bytes.
-
-        Returns:
-            Human-readable size string (e.g., "1.5 KB", "2.3 MB").
-        """
-        if size_bytes < 1024:
-            return f"{size_bytes} B"
-        elif size_bytes < 1024 * 1024:
-            return f"{size_bytes / 1024:.1f} KB"
-        else:
-            return f"{size_bytes / (1024 * 1024):.1f} MB"

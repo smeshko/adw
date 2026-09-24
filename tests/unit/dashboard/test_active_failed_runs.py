@@ -709,6 +709,52 @@ class TestSSETerminalStatuses:
         assert "Read src/app.py" in chunks[0]
 
 
+class TestRunElapsedConsistency:
+    """Run detail and its SSE update format elapsed time the same way."""
+
+    async def test_run_elapsed_renders_the_same_on_load_and_over_sse(self) -> None:
+        """Both say "1h 5m"; the SSE update used to say "65m 30s"."""
+        from adw.dashboard.routes import _build_run_detail_context, run_events_sse
+
+        started = datetime.now(UTC) - timedelta(hours=1, minutes=5, seconds=30)
+        entry = IndexEntry(
+            run_id="01HQXK5P3Z7V8R2M4N6T9W1Y3C",
+            project_name="my-project",
+            project_path="/tmp/my-project",
+            feature_description="Add user authentication",
+            status="running",
+            started_at=started,
+            phase_reached="build",
+        )
+        aggregator = MagicMock()
+        aggregator.get_phase_token_usage.return_value = {}
+        aggregator.calculate_cost.return_value = 0.0
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("no context")
+            page = _build_run_detail_context(
+                entry, MagicMock(), stats_aggregator=aggregator
+            )
+
+        context = _interrupted_context()
+        context.started_at = started
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.asyncio.sleep", new=_yield_only),
+        ):
+            mock_cm.return_value.load.return_value = context
+            response = await run_events_sse(
+                entry.run_id, index_manager=_mock_index_manager(entries=[entry])
+            )
+            chunks = await _drain_sse(response)
+
+        phase_update = next(c for c in chunks if c.startswith("event:phase-update"))
+        assert page["duration_display"] == "1h 5m"
+        assert '<span id="run-elapsed" hx-swap-oob="innerHTML">1h 5m</span>' in (
+            phase_update
+        )
+
+
 # ── SSE Helper Functions ──────────────────────────────────────────────
 
 

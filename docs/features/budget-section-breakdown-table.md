@@ -93,4 +93,4 @@ breakdown_table.sort(key=lambda r: r[sort_key_map[col]], reverse=(direction == "
 - Over-budget scenarios show percentage >100% and days remaining = 0; the progress bar fills completely with `progress-error`
 - The `analytics_url` macro replaced all inline URL construction in analytics.html, ensuring consistent parameter preservation
 - Sort parameter is validated server-side; invalid values silently fall back to `cost_desc`
-- The breakdown table reuses `_format_tokens()` from partials.py and `calculate_cost()` from StatsAggregator for consistent formatting
+- The breakdown table uses `adw.format.format_tokens()` / `format_cost()` and `calculate_cost()` from StatsAggregator for consistent formatting

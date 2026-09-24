@@ -4,6 +4,8 @@ This module provides utilities for formatting status update comments
 that are posted to task management systems (Linear, etc.).
 """
 
+from adw.format import format_duration
+
 
 class CommentFormatter:
     """Formatter for task status update comments.
@@ -18,23 +20,6 @@ class CommentFormatter:
         **✓ Phase Complete: plan**
         ...
     """
-
-    @staticmethod
-    def _format_duration(total_seconds: float) -> str:
-        """Format seconds into a human-friendly duration string.
-
-        Args:
-            total_seconds: Duration in seconds.
-
-        Returns:
-            Formatted string like ``"28s"`` or ``"2m 18s"``.
-        """
-        total_seconds = max(0.0, total_seconds)
-        minutes = int(total_seconds) // 60
-        seconds = int(total_seconds) % 60
-        if minutes > 0:
-            return f"{minutes}m {seconds}s"
-        return f"{seconds}s"
 
     @staticmethod
     def _format_phase_timeline(
@@ -130,7 +115,7 @@ class CommentFormatter:
         Returns:
             Markdown-formatted comment string.
         """
-        human_duration = self._format_duration(duration)
+        human_duration = format_duration(duration)
 
         rows = [
             f"| Duration | {human_duration} |",
@@ -186,7 +171,7 @@ class CommentFormatter:
         rows = [f"| Run ID | `{run_id}` |"]
 
         if duration is not None:
-            rows.append(f"| Duration | {self._format_duration(duration)} |")
+            rows.append(f"| Duration | {format_duration(duration)} |")
 
         if branch_name:
             rows.append(f"| Branch | `{branch_name}` |")
@@ -263,7 +248,7 @@ See run logs for details.
         ]
 
         if duration is not None:
-            rows.append(f"| Duration | {self._format_duration(duration)} |")
+            rows.append(f"| Duration | {format_duration(duration)} |")
         if total_tokens > 0:
             rows.append(f"| Tokens | {total_tokens:,} |")
         if commit_count > 0:

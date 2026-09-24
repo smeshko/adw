@@ -21,7 +21,7 @@ The run detail page (`/runs/{run_id}`) provides a dedicated drill-down view for 
 
 ### Key Files
 
-- `src/adw/dashboard/routes.py`: Route handler (`run_detail`), context builder (`_build_run_detail_context`), detail phase pipeline helper (`_build_detail_phase_pipeline`), and duration formatter (`_format_duration_from_seconds`)
+- `src/adw/dashboard/routes.py`: Route handler (`run_detail`), context builder (`_build_run_detail_context`), detail phase pipeline helper (`_build_detail_phase_pipeline`), and durations formatted with `adw.format.format_duration`
 - `src/adw/dashboard/templates/pages/run_detail.html`: Full page wrapper extending `base.html`, includes the partial
 - `src/adw/dashboard/templates/partials/run_detail.html`: HTMX-swappable partial with back link, title, action buttons, phase pipeline, metadata card, and clipboard copy script
 - `tests/unit/dashboard/test_run_detail.py`: 47 tests across 10 test classes covering route, back link, title, pipeline, metadata, actions, clipboard, RunContext enrichment, and helper functions

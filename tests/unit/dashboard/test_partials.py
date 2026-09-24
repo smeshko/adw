@@ -755,27 +755,6 @@ class TestOverviewIncludesNewSections:
 class TestDurationFormatting:
     """Tests for run duration display logic."""
 
-    def test_completed_run_duration(self) -> None:
-        """Completed run shows correct 'Xm Ys' duration."""
-        from adw.dashboard.partials import _format_duration
-
-        # 3 minutes = 180000ms
-        assert _format_duration(180000) == "3m 0s"
-
-    def test_short_duration(self) -> None:
-        """Short duration shows seconds correctly."""
-        from adw.dashboard.partials import _format_duration
-
-        # 45 seconds = 45000ms
-        assert _format_duration(45000) == "45s"
-
-    def test_long_duration(self) -> None:
-        """Long duration shows minutes and seconds."""
-        from adw.dashboard.partials import _format_duration
-
-        # 7 min 30 sec = 450000ms
-        assert _format_duration(450000) == "7m 30s"
-
     def test_running_entry_shows_dash(self) -> None:
         """Running entry with no completed_at shows em-dash."""
         entries = [_make_entry(status="running")]

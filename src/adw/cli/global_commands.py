@@ -16,6 +16,7 @@ from rich.table import Table
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
 from adw.core.stats_aggregator import StatsAggregator
+from adw.format import format_cost, format_duration, format_relative_time, format_tokens
 from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
 from adw.models.stats import GlobalStatistics
@@ -81,62 +82,6 @@ def _get_status_style(status: str) -> str:
     return styles.get(status, "white")
 
 
-def _format_duration(started_at: datetime, completed_at: datetime | None) -> str:
-    """Format run duration for display.
-
-    Args:
-        started_at: When run started.
-        completed_at: When run completed (None if still running).
-
-    Returns:
-        Formatted duration like "5m 32s" or elapsed time for running.
-    """
-    if completed_at is None:
-        # Calculate elapsed time for running jobs
-        elapsed = datetime.now(UTC) - started_at
-    else:
-        elapsed = completed_at - started_at
-
-    total_seconds = int(elapsed.total_seconds())
-
-    if total_seconds < 60:
-        return f"{total_seconds}s"
-    elif total_seconds < 3600:
-        minutes = total_seconds // 60
-        seconds = total_seconds % 60
-        return f"{minutes}m {seconds}s"
-    else:
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        return f"{hours}h {minutes}m"
-
-
-def _format_relative_time(dt: datetime) -> str:
-    """Format datetime as relative time (e.g., '2h ago').
-
-    Args:
-        dt: The datetime to format.
-
-    Returns:
-        Relative time string like "just now", "5m ago", "2h ago", "3d ago".
-    """
-    now = datetime.now(UTC)
-    delta = now - dt
-    total_seconds = int(delta.total_seconds())
-
-    if total_seconds < 60:
-        return "just now"
-    elif total_seconds < 3600:
-        minutes = total_seconds // 60
-        return f"{minutes}m ago"
-    elif total_seconds < 86400:
-        hours = total_seconds // 3600
-        return f"{hours}h ago"
-    else:
-        days = total_seconds // 86400
-        return f"{days}d ago"
-
-
 def _display_global_runs(
     entries: list[IndexEntry],
     title: str,
@@ -162,10 +107,11 @@ def _display_global_runs(
         status_style = _get_status_style(entry.status)
 
         # Format duration
-        duration = _format_duration(entry.started_at, entry.completed_at)
+        ended = entry.completed_at or datetime.now(UTC)
+        duration = format_duration((ended - entry.started_at).total_seconds())
 
         # Format started time as relative
-        started = _format_relative_time(entry.started_at)
+        started = format_relative_time(entry.started_at)
 
         # Truncate feature description if too long
         feature = entry.feature_description
@@ -397,72 +343,6 @@ def _build_table_title(
 # ============================================================================
 
 
-def _format_tokens(count: int) -> str:
-    """Format token count for display.
-
-    Args:
-        count: Number of tokens.
-
-    Returns:
-        Formatted string like "1.2M", "450K", or "999".
-
-    Examples:
-        >>> _format_tokens(1234)
-        '1.2K'
-        >>> _format_tokens(1234567)
-        '1.2M'
-    """
-    if count >= 1_000_000:
-        return f"{count / 1_000_000:.1f}M"
-    elif count >= 1_000:
-        return f"{count / 1_000:.1f}K"
-    else:
-        return str(count)
-
-
-def _format_cost(amount: float) -> str:
-    """Format cost for display.
-
-    Args:
-        amount: Cost in USD.
-
-    Returns:
-        Formatted string like "$47.82" or "$1,234.56".
-
-    Examples:
-        >>> _format_cost(47.82)
-        '$47.82'
-        >>> _format_cost(1234.56)
-        '$1,234.56'
-    """
-    if amount >= 1000:
-        return f"${amount:,.2f}"
-    return f"${amount:.2f}"
-
-
-def _format_duration_ms(ms: int) -> str:
-    """Format duration in milliseconds for display.
-
-    Args:
-        ms: Duration in milliseconds.
-
-    Returns:
-        Formatted string like "45s", "2m 5s", or "1h 2m".
-    """
-    total_seconds = ms // 1000
-
-    if total_seconds < 60:
-        return f"{total_seconds}s"
-    elif total_seconds < 3600:
-        minutes = total_seconds // 60
-        seconds = total_seconds % 60
-        return f"{minutes}m {seconds}s"
-    else:
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        return f"{hours}h {minutes}m"
-
-
 def _format_rate(rate: float) -> str:
     """Format rate as percentage.
 
@@ -504,9 +384,9 @@ def _show_global_stats(stats: GlobalStatistics) -> None:
         f"[bold green]TODAY[/]           {stats.runs_today:,}",
         f"[bold yellow]SUCCESS RATE[/]    {_format_rate(stats.success_rate)}",
         "",
-        f"[dim]AVG DURATION[/]    {_format_duration_ms(stats.average_duration_ms)}",
-        f"[dim]TOTAL TOKENS[/]    {_format_tokens(stats.tokens.total_tokens)}",
-        f"[dim]EST. COST[/]       {_format_cost(stats.estimated_cost)}",
+        f"[dim]AVG DURATION[/]    {format_duration(stats.average_duration_ms / 1000)}",
+        f"[dim]TOTAL TOKENS[/]    {format_tokens(stats.tokens.total_tokens)}",
+        f"[dim]EST. COST[/]       {format_cost(stats.estimated_cost)}",
     ]
 
     summary_text = "\n".join(summary_lines)
@@ -541,22 +421,14 @@ def _show_global_stats(stats: GlobalStatistics) -> None:
                 path,
                 f"{proj.total_runs:,}",
                 _format_rate(proj.success_rate),
-                _format_tokens(proj.tokens.total_tokens),
-                _format_cost(proj.estimated_cost),
+                format_tokens(proj.tokens.total_tokens),
+                format_cost(proj.estimated_cost),
             )
 
         console.print(table)
 
     # Show cache info
-    cache_age = (datetime.now(UTC) - stats.generated_at).total_seconds()
-    if cache_age < 60:
-        cache_info = "just now"
-    elif cache_age < 3600:
-        cache_info = f"{int(cache_age // 60)} minutes ago"
-    else:
-        cache_info = f"{int(cache_age // 3600)} hours ago"
-
-    console.print(f"\n[dim]Generated: {cache_info}[/]")
+    console.print(f"\n[dim]Generated: {format_relative_time(stats.generated_at)}[/]")
 
 
 def _output_stats_json(stats: GlobalStatistics) -> None:
@@ -932,10 +804,10 @@ def clean_command(
         if stale_running:
             console.print("\n[dim]Stale runs to mark as interrupted (sample):[/]")
             for entry in stale_running[:5]:
-                elapsed = datetime.now(UTC) - entry.started_at
-                hours = int(elapsed.total_seconds() / 3600)
+                elapsed = (datetime.now(UTC) - entry.started_at).total_seconds()
                 console.print(
-                    f"  {entry.run_id}: {entry.project_name} (running {hours}h)"
+                    f"  {entry.run_id}: {entry.project_name} "
+                    f"(running {format_duration(elapsed)})"
                 )
             if len(stale_running) > 5:
                 console.print(f"  ... and {len(stale_running) - 5} more")

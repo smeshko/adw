@@ -363,7 +363,8 @@ class TestPipelineSummary:
         )
 
         output_text = output.getvalue()
-        assert "10.5s" in output_text
+        # adw.format.format_duration shows whole seconds
+        assert "10s" in output_text
 
     def test_show_pipeline_summary_shows_token_count(self) -> None:
         """Test that pipeline summary shows total tokens."""

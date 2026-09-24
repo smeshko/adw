@@ -290,24 +290,6 @@ class TestDryRunArtifactPreview:
 class TestDryRunEdgeCases:
     """Edge case tests for DryRunDisplay."""
 
-    def test_format_size_bytes(self) -> None:
-        """Test file size formatting for bytes."""
-        display = DryRunDisplay()
-        assert display._format_size(512) == "512 B"
-        assert display._format_size(0) == "0 B"
-
-    def test_format_size_kilobytes(self) -> None:
-        """Test file size formatting for kilobytes."""
-        display = DryRunDisplay()
-        assert display._format_size(1024) == "1.0 KB"
-        assert display._format_size(2560) == "2.5 KB"
-
-    def test_format_size_megabytes(self) -> None:
-        """Test file size formatting for megabytes."""
-        display = DryRunDisplay()
-        assert display._format_size(1024 * 1024) == "1.0 MB"
-        assert display._format_size(2 * 1024 * 1024 + 512 * 1024) == "2.5 MB"
-
     def test_config_without_optional_fields(self) -> None:
         """Test config display with minimal configuration."""
 
