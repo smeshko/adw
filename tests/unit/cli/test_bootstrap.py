@@ -79,7 +79,6 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_project_config.llm = LLMConfig()
         mock_project_config.build_command = None
@@ -152,7 +151,6 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_project_config.llm = LLMConfig()
         mock_project_config.build_command = None
@@ -197,7 +195,6 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_project_config.llm = LLMConfig()
         mock_project_config.build_command = None
@@ -235,7 +232,6 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_without_labels
         mock_project_config.llm = LLMConfig()
         mock_project_config.build_command = None
@@ -278,7 +274,6 @@ class TestBootstrapRetryWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = None
         mock_project_config.llm = llm_config
         mock_project_config.build_command = None
@@ -314,7 +309,6 @@ class TestBootstrapRetryWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
-        mock_project_config.security = None
         mock_project_config.task_manager = None
         mock_project_config.llm = custom_llm
         mock_project_config.build_command = None

@@ -57,8 +57,6 @@ This guide helps you find relevant documentation based on what you're working on
 - docs/architecture/adrs/
   - Conditions:
     - When working with secret redaction
-    - When modifying dangerous command patterns
-    - When implementing security interceptors
 
 - docs/features/dashboard-base-template-navigation-theme.md
   - Conditions:

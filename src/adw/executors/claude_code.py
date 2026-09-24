@@ -21,7 +21,6 @@ from adw.models.llm import LLMResult, ToolCall
 
 if TYPE_CHECKING:
     from adw.logging.live_stream import LiveStreamTransport
-    from adw.security.interceptor import SecurityInterceptor
 
 logger = logging.getLogger(__name__)
 
@@ -49,24 +48,16 @@ class ClaudeCodeExecutor:
         self,
         config: LLMConfig,
         *,
-        security_interceptor: "SecurityInterceptor | None" = None,
-        allow_dangerous: bool = False,
         live_stream: "LiveStreamTransport | None" = None,
     ) -> None:
         """Initialize the ClaudeCodeExecutor.
 
         Args:
             config: LLM configuration containing path and retry settings.
-            security_interceptor: Optional SecurityInterceptor for checking tool
-                        calls against security patterns.
-            allow_dangerous: If True, log warnings instead of blocking dangerous
-                        commands.
             live_stream: Optional LiveStreamTransport for writing LLM tokens
                         to live.log for real-time tailing.
         """
         self.config = config
-        self.security_interceptor = security_interceptor
-        self.allow_dangerous = allow_dangerous
         self.live_stream = live_stream
 
     def execute(
