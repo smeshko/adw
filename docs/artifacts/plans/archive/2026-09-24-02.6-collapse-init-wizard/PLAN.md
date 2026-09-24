@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-22
 Risk: medium
-Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
+Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../../epics/02-cleanup-remove-and-consolidate.md))
 Phase: 2.6 — Collapse the init wizard into a straight sequence
 Linear: ADW-22
 Created: 2026-09-24
