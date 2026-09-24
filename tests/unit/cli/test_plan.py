@@ -9,6 +9,7 @@ from click.testing import Result
 from typer.testing import CliRunner
 
 from adw.cli.app import app
+from adw.plans.state import mark_task_done
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "plans"
 GOLDEN_SLUG = "add-a-dry-run-flag-to-the-importer"
@@ -198,6 +199,45 @@ class TestReading:
             f"dir=docs/artifacts/plans/{PLAN_SLUG}",
             "tasks=1/7",
         ]
+
+    def test_tasks_and_mark_task_done_round_trip(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        plan_md = _install_fixture_plan(tmp_path) / "PLAN.md"
+        original = plan_md.read_text()
+
+        def task_states() -> dict[str, str]:
+            result = _plan(runner, "tasks", PLAN_SLUG, "--root", str(tmp_path))
+            assert result.exit_code == 0, result.output
+            rows = [line.split("\t") for line in result.stdout.splitlines()]
+            return {row[0]: row[1] for row in rows}
+
+        assert task_states()["TASK-002"] == "pending"
+
+        assert mark_task_done(tmp_path, PLAN_SLUG, "TASK-002") is True
+
+        assert task_states() == {"TASK-001": "done", "TASK-002": "done"} | {
+            f"TASK-00{n}": "pending" for n in range(3, 8)
+        }
+        changed = [
+            (before, after)
+            for before, after in zip(
+                original.splitlines(), plan_md.read_text().splitlines(), strict=True
+            )
+            if before != after
+        ]
+        assert changed == [
+            (
+                "- [ ] TASK-002: Parse PLAN.md into a Plan model and add list, "
+                "show and tasks (depends on TASK-001)",
+                "- [x] TASK-002: Parse PLAN.md into a Plan model and add list, "
+                "show and tasks (depends on TASK-001)",
+            )
+        ]
+        ticked = plan_md.read_bytes()
+
+        assert mark_task_done(tmp_path, PLAN_SLUG, "TASK-002") is False
+        assert plan_md.read_bytes() == ticked
 
     @pytest.mark.parametrize("command", ["show", "tasks"])
     def test_a_missing_plan_exits_1(
