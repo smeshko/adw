@@ -1,4 +1,4 @@
-"""Unit tests for git_diff module.
+"""Unit tests for the diff helpers in adw.git.
 
 Tests for capturing git diffs, parsing diff statistics,
 and truncating large diffs.
@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.exceptions import HookError
-from adw.hooks.git_diff import (
+from adw.git import (
     capture_diff,
     capture_staged_diff,
     count_binary_files,
@@ -31,7 +31,7 @@ class TestCaptureDiff:
         mock_result.stdout = "diff --git a/file.py b/file.py\n+added line"
         mock_result.stderr = ""
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        with patch("adw.git.git", return_value=mock_result) as mock_run:
             result = capture_diff()
 
             assert "diff --git" in result
@@ -44,11 +44,11 @@ class TestCaptureDiff:
         mock_result.stdout = "diff content"
         mock_result.stderr = ""
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        with patch("adw.git.git", return_value=mock_result) as mock_run:
             capture_diff(since="HEAD~3")
 
             # Verify the command includes HEAD~3
-            call_args = mock_run.call_args[0][0]
+            call_args = mock_run.call_args.args
             assert "HEAD~3" in call_args
 
     def test_capture_diff_handles_no_changes(self) -> None:
@@ -58,7 +58,7 @@ class TestCaptureDiff:
         mock_result.stdout = ""
         mock_result.stderr = ""
 
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("adw.git.git", return_value=mock_result):
             result = capture_diff()
 
             assert result == ""
@@ -70,7 +70,7 @@ class TestCaptureDiff:
         mock_result.stdout = ""
         mock_result.stderr = "fatal: bad revision 'HEAD~1'"
 
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("adw.git.git", return_value=mock_result):
             with pytest.raises(HookError) as exc_info:
                 capture_diff()
 
@@ -83,10 +83,10 @@ class TestCaptureDiff:
         mock_result.stdout = ""
         mock_result.stderr = ""
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        with patch("adw.git.git", return_value=mock_result) as mock_run:
             capture_diff()
 
-            call_args = mock_run.call_args[0][0]
+            call_args = mock_run.call_args.args
             assert "--no-color" in call_args
 
     def test_capture_diff_with_working_dir(self) -> None:
@@ -96,7 +96,7 @@ class TestCaptureDiff:
         mock_result.stdout = ""
         mock_result.stderr = ""
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        with patch("adw.git.git", return_value=mock_result) as mock_run:
             capture_diff(working_dir=Path("/test/project"))
 
             assert mock_run.call_args[1]["cwd"] == Path("/test/project")
@@ -112,11 +112,11 @@ class TestCaptureStagedDiff:
         mock_result.stdout = "diff --git a/staged.py b/staged.py\n+staged line"
         mock_result.stderr = ""
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        with patch("adw.git.git", return_value=mock_result) as mock_run:
             result = capture_staged_diff()
 
             assert "staged.py" in result
-            call_args = mock_run.call_args[0][0]
+            call_args = mock_run.call_args.args
             assert "--cached" in call_args
 
     def test_capture_staged_diff_handles_no_staged_changes(self) -> None:
@@ -126,7 +126,7 @@ class TestCaptureStagedDiff:
         mock_result.stdout = ""
         mock_result.stderr = ""
 
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("adw.git.git", return_value=mock_result):
             result = capture_staged_diff()
 
             assert result == ""
@@ -277,7 +277,7 @@ class TestHasCommits:
         mock_result = MagicMock()
         mock_result.returncode = 0
 
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("adw.git.git", return_value=mock_result):
             result = has_commits()
 
             assert result is True
@@ -287,7 +287,7 @@ class TestHasCommits:
         mock_result = MagicMock()
         mock_result.returncode = 128  # git rev-parse fails with no commits
 
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("adw.git.git", return_value=mock_result):
             result = has_commits()
 
             assert result is False
@@ -297,7 +297,7 @@ class TestHasCommits:
         mock_result = MagicMock()
         mock_result.returncode = 0
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        with patch("adw.git.git", return_value=mock_result) as mock_run:
             has_commits(working_dir=Path("/test/repo"))
 
             assert mock_run.call_args[1]["cwd"] == Path("/test/repo")

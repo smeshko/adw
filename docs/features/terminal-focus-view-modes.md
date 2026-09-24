@@ -107,7 +107,7 @@ No configuration options. Both modes use the existing SSE infrastructure and run
 ## Notes
 
 - Terminal mode adds `terminal-mode-active` class to `<body>` to hide the footer status bar, maximizing log real estate
-- Focus mode reuses the `_build_phase_pipeline` and `_format_elapsed` helpers from existing partials code
+- Focus mode reuses the `_build_phase_pipeline` helper from existing partials code, and `adw.format.format_duration` for elapsed time
 - The `terminal_logs` route strips ANSI escape codes and HTML-escapes log content to prevent XSS
 - Log severity coloring uses theme variables: `--accent-red` (ERROR), `--accent-orange` (WARN), `--text-primary` (INFO)
 - SSE log styling in terminal mode requires explicit overrides for `[sse-swap] > div` selectors because SSE-streamed HTML uses different classes than statically rendered logs

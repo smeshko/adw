@@ -24,6 +24,7 @@ from adw.cli.wizard.git import (
     run_git_step,
     validate_branch_prefix,
 )
+from adw.exceptions import ADWError
 
 
 class TestIsGitRepo:
@@ -31,35 +32,35 @@ class TestIsGitRepo:
 
     def test_returns_true_when_in_git_working_tree(self) -> None:
         """is_git_repo returns True when inside a working tree (stdout='true')."""
-        with patch("adw.cli.wizard.git.subprocess.run") as mock_run:
+        with patch("adw.cli.wizard.git.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="true\n")
             assert is_git_repo() is True
 
     def test_returns_false_for_bare_repo(self) -> None:
         """is_git_repo returns False for bare repositories (stdout='false', exit 0)."""
-        with patch("adw.cli.wizard.git.subprocess.run") as mock_run:
+        with patch("adw.cli.wizard.git.git") as mock_run:
             # Bare repos return "false" with exit code 0
             mock_run.return_value = MagicMock(returncode=0, stdout="false\n")
             assert is_git_repo() is False
 
     def test_returns_false_when_not_in_git_repo(self) -> None:
         """is_git_repo returns False when git command fails."""
-        with patch("adw.cli.wizard.git.subprocess.run") as mock_run:
+        with patch("adw.cli.wizard.git.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=128, stdout="")
             assert is_git_repo() is False
 
     def test_returns_false_when_git_not_found(self) -> None:
         """is_git_repo returns False when git is not installed."""
-        with patch("adw.cli.wizard.git.subprocess.run") as mock_run:
+        with patch("adw.cli.wizard.git.git") as mock_run:
             mock_run.side_effect = FileNotFoundError()
             assert is_git_repo() is False
 
-    def test_returns_false_on_subprocess_error(self) -> None:
-        """is_git_repo returns False on subprocess timeout or error."""
-        import subprocess
-
-        with patch("adw.cli.wizard.git.subprocess.run") as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired("git", 5)
+    def test_returns_false_on_timeout(self) -> None:
+        """is_git_repo returns False when git times out."""
+        with patch("adw.cli.wizard.git.git") as mock_run:
+            mock_run.side_effect = ADWError(
+                "GIT_TIMEOUT", "timed out", recoverable=True
+            )
             assert is_git_repo() is False
 
 

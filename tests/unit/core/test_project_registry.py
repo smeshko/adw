@@ -11,7 +11,9 @@ Tests cover:
 
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
+import pytest
 import yaml
 
 from adw.core.project_registry import ProjectRegistryManager
@@ -129,6 +131,28 @@ class TestRegister:
 
         # Should use directory name, not whitespace
         assert result.name == "my-api"
+
+
+class TestSaveFailure:
+    def test_save_failure_keeps_the_registry(self, tmp_path: Path) -> None:
+        """A write that fails partway leaves the old projects.yaml intact."""
+        registry_path = tmp_path / "projects.yaml"
+        manager = ProjectRegistryManager(registry_path=registry_path)
+        manager.register(tmp_path / "first")
+        before = registry_path.read_text()
+
+        def failing_dump(data: object, stream: object = None, **kwargs: object) -> str:
+            if stream is not None:
+                stream.write("partial: [")  # type: ignore[attr-defined]
+            raise yaml.YAMLError("boom")
+
+        with (
+            patch("adw.core.project_registry.yaml.safe_dump", side_effect=failing_dump),
+            pytest.raises(yaml.YAMLError),
+        ):
+            manager.register(tmp_path / "second")
+
+        assert registry_path.read_text() == before
 
 
 class TestUnregister:

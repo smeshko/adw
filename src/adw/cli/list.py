@@ -13,17 +13,17 @@ from rich.console import Console
 from rich.table import Table
 
 from adw.cli.list_display import ListDisplay
+from adw.core.constants import project_runs_dir
 from adw.core.index_manager import IndexManager
 from adw.core.run_lookup import RunLookup
+from adw.format import format_duration, status_style
 from adw.models import RunContext
+from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
 from adw.worktree import ConcurrentRunManager
 from adw.worktree.concurrent import ActiveRun
 
 console = Console()
-
-# Valid status values for filtering
-VALID_STATUSES = frozenset({"running", "completed", "failed", "interrupted", "aborted"})
 
 
 def list_runs(
@@ -87,9 +87,9 @@ def list_runs(
         adw list --running             # Show active runs
     """
     # Validate status filter
-    if status and status not in VALID_STATUSES:
+    if status and status not in RunStatus:
         console.print(f"[red]Error:[/] Invalid status: {status}")
-        console.print(f"Valid values: {', '.join(sorted(VALID_STATUSES))}")
+        console.print(f"Valid values: {', '.join(RunStatus)}")
         raise typer.Exit(code=1)
 
     # Handle --running flag: show active runs from lock files
@@ -98,7 +98,8 @@ def list_runs(
         return
 
     # Determine data source: local runs or global index
-    runs_dir = _get_runs_dir()
+    local_runs_dir = project_runs_dir(Path.cwd())
+    runs_dir = local_runs_dir if local_runs_dir.is_dir() else None
     use_global = global_view or (runs_dir is None and not project)
 
     if use_global:
@@ -218,7 +219,7 @@ def _display_index_entries(entries: list[IndexEntry]) -> None:
 
     for entry in entries:
         # Format status with color
-        status_style = _get_status_style(entry.status)
+        color = status_style(entry.status).color
 
         # Format started time
         if entry.started_at:
@@ -238,31 +239,12 @@ def _display_index_entries(entries: list[IndexEntry]) -> None:
             run_id_short,
             entry.project_name,
             feature,
-            f"[{status_style}]{entry.status}[/{status_style}]",
+            f"[{color}]{entry.status}[/{color}]",
             started,
             entry.phase_reached or "-",
         )
 
     console.print(table)
-
-
-def _get_status_style(status: str) -> str:
-    """Get Rich style for status value.
-
-    Args:
-        status: Run status string.
-
-    Returns:
-        Rich style string.
-    """
-    styles = {
-        "running": "blue",
-        "completed": "green",
-        "failed": "red",
-        "interrupted": "yellow",
-        "aborted": "magenta",
-    }
-    return styles.get(status, "white")
 
 
 def _output_json_index_entries(entries: list[IndexEntry]) -> None:
@@ -292,21 +274,6 @@ def _output_json_index_entries(entries: list[IndexEntry]) -> None:
         )
 
     console.print_json(json.dumps(output))
-
-
-def _get_runs_dir() -> Path | None:
-    """Get the runs directory path.
-
-    Returns:
-        Path to .adw/runs directory, or None if it doesn't exist.
-    """
-    cwd = Path.cwd()
-    runs_dir = cwd / ".adw" / "runs"
-
-    if not runs_dir.exists():
-        return None
-
-    return runs_dir
 
 
 def _output_json_list(runs: list[RunContext]) -> None:
@@ -376,7 +343,7 @@ def _display_running_runs(
     for run in active_runs:
         # Calculate elapsed time
         elapsed = now - run.start_time
-        elapsed_str = _format_elapsed(elapsed.total_seconds())
+        elapsed_str = format_duration(elapsed.total_seconds())
 
         # Truncate worktree path for display
         worktree_str = str(run.worktree_path)
@@ -390,29 +357,6 @@ def _display_running_runs(
         )
 
     console.print(table)
-
-
-def _format_elapsed(seconds: float) -> str:
-    """Format elapsed time in human-readable format.
-
-    Args:
-        seconds: Total seconds elapsed.
-
-    Returns:
-        Formatted string like "5m 23s" or "1h 30m".
-    """
-    total_seconds = int(seconds)
-
-    if total_seconds < 60:
-        return f"{total_seconds}s"
-    elif total_seconds < 3600:
-        minutes = total_seconds // 60
-        secs = total_seconds % 60
-        return f"{minutes}m {secs}s"
-    else:
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        return f"{hours}h {minutes}m"
 
 
 def _output_json_running(

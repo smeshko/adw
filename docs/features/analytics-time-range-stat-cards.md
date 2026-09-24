@@ -89,5 +89,5 @@ runs_delta = current_stats.total_runs - prev_total_runs
 
 - The `_RANGE_DAYS` dict is the single source of truth for valid range values and their day counts
 - `max(0, ...)` guards prevent negative values from rounding/timing edge cases in delta subtraction
-- The `_format_tokens()` helper from `partials.py` is reused for consistent token formatting (e.g., "2.4M", "15K")
+- Token counts go through `adw.format.format_tokens` for consistent formatting (e.g., "2.4M", "15K")
 - Future analytics features (charts, breakdowns) should follow the same `build_analytics_context()` pattern and extend the context dict

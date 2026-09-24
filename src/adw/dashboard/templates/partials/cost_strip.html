@@ -13,7 +13,7 @@
       {% for bar in daily_bars %}
       <div class="bg-primary rounded-t w-3"
            style="height: {{ bar.height_pct }}%; min-height: 2px"
-           title="{{ bar.date_label }}: {{ bar.tokens }} tokens"></div>
+           title="{{ bar.date_label }}: {{ bar.tokens | tokens }} tokens"></div>
       {% endfor %}
     </div>
 

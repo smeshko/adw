@@ -17,7 +17,9 @@ from typing import TYPE_CHECKING
 
 import filelock
 
+from adw.core.constants import CONTEXT_FILE, project_runs_dir
 from adw.exceptions import StateError
+from adw.fs import atomic_write
 
 if TYPE_CHECKING:
     from adw.models import RunContext
@@ -59,7 +61,7 @@ class RunDirectoryManager:
             project_root: Path to the project root directory.
         """
         self.project_root = project_root
-        self.runs_dir = project_root / ".adw" / "runs"
+        self.runs_dir = project_runs_dir(project_root)
 
     def create(self, context: "RunContext") -> Path:
         """Create run directory structure and save initial context.
@@ -86,7 +88,7 @@ class RunDirectoryManager:
         try:
             # Check if this is a true duplicate (context.json already exists)
             # vs. a directory created by early logging (only logs/ subdirectory)
-            context_path = run_dir / "context.json"
+            context_path = run_dir / CONTEXT_FILE
             if run_dir.exists() and context_path.exists():
                 raise StateError(
                     code="RUN_ALREADY_EXISTS",
@@ -106,7 +108,7 @@ class RunDirectoryManager:
             # Acquire lock and write context.json atomically
             lock_path = run_dir / ".lock"
             with filelock.FileLock(lock_path, timeout=_DEFAULT_LOCK_TIMEOUT):
-                context_path.write_text(context.model_dump_json(indent=2))
+                atomic_write(context_path, context.model_dump_json(indent=2))
 
             return run_dir
 

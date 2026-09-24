@@ -7,31 +7,8 @@ from pathlib import Path
 import pytest
 from rich.console import Console
 
-from adw.cli.list import _format_elapsed, _list_running_runs
+from adw.cli.list import _list_running_runs
 from adw.worktree import ConcurrentRunManager
-
-
-class TestFormatElapsed:
-    """Tests for the elapsed time formatting function."""
-
-    def test_format_seconds(self) -> None:
-        """Formats times under 60 seconds."""
-        assert _format_elapsed(0) == "0s"
-        assert _format_elapsed(45) == "45s"
-        assert _format_elapsed(59) == "59s"
-
-    def test_format_minutes(self) -> None:
-        """Formats times under 1 hour."""
-        assert _format_elapsed(60) == "1m 0s"
-        assert _format_elapsed(90) == "1m 30s"
-        assert _format_elapsed(323) == "5m 23s"  # Story example: 5m 23s
-        assert _format_elapsed(130) == "2m 10s"  # Story example: 2m 10s
-
-    def test_format_hours(self) -> None:
-        """Formats times over 1 hour."""
-        assert _format_elapsed(3600) == "1h 0m"
-        assert _format_elapsed(5400) == "1h 30m"  # Story example: 1h 30m
-        assert _format_elapsed(7320) == "2h 2m"
 
 
 class TestListRunningCommand:

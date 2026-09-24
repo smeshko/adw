@@ -22,6 +22,8 @@ from typing import TYPE_CHECKING, Any
 from rich.console import Console
 from rich.prompt import Confirm
 
+from adw.models.context import RunStatus
+
 if TYPE_CHECKING:
     from adw.core.context_manager import ContextManager
     from adw.core.snapshot_manager import SnapshotManager
@@ -162,7 +164,7 @@ class InterruptionHandler:
         # Update status to aborted
         updated_context = context.model_copy(
             update={
-                "status": "aborted",
+                "status": RunStatus.ABORTED,
                 "completed_at": datetime.now(UTC),
             }
         )
@@ -208,7 +210,7 @@ class InterruptionHandler:
             # Update context with interruption info
             self._current_context = self._current_context.model_copy(
                 update={
-                    "status": "interrupted",
+                    "status": RunStatus.INTERRUPTED,
                     "interrupted_phase": self._current_context.current_phase,
                     "interrupted_at": datetime.now(UTC),
                 }
@@ -270,7 +272,7 @@ class InterruptionHandler:
             # Update context with interruption info
             self._current_context = self._current_context.model_copy(
                 update={
-                    "status": "interrupted",
+                    "status": RunStatus.INTERRUPTED,
                     "interrupted_phase": self._current_context.current_phase,
                     "interrupted_at": datetime.now(UTC),
                 }

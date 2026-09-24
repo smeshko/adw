@@ -9,7 +9,6 @@ Tests the full resume command execution including:
 
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -21,17 +20,16 @@ runner = CliRunner()
 
 
 @pytest.fixture
-def mock_runs_dir(tmp_path: Path):
-    """Fixture that creates a runs directory and patches get_runs_dir."""
+def mock_runs_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Create tmp_path/.adw/runs and run the command from tmp_path.
+
+    No helper is patched: `adw resume` builds its orchestrator from the cwd,
+    so the command must run inside the throwaway project, never the checkout.
+    """
     runs_dir = tmp_path / ".adw" / "runs"
     runs_dir.mkdir(parents=True)
-
-    # Patch in both places where it might be imported
-    with (
-        patch("adw.cli.resume.get_runs_dir", return_value=runs_dir),
-        patch("adw.cli.bootstrap.get_runs_dir", return_value=runs_dir),
-    ):
-        yield runs_dir
+    monkeypatch.chdir(tmp_path)
+    return runs_dir
 
 
 def create_test_run_context(

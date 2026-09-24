@@ -241,7 +241,7 @@ Include both transcripts (accept and cancel) from a scratch repo, driven by a te
 
 ## Phase 2.7 — One home for git, formatting, paths and run status
 
-**Plan**: _not yet created_
+**Plan**: [02.7-one-home-for-git-format-paths-status](../plans/02.7-one-home-for-git-format-paths-status/PLAN.md) · status: done
 
 **Linear**: ADW-23 (https://linear.app/ivo-tsonev/issue/ADW-23)
 
@@ -259,11 +259,12 @@ Include both transcripts (accept and cancel) from a scratch repo, driven by a te
 
 ### Acceptance criteria
 
-- [ ] `grep -rnE 'subprocess\.(run|Popen)\(\s*\[\s*"(git|gh)"' src` matches only `src/adw/git.py`.
-- [ ] Each formatter and the status-style map is defined exactly once; checked with grep and listed in the PR.
-- [ ] A `git fetch` through the helper against a fake `git` that sleeps times out and raises instead of hanging.
-- [ ] `adw status` in a directory without `.adw` exits with an error and creates nothing.
-- [ ] Lint and tests pass.
+- [x] `grep -rnE 'subprocess\.(run|Popen)\(\s*\[\s*"(git|gh)"' src` matches only `src/adw/git.py`.
+  - This grep matched nothing even before the phase, because every call split its argv across lines or passed a variable. The phase used stronger checks: `rg -U` of the same pattern prints nothing, and only `src/adw/git.py` and `src/adw/core/run_trigger.py` (which launches `adw` itself) import `subprocess`.
+- [x] Each formatter and the status-style map is defined exactly once; checked with grep and listed in the PR.
+- [x] A `git fetch` through the helper against a fake `git` that sleeps times out and raises instead of hanging.
+- [x] `adw status` in a directory without `.adw` exits with an error and creates nothing.
+- [x] Lint and tests pass.
 
 ### Validation
 

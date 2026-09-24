@@ -604,13 +604,53 @@ class TestWorktreeManagerCreation:
 
         manager = WorktreeManager(project_root=tmp_path)
 
-        with patch("subprocess.run") as mock_run:
+        with patch("adw.worktree.manager.git") as mock_run:
             mock_run.side_effect = FileNotFoundError("git not found")
 
             with pytest.raises(ConfigError) as exc_info:
                 manager.create_worktree("01HQ1234567890ABCDEFGHIJK")
 
             assert exc_info.value.code == "GIT_NOT_FOUND"
+
+    def test_branch_check_timeout_creates_nothing(self, git_repo: Path) -> None:
+        """A timed-out branch pre-check fails the create without touching git.
+
+        "Unknown" must not read as "absent": the cleanup after a failed add
+        would force-delete a branch that already existed.
+        """
+        from adw.exceptions import ADWError, WorktreeError
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        timeout = ADWError("GIT_TIMEOUT", "timed out", recoverable=True)
+
+        with (
+            patch("adw.worktree.manager.branch_exists", side_effect=timeout),
+            patch("adw.worktree.manager.git") as mock_git,
+            patch("adw.worktree.manager.delete_local_branch") as mock_delete,
+            pytest.raises(WorktreeError) as exc_info,
+        ):
+            manager.create_worktree("01HQ1234567890ABCDEFGHIJK")
+
+        assert exc_info.value.code == "WORKTREE_CREATE_FAILED"
+        assert exc_info.value.recoverable
+        mock_git.assert_not_called()
+        mock_delete.assert_not_called()
+
+    def test_branch_not_created_keeps_its_code(self, git_repo: Path) -> None:
+        """BRANCH_NOT_CREATED is not re-mapped by the narrow timeout except."""
+        from adw.exceptions import WorktreeError
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+
+        with (
+            patch("adw.worktree.manager.branch_exists", return_value=False),
+            pytest.raises(WorktreeError) as exc_info,
+        ):
+            manager.create_worktree("01HQ1234567890ABCDEFGHIJK")
+
+        assert exc_info.value.code == "BRANCH_NOT_CREATED"
 
     def test_create_worktree_returns_absolute_path(self, git_repo: Path) -> None:
         """Returned path is always absolute."""
@@ -660,6 +700,27 @@ class TestWorktreeManagerRemoval:
         assert worktree_removed is True
         assert branch_deleted is False  # Branch preserved by default
         assert not worktree_path.exists()
+
+    def test_worktree_remove_timeout_raises_worktree_remove_failed(
+        self, git_repo: Path
+    ) -> None:
+        """A timed-out `git worktree remove` is a WorktreeError, so loops go on."""
+        from adw.exceptions import ADWError, WorktreeError
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQ1234567890ABCDEFGHIJK"
+        manager.create_worktree(run_id)
+        timeout = ADWError("GIT_TIMEOUT", "timed out", recoverable=True)
+
+        with (
+            patch("adw.worktree.manager.git", side_effect=timeout),
+            pytest.raises(WorktreeError) as exc_info,
+        ):
+            manager.remove_worktree(run_id, force=True)
+
+        assert exc_info.value.code == "WORKTREE_REMOVE_FAILED"
+        assert "timed out" in exc_info.value.message
 
     def test_remove_worktree_not_found(self, git_repo: Path) -> None:
         """Raises WorktreeError when worktree doesn't exist."""
@@ -733,12 +794,10 @@ class TestWorktreeManagerRemoval:
         )
         assert branch_name in result.stdout
 
-        # Mock check_pr_exists to return False (no PR)
+        # Mock pr_exists to return False (no PR)
         # Without this mock, gh CLI being unavailable returns None,
         # which preserves the branch as a safety measure
-        with patch.object(
-            manager._branch_manager, "check_pr_exists", return_value=False
-        ):
+        with patch("adw.worktree.manager.pr_exists", return_value=False):
             # Remove with delete_branch=True
             worktree_removed, branch_deleted = manager.remove_worktree(
                 run_id, delete_branch=True
@@ -759,7 +818,7 @@ class TestWorktreeManagerRemoval:
     def test_remove_worktree_preserve_branch_when_gh_unavailable(
         self, git_repo: Path
     ) -> None:
-        """Branch is preserved when gh CLI is unavailable (check_pr_exists returns None)."""
+        """Branch is preserved when gh CLI is unavailable (pr_exists returns None)."""
         from adw.worktree.manager import WorktreeManager
 
         manager = WorktreeManager(project_root=git_repo)
@@ -769,10 +828,8 @@ class TestWorktreeManagerRemoval:
         # Create a worktree
         manager.create_worktree(run_id)
 
-        # Mock check_pr_exists to return None (gh CLI unavailable)
-        with patch.object(
-            manager._branch_manager, "check_pr_exists", return_value=None
-        ):
+        # Mock pr_exists to return None (gh CLI unavailable)
+        with patch("adw.worktree.manager.pr_exists", return_value=None):
             # Remove with delete_branch=True but gh unavailable
             worktree_removed, branch_deleted = manager.remove_worktree(
                 run_id, delete_branch=True
@@ -803,10 +860,8 @@ class TestWorktreeManagerRemoval:
         # Create a worktree
         manager.create_worktree(run_id)
 
-        # Mock check_pr_exists to return None (gh CLI unavailable)
-        with patch.object(
-            manager._branch_manager, "check_pr_exists", return_value=None
-        ):
+        # Mock pr_exists to return None (gh CLI unavailable)
+        with patch("adw.worktree.manager.pr_exists", return_value=None):
             # Remove with delete_branch=True and force=True
             worktree_removed, branch_deleted = manager.remove_worktree(
                 run_id, delete_branch=True, force=True
@@ -850,15 +905,6 @@ class TestWorktreeManagerBranchIntegration:
     """Tests for WorktreeManager branch manager integration."""
 
     # Uses shared git_repo fixture from conftest.py
-
-    def test_branch_manager_property_returns_manager(self, git_repo: Path) -> None:
-        """branch_manager property returns WorktreeBranchManager instance."""
-        from adw.worktree.branch import WorktreeBranchManager
-        from adw.worktree.manager import WorktreeManager
-
-        manager = WorktreeManager(project_root=git_repo)
-
-        assert isinstance(manager.branch_manager, WorktreeBranchManager)
 
     def test_get_branch_name_returns_expected_format(self, git_repo: Path) -> None:
         """get_branch_name returns adw/<run_id> format."""

@@ -82,7 +82,7 @@ class TestResumeCorruptedState:
         # Write corrupted JSON
         (run_dir / "context.json").write_text("{ invalid json }")
 
-        with patch("adw.cli.resume.get_runs_dir", return_value=runs_dir):
+        with patch("adw.cli.resume.require_runs_dir", return_value=runs_dir):
             result = runner.invoke(app, ["resume", run_id])
 
         # Should indicate corrupted state with snapshot suggestion

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import signal
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -17,6 +18,7 @@ import yaml
 from rich.console import Console
 from rich.panel import Panel
 
+from adw import fs
 from adw.cli.wizard.summary import (
     ConfigWriteError,
     atomic_write_config,
@@ -407,6 +409,24 @@ class TestEnvTemplateGeneration:
         assert "Linear Settings" in content
 
 
+def _fail_second_write() -> Callable[[Path, str | bytes], None]:
+    """Wrap the real atomic_write so only its second call fails.
+
+    Every other call, the rollback's restore included, really writes, so the
+    backup-and-restore path runs.
+    """
+    calls = 0
+
+    def write(path: Path, data: str | bytes) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("Disk full")
+        fs.atomic_write(path, data)
+
+    return write
+
+
 class TestAtomicWrite:
     """Tests for atomic file writing."""
 
@@ -451,18 +471,8 @@ class TestAtomicWrite:
                 "will_fail": "content",
             }
 
-            # Mock the second write to fail
-            original_write_text = Path.write_text
-            call_count = [0]
-
-            def failing_write_text(self, content, *args, **kwargs):
-                call_count[0] += 1
-                if call_count[0] == 2:  # Fail on second file
-                    raise OSError("Disk full")
-                return original_write_text(self, content, *args, **kwargs)
-
             with (
-                patch.object(Path, "write_text", failing_write_text),
+                patch("adw.cli.wizard.summary.atomic_write", _fail_second_write()),
                 pytest.raises(ConfigWriteError) as exc_info,
             ):
                 atomic_write_config(adw_dir, files)
@@ -487,18 +497,8 @@ class TestAtomicWrite:
                 "new_file.yaml": "this will fail",
             }
 
-            # Mock write_text to fail on the second file
-            original_write_text = Path.write_text
-            call_count = [0]
-
-            def failing_write_text(self, content, *args, **kwargs):
-                call_count[0] += 1
-                if call_count[0] == 2:  # Fail on second file write
-                    raise OSError("Disk full")
-                return original_write_text(self, content, *args, **kwargs)
-
             with (
-                patch.object(Path, "write_text", failing_write_text),
+                patch("adw.cli.wizard.summary.atomic_write", _fail_second_write()),
                 pytest.raises(ConfigWriteError),
             ):
                 atomic_write_config(adw_dir, files)

@@ -555,55 +555,6 @@ class TestCSRFInTemplateContext:
 # ── Relative Time Helper ────────────────────────────────────────────
 
 
-class TestRelativeTime:
-    """Tests for the _relative_time helper function."""
-
-    def test_none_returns_dash(self) -> None:
-        """None input returns em-dash."""
-        from adw.dashboard.routes import _relative_time
-
-        assert _relative_time(None) == "—"
-
-    def test_seconds_ago(self) -> None:
-        """Recent timestamp returns seconds."""
-        from adw.dashboard.routes import _relative_time
-
-        dt = datetime.now(UTC) - timedelta(seconds=30)
-        result = _relative_time(dt)
-        assert result.endswith("s ago")
-
-    def test_minutes_ago(self) -> None:
-        """Timestamp a few minutes ago returns minutes."""
-        from adw.dashboard.routes import _relative_time
-
-        dt = datetime.now(UTC) - timedelta(minutes=5)
-        result = _relative_time(dt)
-        assert result.endswith("m ago")
-
-    def test_hours_ago(self) -> None:
-        """Timestamp a few hours ago returns hours."""
-        from adw.dashboard.routes import _relative_time
-
-        dt = datetime.now(UTC) - timedelta(hours=3)
-        result = _relative_time(dt)
-        assert result.endswith("h ago")
-
-    def test_days_ago(self) -> None:
-        """Timestamp days ago returns days."""
-        from adw.dashboard.routes import _relative_time
-
-        dt = datetime.now(UTC) - timedelta(days=2)
-        result = _relative_time(dt)
-        assert result.endswith("d ago")
-
-    def test_future_returns_just_now(self) -> None:
-        """Future timestamp returns 'just now'."""
-        from adw.dashboard.routes import _relative_time
-
-        dt = datetime.now(UTC) + timedelta(seconds=10)
-        assert _relative_time(dt) == "just now"
-
-
 # ── Navigation HTMX Attributes ─────────────────────────────────────
 
 

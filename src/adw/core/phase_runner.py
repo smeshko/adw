@@ -19,7 +19,7 @@ from adw.commands.template import build_task_context
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.extensions import ExtensionRegistry
 from adw.exceptions import ADWError, ConfigError, HookError, LLMError
-from adw.hooks.git_commit import create_commit, stage_changes
+from adw.git import create_commit, stage_changes
 
 # Note: git_diff imports removed - BuildExtension now handles diff capture
 from adw.models import (

@@ -39,4 +39,5 @@ Work moves through the plan skills: `create-plan` → `validate-plan` → `imple
 - `test_command` / `build_command` live only on `ProjectConfig`; `PhaseRunner` injects them into the validate and ship templates.
 - Built-in phases live in `src/adw/defaults/commands/<phase>/` (`config.yaml`, `prompt.md`, optional `pre.sh` / `post.sh`). Their BMAD-derived workflow files point at `{project-root}/_bmad/...` inside *target* projects — product code, kept on purpose.
 - `YAMLWithComments` (`src/adw/config/yaml_generator.py`) renders `project.yaml` and phase configs.
+- Shared primitives, one home each: `adw.git` runs every git/gh call with a timeout (tests patch its `git`/`gh` seam, never `subprocess`); `adw.format` formats display values and run-status styles; `adw.fs.atomic_write` writes state files; `core.constants.project_runs_dir` builds the runs path, which only `adw run` creates. Run status is `RunStatus`.
 - Runtime state is gitignored: `.adw/` (runs, this repo's own ADW config) and `trees/` (worktrees ADW creates for its runs).

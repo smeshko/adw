@@ -8,6 +8,7 @@ the complexity of instantiating the orchestrator and its dependencies.
 import os
 from pathlib import Path
 
+import typer
 from rich.console import Console
 
 from adw.cli.progress import ProgressDisplay
@@ -47,7 +48,6 @@ def get_project_root() -> Path:
     """Find the project root directory.
 
     The project root is the current working directory.
-    The .adw directory will be created there if it doesn't exist.
 
     Returns:
         Path to the project root directory.
@@ -55,19 +55,22 @@ def get_project_root() -> Path:
     return Path.cwd()
 
 
-def get_runs_dir(project_root: Path | None = None) -> Path:
-    """Get the runs directory, creating it if necessary.
+def require_runs_dir(project_root: Path | None = None) -> Path:
+    """Return the project's runs directory for a command that only reads it.
 
-    Args:
-        project_root: Project root directory. If None, uses cwd.
+    Never creates anything: only `adw run` creates .adw/runs. The runs
+    directory itself may not exist yet in an initialised project.
 
-    Returns:
-        Path to the .adw/runs directory.
+    Raises:
+        typer.Exit: With code 1 when the project has no .adw directory.
     """
     root = project_root or get_project_root()
-    runs_dir = project_runs_dir(root)
-    runs_dir.mkdir(parents=True, exist_ok=True)
-    return runs_dir
+    if not (root / ".adw").is_dir():
+        console = Console()
+        console.print("[red]Error:[/] No .adw directory found")
+        console.print("[dim]Suggestion:[/] Run 'adw init' first")
+        raise typer.Exit(1)
+    return project_runs_dir(root)
 
 
 def create_orchestrator(
@@ -108,7 +111,9 @@ def create_orchestrator(
         >>> context = orchestrator.run_single_phase("plan", "Add login")
     """
     project_root = get_project_root()
-    runs_dir = get_runs_dir(project_root)
+    # The one place the CLI creates .adw/runs
+    runs_dir = project_runs_dir(project_root)
+    runs_dir.mkdir(parents=True, exist_ok=True)
     console = console or Console()
 
     # Load project configuration for worktree, git, task manager, and LLM settings

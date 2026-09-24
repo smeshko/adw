@@ -5,14 +5,8 @@
          {{ badge.status_badge("completed", "lg") }}
 #}
 
+{#- Classes and icons come from adw.format.STATUS_STYLES (Jinja global status_style) -#}
 {% macro status_badge(status, size="sm") -%}
-{%- set config = {
-  "running":     {"class": "badge-warning",                "icon": "●", "pulse": true},
-  "completed":   {"class": "badge-success badge-soft",      "icon": "✓", "pulse": false},
-  "failed":      {"class": "badge-error",                  "icon": "✗", "pulse": false},
-  "interrupted": {"class": "badge-warning badge-outline",  "icon": "⊘", "pulse": false},
-  "aborted":     {"class": "badge-ghost",                  "icon": "⦻", "pulse": false}
-} -%}
-{%- set cfg = config.get(status, config["aborted"]) -%}
-<span class="badge badge-{{ size }} {{ cfg['class'] }}{% if cfg['pulse'] %} phase-active{% endif %}">{{ cfg['icon'] }} {{ status }}</span>
+{%- set s = status_style(status) -%}
+<span class="badge badge-{{ size }} {{ s.badge }}">{{ s.icon }} {{ status }}</span>
 {%- endmacro %}

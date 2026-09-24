@@ -19,6 +19,7 @@ from pathlib import Path
 
 import yaml
 
+from adw.fs import atomic_write
 from adw.models.registry import ProjectRegistry, RegisteredProject
 
 logger = logging.getLogger(__name__)
@@ -295,5 +296,7 @@ class ProjectRegistryManager:
         # Convert to dict and dump as YAML
         data = registry.model_dump(mode="json")
 
-        with open(self.registry_path, "w") as f:
-            yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+        atomic_write(
+            self.registry_path,
+            yaml.safe_dump(data, default_flow_style=False, sort_keys=False),
+        )

@@ -8,7 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from adw.core.context_manager import ContextManager
-from adw.models import RunContext
+from adw.models import RunContext, RunStatus
 
 __all__ = ["RunLookup"]
 
@@ -83,7 +83,7 @@ class RunLookup:
     def find_most_recent_incomplete(self) -> RunContext | None:
         """Find the most recent incomplete run.
 
-        Incomplete runs have status: "running", "failed", or "interrupted".
+        Incomplete runs are RunStatus.RUNNING, FAILED or INTERRUPTED.
         Runs are sorted by their ULID which is lexicographically sortable
         and encodes the creation timestamp.
 
@@ -95,7 +95,9 @@ class RunLookup:
             >>> if context:
             ...     print(f"Resume: {context.run_id}")
         """
-        incomplete_statuses = ("running", "failed", "interrupted")
+        incomplete_statuses = frozenset(
+            {RunStatus.RUNNING, RunStatus.FAILED, RunStatus.INTERRUPTED}
+        )
         runs = self._list_runs(filter_fn=lambda ctx: ctx.status in incomplete_statuses)
         return runs[0] if runs else None
 

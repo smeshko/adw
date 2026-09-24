@@ -12,8 +12,7 @@ from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from rich.rule import Rule
 
-# Available phases for customization
-AVAILABLE_PHASES: list[str] = ["plan", "build", "validate", "document", "ship"]
+from adw.core.constants import PHASE_SEQUENCE
 
 
 def run_phases_step(console: Console) -> dict[str, Any]:
@@ -77,7 +76,7 @@ def _prompt_phase_selection(console: Console) -> list[str]:
     """
     console.print()
     console.print("[dim]Available phases:[/]")
-    for i, phase in enumerate(AVAILABLE_PHASES, 1):
+    for i, phase in enumerate(PHASE_SEQUENCE, 1):
         console.print(f"  [cyan]{i}[/]. {phase}")
 
     console.print()
@@ -470,7 +469,7 @@ def _parse_phase_selection(selection: str) -> tuple[list[str], list[str]]:
 
     # Handle "all" keyword
     if selection == "all":
-        return list(AVAILABLE_PHASES), []
+        return list(PHASE_SEQUENCE), []
 
     # Split by comma and process each part
     parts = [p.strip() for p in selection.split(",") if p.strip()]
@@ -482,14 +481,14 @@ def _parse_phase_selection(selection: str) -> tuple[list[str], list[str]]:
         # Try as number first
         try:
             idx = int(part)
-            if 1 <= idx <= len(AVAILABLE_PHASES):
-                phase = AVAILABLE_PHASES[idx - 1]
+            if 1 <= idx <= len(PHASE_SEQUENCE):
+                phase = PHASE_SEQUENCE[idx - 1]
                 if phase not in selected:
                     selected.append(phase)
                 matched = True
         except ValueError:
             # Try as phase name
-            if part in AVAILABLE_PHASES:
+            if part in PHASE_SEQUENCE:
                 if part not in selected:
                     selected.append(part)
                 matched = True

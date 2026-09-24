@@ -11,7 +11,6 @@ from unittest.mock import patch
 from rich.console import Console
 
 from adw.cli.wizard.phases import (
-    AVAILABLE_PHASES,
     _configure_document_phase,
     _configure_phase,
     _configure_ship_phase,
@@ -22,14 +21,7 @@ from adw.cli.wizard.phases import (
     _prompt_phase_selection,
     run_phases_step,
 )
-
-
-class TestConstants:
-    """Tests for module constants."""
-
-    def test_available_phases(self) -> None:
-        """Test available phases list includes ship."""
-        assert AVAILABLE_PHASES == ["plan", "build", "validate", "document", "ship"]
+from adw.core.constants import PHASE_SEQUENCE
 
 
 class TestNoCustomization:
@@ -65,7 +57,7 @@ class TestPhaseSelection:
         with patch("adw.cli.wizard.phases.Prompt.ask", return_value="all"):
             selected = _prompt_phase_selection(console)
 
-        assert selected == AVAILABLE_PHASES
+        assert selected == list(PHASE_SEQUENCE)
 
     def test_select_phases_by_number(self) -> None:
         """Test selecting phases by number (1,3)."""
@@ -130,9 +122,9 @@ class TestParsePhaseSelection:
 
     def test_all_keyword(self) -> None:
         """Test 'all' keyword returns all phases."""
-        assert _parse_phase_selection("all") == (AVAILABLE_PHASES, [])
-        assert _parse_phase_selection("ALL") == (AVAILABLE_PHASES, [])
-        assert _parse_phase_selection("  all  ") == (AVAILABLE_PHASES, [])
+        assert _parse_phase_selection("all") == (list(PHASE_SEQUENCE), [])
+        assert _parse_phase_selection("ALL") == (list(PHASE_SEQUENCE), [])
+        assert _parse_phase_selection("  all  ") == (list(PHASE_SEQUENCE), [])
 
     def test_numeric_selection(self) -> None:
         """Test selecting by number."""

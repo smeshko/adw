@@ -63,6 +63,6 @@ No new configuration options. Data is sourced from `IndexManager` and `StatsAggr
 ## Notes
 
 - The recent runs table limits to 5 entries. This is hardcoded in the route handler, not configurable.
-- Duration formatting uses `_format_duration()` which accepts milliseconds. Convert from seconds by multiplying by 1000.
+- Duration formatting uses `adw.format.format_duration()`, which takes seconds. Convert from milliseconds by dividing by 1000.
 - Success rate color thresholds: green >= 80%, yellow 50-79%, red < 50%. These are hardcoded in the Jinja2 template.
 - The overview template uses `{% include %}` for all three sections (stats row, recent runs, project breakdown), keeping the overview template itself minimal.

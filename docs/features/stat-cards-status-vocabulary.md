@@ -82,6 +82,6 @@ context.update(build_stats_context(stats, project_name))
 
 - The stats row wraps to 2 rows at compact widths (1024-1279px) via `flex flex-wrap gap-4` with `min-w-[180px]` per card.
 - The `phase-active` CSS class (pulsing animation) is applied only to the `running` status badge. This class is defined in `dashboard.css`.
-- Token formatting uses a threshold: >= 1M shows `X.XM`, >= 1K shows `XXXK`, below 1K shows raw integer.
+- Token formatting (`adw.format.format_tokens`): below 1K the raw integer, then `1.2K` (one decimal under 10K), `340K`, and `1.2M` / `2M`; the unit is picked after rounding.
 - Cost values are formatted as `$X.XX` with 2 decimal places.
-- The `_format_duration` and `_format_tokens` helpers are module-level functions in `partials.py`, available for import by other modules.
+- Durations and token counts are formatted by `format_duration` (seconds) and `format_tokens` in `adw.format`, which the CLI and the dashboard share.

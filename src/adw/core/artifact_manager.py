@@ -11,11 +11,11 @@ Example:
 """
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 
 from adw.exceptions import StateError
+from adw.fs import atomic_write
 
 
 class ArtifactManager:
@@ -51,8 +51,7 @@ class ArtifactManager:
     ) -> Path:
         """Store an artifact.
 
-        Uses atomic write pattern (temp file + fsync + rename) to ensure
-        data integrity on power failure or crash.
+        Written with adw.fs.atomic_write, so a crash never leaves half a file.
 
         Args:
             run_id: The run ID.
@@ -70,20 +69,11 @@ class ArtifactManager:
         artifacts_dir.mkdir(parents=True, exist_ok=True)
 
         artifact_path = artifacts_dir / name
-        temp_path = artifact_path.with_suffix(artifact_path.suffix + ".tmp")
 
         try:
-            mode = "w" if isinstance(content, str) else "wb"
-            with open(temp_path, mode) as f:
-                f.write(content)
-                f.flush()
-                os.fsync(f.fileno())
-            temp_path.rename(artifact_path)
+            atomic_write(artifact_path, content)
             return artifact_path
-
         except OSError as e:
-            if temp_path.exists():
-                temp_path.unlink()
             raise StateError(
                 code="ARTIFACT_WRITE_FAILED",
                 message=f"Failed to write artifact {phase}/{name}: {e}",

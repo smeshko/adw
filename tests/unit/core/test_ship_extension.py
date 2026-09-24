@@ -224,10 +224,10 @@ class TestShipPostMergeBaseBranch:
 
         with (
             patch("adw.worktree.manager.WorktreeManager"),
-            patch("adw.core.extensions.ship.subprocess.run") as mock_run,
+            patch("adw.core.extensions.ship.git") as mock_run,
         ):
             ext.on_complete(context, MagicMock(spec=PhaseResult))
 
-        argvs = [c.args[0] for c in mock_run.call_args_list]
-        assert ["git", "checkout", "develop"] in argvs
-        assert ["git", "pull", "origin", "develop"] in argvs
+        argvs = [c.args for c in mock_run.call_args_list]
+        assert ("checkout", "develop") in argvs
+        assert ("pull", "origin", "develop") in argvs

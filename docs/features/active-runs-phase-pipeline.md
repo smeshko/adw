@@ -13,7 +13,7 @@ The dashboard overview page displays an "Active Runs" section showing currently 
 - Reusable phase pipeline component macro (`phase_pipeline.html`) rendering DaisyUI `steps` with completed/active/pending states
 - RunContext-to-IndexEntry fallback: live phase data from disk with graceful degradation on `StateError`
 - Empty-state pattern: minimal `<div>` with preserved polling attributes so runs appear automatically when started
-- Server-side helpers: `_format_elapsed()`, `_build_phase_pipeline()`, `_load_active_run_details()`
+- Server-side helpers: `_build_phase_pipeline()`, `_load_active_run_details()`; elapsed time uses `adw.format.format_duration()`
 
 ## Technical Implementation
 

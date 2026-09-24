@@ -7,7 +7,7 @@ in real git repositories.
 import subprocess
 from pathlib import Path
 
-from adw.hooks.git_diff import (
+from adw.git import (
     capture_diff,
     capture_staged_diff,
     count_binary_files,

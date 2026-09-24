@@ -211,44 +211,6 @@ class TestStatsCommand:
 class TestStatsFormatters:
     """Tests for stats formatting functions."""
 
-    def test_format_tokens_thousands(self) -> None:
-        """_format_tokens formats thousands correctly."""
-        from adw.cli.global_commands import _format_tokens
-
-        assert _format_tokens(1234) == "1.2K"
-        assert _format_tokens(45678) == "45.7K"
-        assert _format_tokens(999) == "999"
-
-    def test_format_tokens_millions(self) -> None:
-        """_format_tokens formats millions correctly."""
-        from adw.cli.global_commands import _format_tokens
-
-        assert _format_tokens(1_234_567) == "1.2M"
-        assert _format_tokens(12_345_678) == "12.3M"
-
-    def test_format_cost(self) -> None:
-        """_format_cost formats currency correctly."""
-        from adw.cli.global_commands import _format_cost
-
-        assert _format_cost(47.82) == "$47.82"
-        assert _format_cost(0.05) == "$0.05"
-        assert _format_cost(0) == "$0.00"
-
-    def test_format_cost_large_amounts(self) -> None:
-        """_format_cost handles large amounts with comma."""
-        from adw.cli.global_commands import _format_cost
-
-        assert _format_cost(1234.56) == "$1,234.56"
-        assert _format_cost(12345.67) == "$12,345.67"
-
-    def test_format_duration_ms(self) -> None:
-        """_format_duration_ms formats durations correctly."""
-        from adw.cli.global_commands import _format_duration_ms
-
-        assert _format_duration_ms(45000) == "45s"
-        assert _format_duration_ms(125000) == "2m 5s"
-        assert _format_duration_ms(3725000) == "1h 2m"
-
     def test_format_rate(self) -> None:
         """_format_rate formats percentages correctly."""
         from adw.cli.global_commands import _format_rate

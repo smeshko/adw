@@ -21,11 +21,12 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.syntax import Syntax
 
-from adw.cli.bootstrap import get_runs_dir
+from adw.cli.bootstrap import require_runs_dir
 from adw.core.context_manager import ContextManager
 from adw.core.pr import create_pr, generate_pr_title, load_pr_description
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ADWError
+from adw.models.context import RunStatus
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +148,7 @@ def pr(
         adw pr 01HQXK5P3Z...           # Specific run
         adw pr --draft                 # Create as draft PR
     """
-    runs_dir = get_runs_dir()
+    runs_dir = require_runs_dir()
     lookup = RunLookup(runs_dir)
 
     # Find the run
@@ -172,7 +173,7 @@ def pr(
             raise typer.Exit(1)
 
     # Check run is complete
-    if context.status not in ("completed",):
+    if context.status != RunStatus.COMPLETED:
         console.print(
             Panel(
                 f"[red]Run is not complete[/]\n\n"

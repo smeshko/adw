@@ -21,7 +21,10 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from ulid import ULID
 
-from adw.core.constants import CONTEXT_FILE, LIVE_LOG, project_runs_dir
+from adw.cli.bootstrap import require_runs_dir
+from adw.core.constants import CONTEXT_FILE, LIVE_LOG
+from adw.format import format_size
+from adw.models.context import RunStatus
 
 console = Console()
 
@@ -213,24 +216,6 @@ logs_app = typer.Typer(
 )
 
 
-def _get_runs_dir() -> Path:
-    """Get the runs directory path.
-
-    Returns:
-        Path to .adw/runs directory.
-
-    Raises:
-        typer.Exit: If .adw directory not found.
-    """
-    cwd = Path.cwd()
-    adw_dir = cwd / ".adw"
-    if not adw_dir.exists():
-        console.print("[red]Error:[/] No .adw directory found")
-        console.print("[dim]Suggestion:[/] Run 'adw init' first")
-        raise typer.Exit(1)
-    return project_runs_dir(cwd)
-
-
 def _get_run_dir(run_id: str, *, debug: bool = False) -> Path:
     """Get the run directory path with improved error handling.
 
@@ -244,7 +229,7 @@ def _get_run_dir(run_id: str, *, debug: bool = False) -> Path:
     Raises:
         typer.Exit: If run not found or invalid format.
     """
-    runs_dir = _get_runs_dir()
+    runs_dir = require_runs_dir()
 
     if debug:
         console.print(f"[dim]Searching in: {runs_dir}[/]")
@@ -578,7 +563,7 @@ def logs_follow(
             pass
 
     # If run is not active and not replay mode, inform user
-    if run_status not in ("running", "") and not replay:
+    if run_status not in (RunStatus.RUNNING, "") and not replay:
         console.print(f"[yellow]Run is not active (status: {run_status})[/]")
         if live_log.exists():
             console.print("[dim]Use --replay to view the complete log[/]\n")
@@ -602,7 +587,7 @@ def logs_follow(
         with open(live_log, encoding="utf-8") as f:
             # For replay mode or completed runs, start from beginning
             # For active runs, skip to end and follow
-            if not replay and run_status in ("running", ""):
+            if not replay and run_status in (RunStatus.RUNNING, ""):
                 f.seek(0, 2)  # Seek to end
 
             # Create renderer to track state and accumulate LLM content
@@ -619,7 +604,7 @@ def logs_follow(
                         try:
                             context = json.loads(context_file.read_text())
                             status = context.get("status", "")
-                            if status not in ("running", ""):
+                            if status not in (RunStatus.RUNNING, ""):
                                 console.print(
                                     f"\n[green]Run completed (status: {status})[/]"
                                 )
@@ -781,4 +766,4 @@ def logs_export(
                 tar.add(tmp_path, arcname=run_id)
 
     console.print(f"[green]✓[/] Exported to: {output_path}")
-    console.print(f"[dim]Size: {output_path.stat().st_size / 1024:.1f} KB[/]")
+    console.print(f"[dim]Size: {format_size(output_path.stat().st_size)}[/]")

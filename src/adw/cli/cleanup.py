@@ -11,9 +11,10 @@ from rich.console import Console
 from rich.prompt import Confirm
 from rich.table import Table
 
-from adw.cli.bootstrap import get_runs_dir
+from adw.cli.bootstrap import require_runs_dir
 from adw.core import ContextManager
 from adw.exceptions import ConfigError, StateError, WorktreeError
+from adw.git import delete_branch as delete_local_branch
 from adw.worktree import ConcurrentRunManager, WorktreeManager
 
 console = Console()
@@ -55,7 +56,7 @@ def cleanup_command(
         # Force cleanup (skip confirmations, delete even with uncommitted changes)
         adw cleanup 01HQXK5P3Z7V8R2M4N6T9W1Y3C --force --delete-branch
     """
-    runs_dir = get_runs_dir()
+    runs_dir = require_runs_dir()
     context_manager = ContextManager(runs_dir)
 
     # Try to load context to get worktree info
@@ -132,11 +133,11 @@ def cleanup_command(
             console.print("[yellow]![/] Worktree already removed or doesn't exist")
             # Still try to delete branch if requested
             if delete_branch:
-                branch_manager = worktree_manager.branch_manager
-                # When worktree doesn't exist, user explicitly wants deletion
-                # Use force=True since there's no worktree to protect
-                deleted = branch_manager.delete_branch(
-                    run_id, force=True, branch_name=context.branch_name
+                # When the worktree doesn't exist, the user explicitly wants
+                # the branch gone; there's no worktree to protect
+                deleted = delete_local_branch(
+                    context.branch_name or worktree_manager.get_branch_name(run_id),
+                    working_dir=worktree_manager.project_root,
                 )
                 if deleted:
                     console.print(f"[green]✓[/] Branch deleted: {display_branch}")
@@ -223,7 +224,7 @@ def cleanup_orphans_command(
         base_dir=manager.base_dir,
     )
     # Context manager for loading branch names from context files
-    runs_dir = get_runs_dir()
+    runs_dir = require_runs_dir()
     context_manager = ContextManager(runs_dir)
 
     removed_count = 0

@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from adw.models.context import RunStatus
 from adw.models.index import IndexEntry
 
 
@@ -263,7 +264,7 @@ class TestIndexEntryOptionalFields:
         completed_at = datetime.now(UTC)
         updated = original.model_copy(
             update={
-                "status": "completed",
+                "status": RunStatus.COMPLETED,
                 "completed_at": completed_at,
                 "phase_reached": "validate",
             }

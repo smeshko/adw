@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ConfigError, StateError
+from adw.models.context import RunStatus
 from adw.models.resume import ResumeInfo, ResumeStatus
 
 if TYPE_CHECKING:
@@ -91,7 +92,7 @@ class ResumeManager:
         Returns:
             True if the run can be resumed, False otherwise.
         """
-        return context.status != "completed"
+        return context.status != RunStatus.COMPLETED
 
     def validate_resumable(
         self,
@@ -113,7 +114,7 @@ class ResumeManager:
         Raises:
             ConfigError: If run is completed or phase is invalid.
         """
-        if context.status == "completed":
+        if context.status == RunStatus.COMPLETED:
             raise ConfigError(
                 code="RUN_COMPLETED",
                 message="Run already completed",
@@ -250,10 +251,10 @@ class ResumeManager:
         Returns:
             Phase to start from, or None if run is complete or no phases remain.
         """
-        if context.status == "completed":
+        if context.status == RunStatus.COMPLETED:
             return None
 
-        if context.status == "interrupted" and context.interrupted_phase:
+        if context.status == RunStatus.INTERRUPTED and context.interrupted_phase:
             # Resume from interrupted phase (re-execute from beginning)
             return context.interrupted_phase
 
@@ -295,7 +296,7 @@ class ResumeManager:
 
         return context.model_copy(
             update={
-                "status": "running",
+                "status": RunStatus.RUNNING,
                 "interrupted_phase": None,
                 "interrupted_at": None,
             }

@@ -626,13 +626,10 @@ class TestStatsRowInOverview:
 
 
 def _render_badge(status: str, size: str = "sm") -> str:
-    """Render the status badge macro for a given status."""
-    from jinja2 import Environment, FileSystemLoader
+    """Render the status badge macro through the app's Jinja environment."""
+    from adw.dashboard.server import build_templates
 
-    from adw.dashboard.server import _TEMPLATE_DIR
-
-    env = Environment(loader=FileSystemLoader(str(_TEMPLATE_DIR)))
-    template = env.from_string(
+    template = build_templates().env.from_string(
         '{%- import "components/status_badge.html" as badge -%}'
         "{{ badge.status_badge(status, size) }}"
     )

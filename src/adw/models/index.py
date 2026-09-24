@@ -5,9 +5,10 @@ in the global index at ~/.adw/index.jsonl.
 """
 
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
+
+from adw.models.context import RunStatus
 
 
 class IndexEntry(BaseModel):
@@ -36,7 +37,7 @@ class IndexEntry(BaseModel):
         ...     project_name="my-project",
         ...     feature_description="Add user authentication",
         ...     started_at=datetime.now(UTC),
-        ...     status="running",
+        ...     status=RunStatus.RUNNING,
         ... )
         >>> # Serialize to JSON for JSONL storage
         >>> json_line = entry.model_dump_json()
@@ -52,9 +53,7 @@ class IndexEntry(BaseModel):
     completed_at: datetime | None = Field(
         default=None, description="When this run completed (None if running)"
     )
-    status: Literal["running", "completed", "failed", "interrupted", "aborted"] = Field(
-        ..., description="Current run status"
-    )
+    status: RunStatus = Field(..., description="Current run status")
     phase_reached: str | None = Field(
         default=None, description="Last phase that was executed"
     )

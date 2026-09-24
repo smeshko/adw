@@ -13,7 +13,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.core.run_lifecycle import RunLifecycle
-from adw.exceptions import HookError, LLMError, WorktreeError
+from adw.exceptions import ADWError, HookError, LLMError, WorktreeError
+from adw.git import NETWORK_TIMEOUT
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.task import TaskInfo
 
@@ -412,7 +413,7 @@ class TestCreateRunContextBranch:
             worktree_manager=mock_worktree_manager,
         )
 
-        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+        with patch("adw.core.run_lifecycle.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             context = lifecycle.create_run_context(feature_description="Add login")
 
@@ -1185,17 +1186,13 @@ class TestFetchBaseBranch:
             interruption_handler=mock_interruption_handler,
         )
 
-        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+        with patch("adw.core.run_lifecycle.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             result = lifecycle._fetch_base_branch()
 
         assert result == "origin/main"
         mock_run.assert_called_once_with(
-            ["git", "fetch", "origin", "main"],
-            cwd=tmp_path,
-            capture_output=True,
-            text=True,
-            check=False,
+            "fetch", "origin", "main", cwd=tmp_path, timeout=NETWORK_TIMEOUT
         )
 
     def test_fetch_uses_configured_base_branch(
@@ -1217,17 +1214,13 @@ class TestFetchBaseBranch:
             git_config=GitConfig(base_branch="develop"),
         )
 
-        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+        with patch("adw.core.run_lifecycle.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             result = lifecycle._fetch_base_branch()
 
         assert result == "origin/develop"
         mock_run.assert_called_once_with(
-            ["git", "fetch", "origin", "develop"],
-            cwd=tmp_path,
-            capture_output=True,
-            text=True,
-            check=False,
+            "fetch", "origin", "develop", cwd=tmp_path, timeout=NETWORK_TIMEOUT
         )
 
     def test_fetch_falls_back_to_main_when_base_branch_none(
@@ -1249,12 +1242,12 @@ class TestFetchBaseBranch:
             git_config=GitConfig(base_branch=None),
         )
 
-        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+        with patch("adw.core.run_lifecycle.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             result = lifecycle._fetch_base_branch()
 
         assert result == "origin/main"
-        assert mock_run.call_args[0][0] == ["git", "fetch", "origin", "main"]
+        assert mock_run.call_args.args == ("fetch", "origin", "main")
 
     def test_fetch_failure_raises_worktree_error(
         self,
@@ -1274,7 +1267,7 @@ class TestFetchBaseBranch:
             interruption_handler=mock_interruption_handler,
         )
 
-        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+        with patch("adw.core.run_lifecycle.git") as mock_run:
             mock_run.return_value = MagicMock(
                 returncode=128, stderr="fatal: could not read from remote"
             )
@@ -1285,6 +1278,41 @@ class TestFetchBaseBranch:
         assert exc_info.value.code == "GIT_FETCH_FAILED"
         assert "main" in exc_info.value.message
         assert "could not read from remote" in exc_info.value.message
+
+    def test_fetch_timeout_raises_git_fetch_failed(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+    ) -> None:
+        """A timed-out fetch keeps the documented WorktreeError and the hint."""
+        lifecycle = RunLifecycle(
+            runs_dir=tmp_path,
+            project_path=tmp_path,
+            context_manager=mock_context_manager,
+            run_directory_manager=mock_run_directory_manager,
+            index_manager=mock_index_manager,
+            interruption_handler=mock_interruption_handler,
+        )
+        timeout = ADWError(
+            "GIT_TIMEOUT",
+            "`git fetch origin` timed out after 300s",
+            suggestion="check your credentials or ssh-agent",
+            recoverable=True,
+        )
+
+        with (
+            patch("adw.core.run_lifecycle.git", side_effect=timeout),
+            pytest.raises(WorktreeError) as exc_info,
+        ):
+            lifecycle._fetch_base_branch()
+
+        assert exc_info.value.code == "GIT_FETCH_FAILED"
+        assert exc_info.value.recoverable
+        assert "timed out" in exc_info.value.message
+        assert "credential" in (exc_info.value.suggestion or "")
 
     def test_fetch_failure_includes_suggestion(
         self,
@@ -1304,7 +1332,7 @@ class TestFetchBaseBranch:
             interruption_handler=mock_interruption_handler,
         )
 
-        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+        with patch("adw.core.run_lifecycle.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=1, stderr="Connection refused")
 
             with pytest.raises(WorktreeError) as exc_info:
@@ -1343,7 +1371,7 @@ class TestCreateWorktreeForRunFetch:
             worktree_manager=mock_worktree_manager,
         )
 
-        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+        with patch("adw.core.run_lifecycle.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             lifecycle._create_worktree_for_run("RUN123", "test feature")
 
@@ -1378,7 +1406,7 @@ class TestCreateWorktreeForRunFetch:
             worktree_manager=mock_worktree_manager,
         )
 
-        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+        with patch("adw.core.run_lifecycle.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             lifecycle._create_worktree_for_run("RUN123", "test feature")
 
@@ -1407,7 +1435,7 @@ class TestCreateWorktreeForRunFetch:
             worktree_manager=mock_worktree_manager,
         )
 
-        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+        with patch("adw.core.run_lifecycle.git") as mock_run:
             mock_run.return_value = MagicMock(returncode=128, stderr="fatal: no remote")
 
             with pytest.raises(WorktreeError) as exc_info:

@@ -15,6 +15,17 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from rich.console import Console
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.templating import Jinja2Templates
+
+from adw.format import (
+    format_cost,
+    format_duration,
+    format_relative_time,
+    format_size,
+    format_tokens,
+    status_style,
+)
+from adw.models.context import RunStatus
 
 console = Console()
 
@@ -50,6 +61,22 @@ async def _dashboard_lifespan(app: FastAPI) -> AsyncGenerator[None]:
     console.print()
 
 
+def build_templates() -> Jinja2Templates:
+    """Build the dashboard's Jinja environment with its filters and globals."""
+    templates = Jinja2Templates(directory=str(_TEMPLATE_DIR))
+    templates.env.filters.update(
+        duration=format_duration,
+        tokens=format_tokens,
+        relative_time=format_relative_time,
+        cost=format_cost,
+        filesize=format_size,
+    )
+    templates.env.globals.update(
+        status_style=status_style, run_statuses=list(RunStatus)
+    )
+    return templates
+
+
 def create_dashboard_app(
     host: str = "127.0.0.1",
     port: int = 8100,
@@ -63,8 +90,6 @@ def create_dashboard_app(
     Returns:
         Configured FastAPI application for the web dashboard.
     """
-    from starlette.templating import Jinja2Templates
-
     app = FastAPI(
         title="ADW Dashboard",
         description="Web dashboard for ADW run monitoring",
@@ -75,7 +100,7 @@ def create_dashboard_app(
     app.state.dashboard_port = port
 
     # Jinja2 templates
-    templates = Jinja2Templates(directory=str(_TEMPLATE_DIR))
+    templates = build_templates()
     app.state.templates = templates
 
     # Static files (HTMX, CSS, etc.)

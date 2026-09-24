@@ -12,7 +12,6 @@ Key features:
 
 import json
 import logging
-import os
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -21,6 +20,7 @@ from typing import TYPE_CHECKING
 from pydantic import ValidationError
 
 from adw.exceptions import StateError
+from adw.fs import atomic_write
 from adw.models import StateSnapshot
 
 if TYPE_CHECKING:
@@ -119,7 +119,7 @@ class SnapshotManager:
         """Create snapshot when run is aborted.
 
         Args:
-            context: Current run context (should have status="aborted").
+            context: Current run context (should be RunStatus.ABORTED).
             reason: Reason for abort (e.g., "user_abort", "cli_abort").
 
         Returns:
@@ -188,19 +188,10 @@ class SnapshotManager:
         # Generate filename: 001_pre_plan.json
         filename = f"{sequence:03d}_{label}.json"
         snapshot_path = snapshots_dir / filename
-        temp_path = snapshot_path.with_suffix(".tmp")
 
         try:
-            # Atomic write with fsync
-            with open(temp_path, "w") as f:
-                f.write(snapshot.model_dump_json(indent=2))
-                f.flush()
-                os.fsync(f.fileno())
-            temp_path.rename(snapshot_path)
-
+            atomic_write(snapshot_path, snapshot.model_dump_json(indent=2))
         except OSError as e:
-            if temp_path.exists():
-                temp_path.unlink()
             raise StateError(
                 code="SNAPSHOT_WRITE_FAILED",
                 message=f"Failed to write snapshot: {e}",

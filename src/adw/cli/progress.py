@@ -27,6 +27,7 @@ from rich.progress import (
 )
 
 from adw.core.constants import PHASE_SEQUENCE, PR_DESCRIPTION_ARTIFACT
+from adw.format import format_duration, format_tokens, status_style
 from adw.logging.console import set_active_live
 
 if TYPE_CHECKING:
@@ -47,7 +48,6 @@ class ProgressDisplay:
     Attributes:
         console: Rich Console instance for output.
         PHASE_COLORS: Mapping of phase names to Rich colors.
-        STATUS_ICONS: Mapping of status names to display icons.
 
     Example:
         >>> from rich.console import Console
@@ -63,15 +63,6 @@ class ProgressDisplay:
         "validate": "magenta",
         "document": "green",
         "ship": "yellow",
-    }
-
-    STATUS_ICONS: dict[str, str] = {
-        "pending": "·",
-        "running": "►",
-        "completed": "✓",
-        "failed": "✗",
-        "aborted": "⊘",
-        "interrupted": "⏸",
     }
 
     def __init__(
@@ -185,32 +176,6 @@ class ProgressDisplay:
         self._progress = None
         self._task_id = None
 
-    @staticmethod
-    def _format_duration(duration_ms: int | None) -> str:
-        """Format duration for display.
-
-        Returns '13m44s' for >= 60s, '45.2s' for < 60s, 'N/A' for None.
-        """
-        if duration_ms is None:
-            return "N/A"
-        total_seconds = duration_ms / 1000
-        if total_seconds >= 60:
-            minutes = int(total_seconds // 60)
-            seconds = int(total_seconds % 60)
-            return f"{minutes}m{seconds:02d}s"
-        return f"{total_seconds:.1f}s"
-
-    @staticmethod
-    def _format_tokens(count: int) -> str:
-        """Format token count with K/M abbreviation."""
-        if count >= 1_000_000:
-            value = count / 1_000_000
-            return f"{value:.1f}M" if value != int(value) else f"{int(value)}M"
-        if count >= 1_000:
-            value = count / 1_000
-            return f"{value:.0f}K" if value >= 10 else f"{value:.1f}K"
-        return str(count)
-
     def on_phase_complete(self, phase: str, result: PhaseResult) -> None:
         """Display phase completion.
 
@@ -224,21 +189,23 @@ class ProgressDisplay:
         self._total_tokens += result.tokens_used
 
         color = self.PHASE_COLORS.get(phase, "white")
-        formatted_duration = self._format_duration(result.duration_ms)
+        formatted_duration = format_duration(
+            result.duration_ms / 1000 if result.duration_ms is not None else None
+        )
         artifacts = len(result.artifacts)
 
         # Build token display with input/output breakdown
-        input_display = self._format_tokens(result.input_tokens)
+        input_display = format_tokens(result.input_tokens)
         cached_total = (
             result.cache_creation_input_tokens + result.cache_read_input_tokens
         )
         if cached_total > 0:
             new_tokens = result.input_tokens - cached_total
             input_display += (
-                f" ({self._format_tokens(max(0, new_tokens))} new, "
-                f"{self._format_tokens(cached_total)} cached)"
+                f" ({format_tokens(max(0, new_tokens))} new, "
+                f"{format_tokens(cached_total)} cached)"
             )
-        output_display = self._format_tokens(result.output_tokens)
+        output_display = format_tokens(result.output_tokens)
 
         self.console.print(
             f"[bold green]✓[/] [{color}]{phase.upper()}[/] completed "
@@ -303,17 +270,11 @@ class ProgressDisplay:
         status_line = " → ".join(phase_status)
 
         # Format duration
-        duration = self._format_duration(total_duration_ms)
+        duration = format_duration(
+            total_duration_ms / 1000 if total_duration_ms is not None else None
+        )
 
-        # Status color: green for completed, orange for aborted, red for failed
-        if status == "completed":
-            status_color = "green"
-        elif status == "aborted":
-            status_color = "dark_orange"  # Distinct orange for aborted status
-        elif status == "interrupted":
-            status_color = "cyan"
-        else:
-            status_color = "red"
+        status_color = status_style(status).color
 
         # Build content with optional PR description path
         content_lines = [
@@ -321,7 +282,7 @@ class ProgressDisplay:
             "",
             f"[bold]Status:[/] [{status_color}]{status}[/]",
             f"[bold]Duration:[/] {duration}",
-            f"[bold]Tokens:[/] {self._format_tokens(total_tokens)}",
+            f"[bold]Tokens:[/] {format_tokens(total_tokens)}",
         ]
 
         # Add PR info if document phase completed

@@ -129,7 +129,7 @@
           <div class="chart-bar h-full flex flex-col justify-end w-full group relative">
             <div class="bg-primary rounded-t" style="height: {{ bar.output_height }}%"></div>
             <div class="bg-primary/40" style="height: {{ bar.input_height }}%"></div>
-            <div class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block bg-base-300 text-xs rounded px-2 py-1 whitespace-nowrap z-10">{{ bar.day_label }}: {{ bar.total_tokens | default(0) }} tokens</div>
+            <div class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block bg-base-300 text-xs rounded px-2 py-1 whitespace-nowrap z-10">{{ bar.day_label }}: {{ bar.tokens | tokens }} tokens</div>
           </div>
           {% endfor %}
         </div>
@@ -212,7 +212,7 @@
       <h3 class="text-base font-semibold mb-3 section-header">Monthly Budget</h3>
       <progress class="progress {{ budget_progress_class }} w-full" value="{{ budget_percentage }}" max="100"></progress>
       <div class="flex justify-between items-center mt-2">
-        <span class="text-sm font-mono">{{ budget_spent }} / ${{ "%.2f" | format(budget_amount) }}</span>
+        <span class="text-sm font-mono">{{ budget_spent }} / {{ budget_amount | cost }}</span>
         <span class="text-sm font-mono">{{ "%.1f" | format(budget_percentage) }}%</span>
       </div>
       {% if budget_days_remaining is not none %}

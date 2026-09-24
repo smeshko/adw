@@ -15,7 +15,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from adw.cli.bootstrap import create_orchestrator, get_runs_dir
+from adw.cli.bootstrap import create_orchestrator, require_runs_dir
 from adw.cli.run_display import RunDisplay
 from adw.cli.validators import validate_phase
 from adw.core import ContextManager, ResumeManager
@@ -34,7 +34,7 @@ def _create_resume_manager() -> ResumeManager:
     Returns:
         Configured ResumeManager instance.
     """
-    runs_dir = get_runs_dir()
+    runs_dir = require_runs_dir()
     return ResumeManager(
         runs_dir=runs_dir,
         run_lookup=RunLookup(runs_dir),

@@ -624,7 +624,7 @@ class TestPhaseRunnerGitDiffCapture:
         with (
             patch("adw.core.extensions.build.has_commits", return_value=True),
             patch("adw.core.extensions.build.capture_diff") as mock_capture,
-            patch("adw.core.extensions.build.subprocess.run") as mock_stat,
+            patch("adw.core.extensions.build.git") as mock_stat,
         ):
             mock_capture.return_value = "diff --git a/test.py\n+added line"
             mock_stat.return_value = MagicMock(
@@ -666,7 +666,7 @@ class TestPhaseRunnerGitDiffCapture:
             patch("adw.core.extensions.build.has_commits", return_value=True),
             patch("adw.core.extensions.build.capture_diff") as mock_diff,
             patch("adw.core.extensions.build.capture_staged_diff") as mock_staged,
-            patch("adw.core.extensions.build.subprocess.run") as mock_stat,
+            patch("adw.core.extensions.build.git") as mock_stat,
         ):
             # No commit diff available
             mock_diff.return_value = ""

@@ -38,6 +38,14 @@ from adw.dashboard.dependencies import (
 )
 from adw.dashboard.settings import settings_context
 from adw.exceptions import StateError
+from adw.format import (
+    format_cost,
+    format_duration,
+    format_relative_time,
+    format_size,
+    format_tokens,
+)
+from adw.models.context import RunStatus
 from adw.models.stats import TokenUsage
 
 if TYPE_CHECKING:
@@ -52,26 +60,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
-def _relative_time(dt: datetime | None) -> str:
-    """Return a human-readable relative time string like '5s ago'."""
-    if dt is None:
-        return "—"
-    now = datetime.now(UTC)
-    delta = now - dt
-    seconds = int(delta.total_seconds())
-    if seconds < 0:
-        return "just now"
-    if seconds < 60:
-        return f"{seconds}s ago"
-    minutes = seconds // 60
-    if minutes < 60:
-        return f"{minutes}m ago"
-    hours = minutes // 60
-    if hours < 24:
-        return f"{hours}h ago"
-    days = hours // 24
-    return f"{days}d ago"
+# Run statuses whose current phase shows as failed
+_FAILED_STATUSES = frozenset({RunStatus.FAILED, RunStatus.ABORTED})
 
 
 def _build_page_context(
@@ -95,7 +85,7 @@ def _build_page_context(
     try:
         project_path_str, _ = resolve_project_filter(project_registry, project)
         active_runs = index_manager.get_recent_runs(
-            status="running",
+            status=RunStatus.RUNNING,
             project_path=Path(project_path_str) if project_path_str else None,
         )
         active_run_count = len(active_runs)
@@ -113,7 +103,7 @@ def _build_page_context(
         "projects": project_names,
         "selected_project": project or None,
         "active_run_count": active_run_count,
-        "last_updated_ago": _relative_time(last_updated_dt),
+        "last_updated_ago": format_relative_time(last_updated_dt),
     }
 
 
@@ -202,7 +192,7 @@ async def overview(
             context["project_stats"] = all_stats.projects
 
             active_entries = index_manager.get_recent_runs(
-                status="running",
+                status=RunStatus.RUNNING,
                 project_path=Path(project_path_str) if project_path_str else None,
             )
             context["active_runs"] = _load_active_run_details(active_entries, name_map)
@@ -453,9 +443,9 @@ def _build_detail_phase_pipeline(
         if phase in completed_set:
             phase_status = "completed"
         elif phase == current_phase:
-            if status == "running":
+            if status == RunStatus.RUNNING:
                 phase_status = "active"
-            elif status in ("failed", "aborted"):
+            elif status in _FAILED_STATUSES:
                 phase_status = "failed"
             else:
                 # completed/interrupted: treat current phase as completed
@@ -464,13 +454,9 @@ def _build_detail_phase_pipeline(
             phase_status = "pending"
 
         duration_ms = durations.get(phase)
-        if duration_ms is not None:
-            total_seconds = duration_ms // 1000
-            minutes = total_seconds // 60
-            seconds = total_seconds % 60
-            duration_display = f"{minutes}m {seconds}s"
-        else:
-            duration_display = ""
+        duration_display = (
+            format_duration(duration_ms / 1000) if duration_ms is not None else ""
+        )
 
         pipeline.append(
             {
@@ -480,19 +466,6 @@ def _build_detail_phase_pipeline(
             }
         )
     return pipeline
-
-
-def _format_duration_from_seconds(total_seconds: int) -> str:
-    """Format seconds as 'Xs', 'Xm Ys', or 'Xh Ym'."""
-    if total_seconds < 60:
-        return f"{total_seconds}s"
-    minutes = total_seconds // 60
-    seconds = total_seconds % 60
-    if minutes < 60:
-        return f"{minutes}m {seconds}s"
-    hours = minutes // 60
-    remaining_minutes = minutes % 60
-    return f"{hours}h {remaining_minutes}m"
 
 
 def _build_run_detail_context(
@@ -516,7 +489,6 @@ def _build_run_detail_context(
     Returns:
         Dict with all template variables for run_detail.html.
     """
-    from adw.dashboard.partials import _format_tokens
 
     run_id = run_entry.run_id
     project_name: str = run_entry.project_name
@@ -578,10 +550,10 @@ def _build_run_detail_context(
     # Duration
     if completed_at and started_at:
         delta_seconds = max(0, int((completed_at - started_at).total_seconds()))
-        duration_display = _format_duration_from_seconds(delta_seconds)
+        duration_display = format_duration(delta_seconds)
     elif started_at:
         elapsed = int((datetime.now(UTC) - started_at).total_seconds())
-        duration_display = _format_duration_from_seconds(elapsed)
+        duration_display = format_duration(elapsed)
     else:
         duration_display = "—"
 
@@ -611,7 +583,7 @@ def _build_run_detail_context(
     # the full pipeline.
     # For completed/failed runs, only show phases that have data
     completed_set = set(phases_completed)
-    show_all_phases = status == "running"
+    show_all_phases = status == RunStatus.RUNNING
 
     phases_detail: list[dict[str, Any]] = []
     for phase_key in PHASE_SEQUENCE:
@@ -625,9 +597,9 @@ def _build_run_detail_context(
         if phase_key in completed_set:
             phase_status = "completed"
         elif phase_key == current_phase:
-            if status == "running":
+            if status == RunStatus.RUNNING:
                 phase_status = "active"
-            elif status in ("failed", "aborted"):
+            elif status in _FAILED_STATUSES:
                 phase_status = "failed"
             else:
                 phase_status = "completed"
@@ -651,8 +623,8 @@ def _build_run_detail_context(
                 "status": phase_status,
                 "status_icon": status_icon,
                 "tokens": tokens,
-                "tokens_display": _format_tokens(tokens) if tokens else "—",
-                "cost_display": f"${cost:.2f}" if cost > 0 else "—",
+                "tokens_display": format_tokens(tokens) if tokens else "—",
+                "cost_display": format_cost(cost) if cost > 0 else "—",
                 "duration": "",  # Duration per phase not yet tracked
             }
         )
@@ -667,7 +639,7 @@ def _build_run_detail_context(
 
     # Determine failed phase name for error banner
     failed_phase_name: str | None = None
-    if status in ("failed", "aborted") and current_phase:
+    if status in _FAILED_STATUSES and current_phase:
         failed_phase_name = _PHASE_LABELS.get(current_phase, current_phase.capitalize())
 
     return {
@@ -678,12 +650,12 @@ def _build_run_detail_context(
         "status": status,
         "started_at": started_at,
         "completed_at": completed_at,
-        "started_ago": _relative_time(started_at),
+        "started_ago": format_relative_time(started_at),
         "duration_display": duration_display,
         "branch_name": branch_name,
         "total_tokens": total_tokens,
-        "tokens_display": _format_tokens(total_tokens) if total_tokens else "—",
-        "estimated_cost": f"${estimated_cost:.2f}" if estimated_cost > 0 else "—",
+        "tokens_display": format_tokens(total_tokens) if total_tokens else "—",
+        "estimated_cost": format_cost(estimated_cost) if estimated_cost > 0 else "—",
         "pr_url": pr_url,
         "linear_url": linear_url,
         "task_id": task_id,
@@ -692,7 +664,7 @@ def _build_run_detail_context(
         "phases_detail": phases_detail,
         "back_label": back_label,
         "back_url": back_url,
-        "is_active": status == "running",
+        "is_active": status == RunStatus.RUNNING,
         "failed_phase_name": failed_phase_name,
     }
 
@@ -769,15 +741,6 @@ async def run_detail(
         "pages/run_detail.html",
         context,
     )
-
-
-def _format_file_size(size_bytes: int) -> str:
-    """Format file size in human-readable form."""
-    if size_bytes < 1024:
-        return f"{size_bytes} B"
-    if size_bytes < 1024 * 1024:
-        return f"{size_bytes / 1024:.1f} KB"
-    return f"{size_bytes / (1024 * 1024):.1f} MB"
 
 
 def _find_run_entry(
@@ -952,7 +915,7 @@ async def phase_detail(
                     {
                         "name": art["name"],
                         "size": art["size"],
-                        "size_display": _format_file_size(art["size"]),
+                        "size_display": format_size(art["size"]),
                     }
                 )
         except (StateError, OSError):
@@ -983,7 +946,7 @@ async def phase_detail(
         except (StateError, OSError):
             pass
 
-    is_active_phase = run_status == "running" and run_current_phase == phase
+    is_active_phase = run_status == RunStatus.RUNNING and run_current_phase == phase
 
     context = {
         "request": request,
@@ -1393,8 +1356,6 @@ async def run_events_sse(
 
     async def event_generator() -> AsyncGenerator[str]:
         """Yield SSE events by polling RunContext for state changes."""
-        from adw.dashboard.partials import _format_elapsed
-
         last_phase: str | None = None
         last_status: str | None = None
 
@@ -1421,7 +1382,7 @@ async def run_events_sse(
             # Emit phase-update if phase changed
             if current_phase != last_phase:
                 elapsed = datetime.now(UTC) - ctx.started_at
-                elapsed_display = _format_elapsed(elapsed)
+                elapsed_display = format_duration(elapsed.total_seconds())
 
                 # Build updated phase pipeline HTML with OOB swap
                 phases = _build_detail_phase_pipeline(
@@ -1435,7 +1396,7 @@ async def run_events_sse(
 
             # Emit run-complete or run-failed if status changed to terminal
             if current_status != last_status and current_status in TERMINAL_STATUSES:
-                if current_status == "completed":
+                if current_status == RunStatus.COMPLETED:
                     yield _format_sse_event("run-complete", "")
                 else:
                     yield _format_sse_event("run-failed", "")

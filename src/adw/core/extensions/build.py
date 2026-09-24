@@ -6,13 +6,13 @@ artifact capture for the build phase.
 
 import json
 import logging
-import subprocess
 from typing import TYPE_CHECKING, ClassVar
 
-from adw.hooks.git_diff import (
+from adw.git import (
     capture_diff,
     capture_staged_diff,
     get_diff_stats,
+    git,
     has_commits,
     truncate_diff,
 )
@@ -172,16 +172,14 @@ class BuildExtension:
             JSON string with diff stats, or None on error.
         """
         try:
-            stat_cmd = ["git", "diff", "--stat", "--no-color"]
+            stat_args = ["diff", "--stat", "--no-color"]
             if diff_reference == "--cached":
-                stat_cmd.append("--cached")
+                stat_args.append("--cached")
             else:
-                stat_cmd.append(diff_reference)
+                stat_args.append(diff_reference)
 
-            stat_result = subprocess.run(
-                stat_cmd,
-                capture_output=True,
-                text=True,
+            stat_result = git(
+                *stat_args,
                 cwd=context.worktree_path if context.worktree_path else None,
             )
 

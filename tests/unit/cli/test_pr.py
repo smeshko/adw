@@ -265,8 +265,10 @@ class TestPrCommand:
         assert result.exit_code == 1
         assert "GH_PR_FAILED" in result.output
 
-    def test_pr_run_not_found(self, runner: CliRunner) -> None:
-        """An unknown run ID exits 1."""
+    def test_pr_run_not_found(self, runner: CliRunner, tmp_path: Path) -> None:
+        """An unknown run ID in an initialised project exits 1."""
+        (tmp_path / ".adw").mkdir()
+
         result = runner.invoke(app, ["pr", RUN_ID])
 
         assert result.exit_code == 1

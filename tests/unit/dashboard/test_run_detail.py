@@ -1558,28 +1558,6 @@ class TestBinaryArtifactHandling:
 # ── Helper Function Tests (New) ─────────────────────────────────────
 
 
-class TestFormatFileSize:
-    """Tests for _format_file_size helper."""
-
-    def test_bytes(self) -> None:
-        """Small files show bytes."""
-        from adw.dashboard.routes import _format_file_size
-
-        assert _format_file_size(512) == "512 B"
-
-    def test_kilobytes(self) -> None:
-        """Medium files show KB."""
-        from adw.dashboard.routes import _format_file_size
-
-        assert _format_file_size(2048) == "2.0 KB"
-
-    def test_megabytes(self) -> None:
-        """Large files show MB."""
-        from adw.dashboard.routes import _format_file_size
-
-        assert _format_file_size(1048576) == "1.0 MB"
-
-
 class TestFindRunEntry:
     """Tests for _find_run_entry helper."""
 
@@ -1609,25 +1587,3 @@ class TestFindRunEntry:
         mock_im.get_recent_runs.side_effect = RuntimeError("db error")
         result = _find_run_entry(mock_im, "test-id")
         assert result is None
-
-
-class TestFormatDurationFromSeconds:
-    """Tests for _format_duration_from_seconds helper."""
-
-    def test_seconds_only(self) -> None:
-        """Under 60 seconds shows Xs."""
-        from adw.dashboard.routes import _format_duration_from_seconds
-
-        assert _format_duration_from_seconds(45) == "45s"
-
-    def test_minutes_and_seconds(self) -> None:
-        """Minutes and seconds format."""
-        from adw.dashboard.routes import _format_duration_from_seconds
-
-        assert _format_duration_from_seconds(125) == "2m 5s"
-
-    def test_hours_and_minutes(self) -> None:
-        """Large duration shows hours."""
-        from adw.dashboard.routes import _format_duration_from_seconds
-
-        assert _format_duration_from_seconds(3725) == "1h 2m"

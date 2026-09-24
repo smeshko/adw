@@ -164,7 +164,7 @@ Tests with Linear and the executor stubbed, plus a scratch-repo run from a real 
 
 ### What to build
 
-- Replace feature-text branch names (`hooks/git_branch.py`, `RunLifecycle._feature_branch_name`):
+- Replace feature-text branch names (`adw/git.py` `sanitize_branch_name`, `RunLifecycle._feature_branch_name`):
   - The branch becomes `<prefix>/<issue-id-lowercase>-<slug>`, or `<prefix>/<slug>` when there is no issue.
   - The prefix comes from the issue's Type label: `feature` → `feature`, `bug` → `bug`, `refactoring` → `refactor`. It defaults to `feature`.
   - The branch is cut from `origin/<base>` after a fetch, inside the run's worktree.

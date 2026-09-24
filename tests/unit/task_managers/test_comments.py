@@ -330,46 +330,6 @@ class TestCommentFormatter:
         assert "`README.md`" in result
 
 
-class TestFormatDuration:
-    """Tests for CommentFormatter._format_duration helper."""
-
-    def test_seconds_only(self) -> None:
-        """Formats short durations as seconds."""
-        from adw.task_managers.comments import CommentFormatter
-
-        assert CommentFormatter._format_duration(28.0) == "28s"
-
-    def test_minutes_and_seconds(self) -> None:
-        """Formats longer durations as minutes and seconds."""
-        from adw.task_managers.comments import CommentFormatter
-
-        assert CommentFormatter._format_duration(138.0) == "2m 18s"
-
-    def test_zero_seconds(self) -> None:
-        """Formats zero duration."""
-        from adw.task_managers.comments import CommentFormatter
-
-        assert CommentFormatter._format_duration(0.0) == "0s"
-
-    def test_negative_treated_as_zero(self) -> None:
-        """Negative durations are clamped to zero."""
-        from adw.task_managers.comments import CommentFormatter
-
-        assert CommentFormatter._format_duration(-5.0) == "0s"
-
-    def test_exact_minute(self) -> None:
-        """Exact minute boundary."""
-        from adw.task_managers.comments import CommentFormatter
-
-        assert CommentFormatter._format_duration(60.0) == "1m 0s"
-
-    def test_fractional_seconds_truncated(self) -> None:
-        """Fractional seconds are truncated."""
-        from adw.task_managers.comments import CommentFormatter
-
-        assert CommentFormatter._format_duration(45.9) == "45s"
-
-
 class TestFormatPhaseTimeline:
     """Tests for CommentFormatter._format_phase_timeline helper."""
 

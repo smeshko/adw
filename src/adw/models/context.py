@@ -5,8 +5,9 @@ throughout the ADW workflow execution.
 """
 
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
@@ -14,6 +15,16 @@ from adw.models.task import TaskInfo
 
 if TYPE_CHECKING:
     from adw.models.phase import PhaseResult
+
+
+class RunStatus(StrEnum):
+    """Status of a whole run, as stored in context.json and the index."""
+
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    INTERRUPTED = "interrupted"
+    ABORTED = "aborted"
 
 
 class RunContext(BaseModel):
@@ -30,7 +41,7 @@ class RunContext(BaseModel):
         phase_history: List of phases that have been executed
         started_at: When this run started
         completed_at: When this run completed (None if still running)
-        status: Current run status (running, completed, failed)
+        status: Current run status (a RunStatus)
         artifacts: Mapping of phase names to lists of artifact paths
 
     Example:
@@ -57,8 +68,8 @@ class RunContext(BaseModel):
     completed_at: datetime | None = Field(
         default=None, description="When this run completed"
     )
-    status: Literal["running", "completed", "interrupted", "failed", "aborted"] = Field(
-        default="running", description="Current run status"
+    status: RunStatus = Field(
+        default=RunStatus.RUNNING, description="Current run status"
     )
     interrupted_phase: str | None = Field(
         default=None,

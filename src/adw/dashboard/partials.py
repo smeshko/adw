@@ -27,6 +27,8 @@ from adw.dashboard.dependencies import (
 )
 from adw.dashboard.settings import settings_context
 from adw.exceptions import StateError
+from adw.format import format_cost, format_duration, format_relative_time, format_tokens
+from adw.models.context import RunStatus
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -42,27 +44,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/partials")
 
 
-def _relative_time(dt: datetime | None) -> str:
-    """Return a human-readable relative time string like '5s ago'."""
-    if dt is None:
-        return "—"
-    now = datetime.now(UTC)
-    delta = now - dt
-    seconds = int(delta.total_seconds())
-    if seconds < 0:
-        return "just now"
-    if seconds < 60:
-        return f"{seconds}s ago"
-    minutes = seconds // 60
-    if minutes < 60:
-        return f"{minutes}m ago"
-    hours = minutes // 60
-    if hours < 24:
-        return f"{hours}h ago"
-    days = hours // 24
-    return f"{days}d ago"
-
-
 @router.get("/status-bar", response_class=HTMLResponse)
 async def status_bar(
     request: Request,
@@ -73,7 +54,7 @@ async def status_bar(
     templates: Jinja2Templates = request.app.state.templates
 
     # Get active run count
-    active_runs = index_manager.get_recent_runs(status="running")
+    active_runs = index_manager.get_recent_runs(status=RunStatus.RUNNING)
     active_run_count = len(active_runs)
 
     # Get last updated timestamp from most recent run
@@ -89,34 +70,13 @@ async def status_bar(
 
     context = {
         "request": request,
-        "last_updated_ago": _relative_time(last_updated_dt),
+        "last_updated_ago": format_relative_time(last_updated_dt),
         "active_run_count": active_run_count,
         "selected_project": project or None,
         "current_path": current_path or "/",
     }
 
     return templates.TemplateResponse(request, "partials/status_bar.html", context)
-
-
-def _format_duration(ms: int) -> str:
-    """Format milliseconds as 'Xm Ys' or 'Xs' when under a minute."""
-    total_seconds = ms // 1000
-    if total_seconds < 60:
-        return f"{total_seconds}s"
-    minutes = total_seconds // 60
-    seconds = total_seconds % 60
-    return f"{minutes}m {seconds}s"
-
-
-def _format_tokens(total: int) -> str:
-    """Format token count with abbreviation (2.4M, 340K)."""
-    if total >= 1_000_000:
-        value = total / 1_000_000
-        return f"{value:.1f}M" if value != int(value) else f"{int(value)}M"
-    if total >= 1_000:
-        value = total / 1_000
-        return f"{value:.0f}K" if value >= 10 else f"{value:.1f}K"
-    return str(total)
 
 
 def build_stats_context(
@@ -140,7 +100,7 @@ def build_stats_context(
         stats.average_duration_ms - stats.previous_week_average_duration_ms
     )
     abs_duration_trend_ms = abs(duration_trend_ms)
-    duration_trend_display = _format_duration(abs_duration_trend_ms)
+    duration_trend_display = format_duration(abs_duration_trend_ms / 1000)
 
     return {
         "selected_project": selected_project,
@@ -149,9 +109,9 @@ def build_stats_context(
         "success_rate_display": f"{stats.success_rate * 100:.1f}%"
         if stats.total_runs > 0
         else "—",
-        "duration_display": _format_duration(stats.average_duration_ms),
-        "tokens_display": _format_tokens(stats.tokens.total_tokens),
-        "cost_display": f"{stats.estimated_cost:.2f}",
+        "duration_display": format_duration(stats.average_duration_ms / 1000),
+        "tokens_display": format_tokens(stats.tokens.total_tokens),
+        "cost_display": format_cost(stats.estimated_cost),
         # Trend data
         "runs_trend": runs_trend,
         "success_trend": success_trend,
@@ -159,8 +119,8 @@ def build_stats_context(
         "duration_trend_ms": duration_trend_ms,
         "duration_trend_display": duration_trend_display,
         # This week totals
-        "tokens_week_display": _format_tokens(stats.tokens_this_week.total_tokens),
-        "cost_week_display": f"{stats.cost_this_week:.2f}",
+        "tokens_week_display": format_tokens(stats.tokens_this_week.total_tokens),
+        "cost_week_display": format_cost(stats.cost_this_week),
     }
 
 
@@ -199,8 +159,8 @@ def build_cost_strip_context(
         )
 
     return {
-        "cost_strip_cost_display": f"${stats.cost_this_week:.2f}",
-        "cost_strip_tokens_display": _format_tokens(
+        "cost_strip_cost_display": format_cost(stats.cost_this_week),
+        "cost_strip_tokens_display": format_tokens(
             stats.tokens_this_week.total_tokens,
         ),
         "daily_bars": daily_bars,
@@ -340,7 +300,6 @@ def build_analytics_context(
             )
 
     # ── Phase breakdown ──
-    canonical_phases = ["plan", "build", "validate", "document", "ship"]
     phase_display = {
         "plan": "Plan",
         "build": "Build",
@@ -354,8 +313,8 @@ def build_analytics_context(
             project_name=project_name,
             since=since,
         )
-        phase_total = sum(phase_data.get(p, 0) for p in canonical_phases)
-        for phase_key in canonical_phases:
+        phase_total = sum(phase_data.get(p, 0) for p in PHASE_SEQUENCE)
+        for phase_key in PHASE_SEQUENCE:
             tokens_val = phase_data.get(phase_key, 0)
             if tokens_val > 0:
                 pct = int((tokens_val / phase_total) * 100) if phase_total > 0 else 0
@@ -397,7 +356,7 @@ def build_analytics_context(
                 {
                     "name": model_name,
                     "percentage": pct,
-                    "cost_display": f"${cost:.2f}",
+                    "cost_display": format_cost(cost),
                 }
             )
 
@@ -405,7 +364,7 @@ def build_analytics_context(
     budget_env = os.environ.get("ADW_MONTHLY_BUDGET")
     has_budget = False
     budget_amount = 0.0
-    budget_spent = "$0.00"
+    budget_spent = format_cost(0)
     budget_percentage = 0.0
     budget_progress_class = "progress-primary"
     budget_days_remaining: int | None = None
@@ -415,7 +374,7 @@ def build_analytics_context(
             budget_amount = float(budget_env)
             if budget_amount > 0:
                 has_budget = True
-                budget_spent = f"${total_cost:.2f}"
+                budget_spent = format_cost(total_cost)
                 budget_percentage = round((total_cost / budget_amount) * 100, 1)
 
                 if budget_percentage > 90:
@@ -446,9 +405,9 @@ def build_analytics_context(
                 {
                     "name": proj.name,
                     "runs": proj_runs,
-                    "tokens_display": _format_tokens(proj_tokens),
-                    "cost_display": f"${proj_cost:.2f}",
-                    "avg_tokens_display": _format_tokens(avg_tok),
+                    "tokens_display": format_tokens(proj_tokens),
+                    "cost_display": format_cost(proj_cost),
+                    "avg_tokens_display": format_tokens(avg_tok),
                     "tokens_raw": proj_tokens,
                     "cost_raw": proj_cost,
                     "runs_raw": proj_runs,
@@ -478,18 +437,18 @@ def build_analytics_context(
         "has_analytics_data": has_data,
         "show_deltas": show_deltas,
         # Stat card values
-        "analytics_total_tokens": _format_tokens(total_tokens),
-        "analytics_total_cost": f"${total_cost:.2f}",
-        "analytics_avg_tokens": _format_tokens(avg_tokens_per_run),
+        "analytics_total_tokens": format_tokens(total_tokens),
+        "analytics_total_cost": format_cost(total_cost),
+        "analytics_avg_tokens": format_tokens(avg_tokens_per_run),
         "analytics_total_runs": total_runs,
         # Delta values
         "tokens_delta": tokens_delta,
-        "tokens_delta_display": _format_tokens(abs(tokens_delta)),
+        "tokens_delta_display": format_tokens(abs(tokens_delta)),
         "cost_delta": cost_delta,
-        "cost_delta_display": f"${abs(cost_delta):.2f}",
+        "cost_delta_display": format_cost(abs(cost_delta)),
         "runs_delta": runs_delta,
         "avg_tokens_delta": avg_tokens_delta,
-        "avg_tokens_delta_display": _format_tokens(abs(avg_tokens_delta)),
+        "avg_tokens_delta_display": format_tokens(abs(avg_tokens_delta)),
         # Chart and breakdown data
         "daily_chart_bars": daily_chart_bars,
         "project_breakdown": project_breakdown,
@@ -544,7 +503,7 @@ def build_recent_runs_context(
     for entry in entries:
         if entry.completed_at and entry.started_at:
             delta_seconds = (entry.completed_at - entry.started_at).total_seconds()
-            duration_display = _format_duration(int(delta_seconds * 1000))
+            duration_display = format_duration(delta_seconds)
         else:
             duration_display = "—"
 
@@ -559,7 +518,7 @@ def build_recent_runs_context(
                 "feature_description": entry.feature_description,
                 "status": entry.status,
                 "duration_display": duration_display,
-                "started_ago": _relative_time(entry.started_at),
+                "started_ago": format_relative_time(entry.started_at),
             }
         )
     return result
@@ -631,16 +590,6 @@ _PHASE_LABELS: dict[str, str] = {
 }
 
 
-def _format_elapsed(delta: timedelta) -> str:
-    """Format a timedelta as 'Xm Ys' or 'Xs' when under a minute."""
-    total_seconds = int(delta.total_seconds())
-    if total_seconds < 60:
-        return f"{total_seconds}s"
-    minutes = total_seconds // 60
-    seconds = total_seconds % 60
-    return f"{minutes}m {seconds}s"
-
-
 def _build_phase_pipeline(
     *,
     phases_completed: list[str],
@@ -653,22 +602,22 @@ def _build_phase_pipeline(
         current_phase: The currently active phase name.
 
     Returns:
-        List of dicts with 'name' (display label) and 'status'
-        ('completed', 'active', or 'pending') for each phase.
+        List of dicts with 'name' (display label) and 'status' for each
+        phase: completed, active or pending.
     """
     completed_set = set(phases_completed)
     pipeline: list[dict[str, str]] = []
     for phase in PHASE_SEQUENCE:
         if phase in completed_set:
-            status = "completed"
+            phase_status = "completed"
         elif phase == current_phase:
-            status = "active"
+            phase_status = "active"
         else:
-            status = "pending"
+            phase_status = "pending"
         pipeline.append(
             {
                 "name": _PHASE_LABELS.get(phase, phase.capitalize()),
-                "status": status,
+                "status": phase_status,
             }
         )
     return pipeline
@@ -685,7 +634,7 @@ def _load_active_run_details(
     if the RunContext cannot be loaded.
 
     Args:
-        entries: List of IndexEntry objects with status="running".
+        entries: List of IndexEntry objects for RunStatus.RUNNING runs.
         name_map: Optional mapping of project_path -> display_name.
 
     Returns:
@@ -726,7 +675,7 @@ def _load_active_run_details(
                 "run_id": entry.run_id,
                 "project_name": display_name,
                 "feature_description": entry.feature_description,
-                "elapsed": _format_elapsed(elapsed),
+                "elapsed": format_duration(elapsed.total_seconds()),
                 "phases": _build_phase_pipeline(
                     phases_completed=phases_completed,
                     current_phase=current_phase,
@@ -751,7 +700,7 @@ async def active_runs_partial(
     project_name = project or None
     project_path_str, _ = resolve_project_filter(project_registry, project_name)
     entries = index_manager.get_recent_runs(
-        status="running",
+        status=RunStatus.RUNNING,
         project_path=Path(project_path_str) if project_path_str else None,
     )
 
@@ -866,7 +815,7 @@ async def abort_modal(
         )
 
     # Validate run is active
-    if run_entry.status != "running":
+    if run_entry.status != RunStatus.RUNNING:
         return HTMLResponse(
             content=(
                 '<p class="text-error text-sm">'
@@ -884,7 +833,7 @@ async def abort_modal(
         ctx = cm.load(run_id)
         current_phase = ctx.current_phase
         # Verify live status in case index is stale
-        if ctx.status != "running":
+        if ctx.status != RunStatus.RUNNING:
             return HTMLResponse(
                 content=(
                     '<p class="text-error text-sm">'
@@ -946,7 +895,7 @@ async def terminal_mode(
         run_entry.project_name,
     )
 
-    is_active = run_entry.status == "running"
+    is_active = run_entry.status == RunStatus.RUNNING
 
     # Check if logs exist
     has_logs = False
@@ -1087,7 +1036,7 @@ async def focus_mode(
     )
 
     status = run_entry.status
-    is_active = status == "running"
+    is_active = status == RunStatus.RUNNING
     phases_completed = list(run_entry.phases_completed)
     current_phase = run_entry.phase_reached
 
@@ -1100,7 +1049,7 @@ async def focus_mode(
         current_phase = ctx.current_phase
         phases_completed = list(ctx.phase_history)
         status = ctx.status
-        is_active = status == "running"
+        is_active = status == RunStatus.RUNNING
     except (StateError, OSError):
         logger.debug(
             "RunContext unavailable for focus mode, using IndexEntry fallback",
@@ -1114,7 +1063,7 @@ async def focus_mode(
         elapsed = datetime.now(UTC) - run_entry.started_at
     else:
         elapsed = timedelta(0)
-    elapsed_display = _format_elapsed(elapsed)
+    elapsed_display = format_duration(elapsed.total_seconds())
 
     # Build phase pipeline
     phases = _build_phase_pipeline(
