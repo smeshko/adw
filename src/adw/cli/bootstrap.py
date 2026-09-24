@@ -5,10 +5,8 @@ the ADW pipeline. This module provides factory functions that handle
 the complexity of instantiating the orchestrator and its dependencies.
 """
 
-import logging
 import os
 from pathlib import Path
-from typing import TextIO, cast
 
 from rich.console import Console
 
@@ -24,25 +22,21 @@ from adw.core import (
     RunDirectoryManager,
     SnapshotManager,
 )
-from adw.core.constants import LIVE_LOG, PHASE_SEQUENCE, project_runs_dir
+from adw.core.constants import PHASE_SEQUENCE, project_runs_dir
 from adw.core.extensions import create_default_registry
 from adw.core.phase_runner import PhaseRunner
 from adw.exceptions import ConfigError
 from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.hooks.runner import HookRunner
-from adw.logging import LogManager, LogManagerHandler, create_redactor_from_config
-from adw.logging.console import ConsoleTransport
-from adw.logging.live_stream import LiveStreamTransport
+from adw.logging.live_stream import LiveStreamHandler
 from adw.models.config import (
     GitConfig,
     HookConfig,
     LLMConfig,
-    RedactionConfig,
     TaskManagerConfig,
     WorktreeConfig,
 )
-from adw.models.logging import VERBOSITY_LEVEL_MAP, LogLevel, Verbosity
 from adw.models.task import TaskInfo
 from adw.task_managers.base import TaskManager
 from adw.task_managers.labels import LabelManager
@@ -76,101 +70,11 @@ def get_runs_dir(project_root: Path | None = None) -> Path:
     return runs_dir
 
 
-def create_log_manager(
-    console: Console | None = None,
-    verbosity: Verbosity = Verbosity.NORMAL,
-    run_dir: Path | None = None,
-    redaction_config: RedactionConfig | None = None,
-) -> LogManager:
-    """Create a LogManager configured for CLI use.
-
-    Sets up console transport with the specified verbosity. When run_dir is
-    provided, also sets up file transports for persistent logging.
-
-    IMPORTANT: This function also wires up Python's standard logging to flow
-    through the LogManager, so calls to logging.getLogger().info() will write
-    to logs.jsonl.
-
-    Args:
-        console: Rich console for output. If None, creates a new one.
-        verbosity: Verbosity level for console output (default: NORMAL)
-        run_dir: Optional run directory for file logging. If provided,
-                 creates logs/logs.jsonl and logs/raw.log in the run directory.
-
-    Returns:
-        Configured LogManager ready for use.
-
-    Example:
-        >>> logger = create_log_manager(verbosity=Verbosity.VERBOSE)
-        >>> logger.debug(LogCategory.PHASE, "Detailed info")
-    """
-    console = console or Console()
-
-    # Create redactor from config (defaults to enabled with default patterns)
-    if redaction_config is None:
-        redactor = create_redactor_from_config()
-    else:
-        redactor = create_redactor_from_config(
-            enabled=redaction_config.enabled,
-            patterns=redaction_config.patterns or None,
-            disable_defaults=redaction_config.disable_defaults,
-        )
-
-    log_manager = LogManager(verbosity=verbosity, redactor=redactor)
-
-    # Add console transport with verbosity filtering
-    console_transport = ConsoleTransport(
-        file=cast(TextIO, console.file),
-        force_tty=console.is_terminal,
-        verbosity=verbosity,
-    )
-    log_manager.register(console_transport)
-
-    # Add live stream transport when run_dir is provided
-    # LiveStreamTransport writes to live.log with ANSI formatting for real-time tailing
-    if run_dir:
-        live_transport = LiveStreamTransport(run_dir / LIVE_LOG)
-        log_manager.register(live_transport)
-
-    # Wire Python's standard logging to flow through LogManager
-    # This ensures all logging.getLogger(__name__).info() calls in ADW modules
-    # are captured in logs.jsonl for debugging via `adw logs show`
-    handler = LogManagerHandler(log_manager)
-
-    # Set handler level based on verbosity - file transports log everything,
-    # but we filter at the handler level based on CLI verbosity
-    log_level = VERBOSITY_LEVEL_MAP.get(verbosity, LogLevel.INFO)
-    python_level_map = {
-        LogLevel.TRACE: logging.DEBUG,  # Python has no TRACE, use DEBUG
-        LogLevel.DEBUG: logging.DEBUG,
-        LogLevel.INFO: logging.INFO,
-        LogLevel.WARN: logging.WARNING,
-        LogLevel.ERROR: logging.ERROR,
-        LogLevel.FATAL: logging.CRITICAL,
-    }
-    handler.setLevel(python_level_map.get(log_level, logging.INFO))
-
-    # Attach to root logger to capture all ADW module logs
-    root_logger = logging.getLogger()
-    root_logger.addHandler(handler)
-
-    # Ensure root logger level allows messages through
-    # (handlers filter further, but root must let them through first)
-    if root_logger.level == logging.NOTSET or root_logger.level > logging.DEBUG:
-        root_logger.setLevel(logging.DEBUG)
-
-    # Suppress noisy third-party loggers (httpx logs every HTTP request at INFO)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-    return log_manager
-
-
 def create_orchestrator(
     console: Console | None = None,
     *,
     with_progress: bool = True,
-    run_id: str | None = None,
+    live_stream: LiveStreamHandler | None = None,
     task_manager: TaskManager | None = None,
     task_info: TaskInfo | None = None,
 ) -> Orchestrator:
@@ -189,7 +93,9 @@ def create_orchestrator(
     Args:
         console: Rich console for output. If None, creates a new one.
         with_progress: Whether to include progress display.
-        run_id: Optional run ID. Used for live log directory setup.
+        live_stream: The run's live.log handler from setup_logging. The
+            executor writes the LLM stream through it, so live.log has one
+            writer.
         task_manager: Optional task manager for label/sync operations.
         task_info: Optional TaskInfo with internal UUID for label operations.
             task_info.id is used for Linear API calls (not the identifier).
@@ -234,12 +140,6 @@ def create_orchestrator(
     command_resolver = CommandResolver(project_root=project_root)
     template_engine = TemplateEngine(project_root=project_root)
     hook_runner = HookRunner(config=config.hooks if config else HookConfig())
-
-    # Set up live stream transport for LLM output logging
-    live_stream = None
-    if run_id:
-        run_dir = runs_dir / run_id
-        live_stream = LiveStreamTransport(run_dir / LIVE_LOG)
 
     # Use MockExecutor in test mode to avoid hitting real Claude API
     # Set ADW_MOCK_EXECUTOR=1 to enable mock mode (used by tests)

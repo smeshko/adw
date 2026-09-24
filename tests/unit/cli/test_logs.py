@@ -19,7 +19,6 @@ import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
-from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
 
 
 @pytest.fixture
@@ -86,8 +85,6 @@ class TestLogsExportCommand:
         run_id = "01HQTESTAB0000000000000003"
         run_dir = runs_dir / run_id
         run_dir.mkdir()
-        logs_dir = run_dir / "logs"
-        logs_dir.mkdir()
         (run_dir / "snapshots").mkdir()
         (run_dir / "llm").mkdir()
         (run_dir / "artifacts").mkdir()
@@ -102,16 +99,8 @@ class TestLogsExportCommand:
         (run_dir / "context.json").write_text(json.dumps(context))
 
         # Create log file
-        log_events = [
-            LogEvent(
-                level=LogLevel.INFO,
-                category=LogCategory.PHASE,
-                message="Phase plan started",
-                context=LogContext(run_id=run_id, phase="plan"),
-            ),
-        ]
-        (logs_dir / "logs.jsonl").write_text(
-            "\n".join(e.model_dump_json() for e in log_events)
+        (run_dir / "live.log").write_text(
+            "[2026-01-15 10:30:00] [INFO] {phase=plan} Phase plan started\n"
         )
 
         output_file = tmp_path / "export.tar.gz"

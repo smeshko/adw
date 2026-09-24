@@ -9,7 +9,6 @@ This package contains all Pydantic models used throughout ADW:
 - config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig, GitConfig
 - llm: LLMResult, ToolCall
 - hook: HookResult
-- logging: LogLevel, LogCategory, LogContext, LogEvent
 - index: IndexEntry
 - pr: PRDescription
 - task: TaskInfo
@@ -47,12 +46,6 @@ from adw.models.index import IndexEntry
 from adw.models.llm import (
     LLMResult,
     ToolCall,
-)
-from adw.models.logging import (
-    LogCategory,
-    LogContext,
-    LogEvent,
-    LogLevel,
 )
 from adw.models.phase import (
     PhaseResult,
@@ -101,11 +94,6 @@ __all__: list[str] = [
     # LLM models
     "LLMResult",
     "ToolCall",
-    # Logging models
-    "LogCategory",
-    "LogContext",
-    "LogEvent",
-    "LogLevel",
     # Phase models
     "PhaseResult",
     "PhaseStatus",

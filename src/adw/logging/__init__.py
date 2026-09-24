@@ -16,9 +16,7 @@ from rich.console import Console
 
 from adw.core.constants import LIVE_LOG
 from adw.logging.console import ConsoleHandler
-from adw.logging.handler import LogManagerHandler
 from adw.logging.live_stream import LiveStreamHandler
-from adw.logging.manager import LogManager
 from adw.logging.redactor import RedactingFilter, Redactor, configure_redactor
 from adw.models.config import RedactionConfig
 from adw.models.logging import Verbosity
@@ -131,8 +129,6 @@ def setup_logging(
 
 
 __all__ = [
-    "LogManager",
-    "LogManagerHandler",
     "create_redactor_from_config",
     "setup_logging",
 ]

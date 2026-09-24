@@ -9,13 +9,17 @@ Tests for the `adw run FEATURE_DESCRIPTION` command including:
 Help text verification tests removed per TEST_REDUCTION_PLAN.md
 """
 
+import logging
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
+from adw.cli.bootstrap import create_orchestrator
 from adw.core.constants import PHASE_SEQUENCE
+from adw.logging.live_stream import LiveStreamHandler
 
 runner = CliRunner()
 
@@ -171,3 +175,31 @@ class TestFromRunFlag:
 
         # Should work without error about --from-run
         assert "No such option" not in result.output
+
+
+class TestRunLogging:
+    """Tests for how `adw run` wires logging."""
+
+    def test_run_hands_the_one_live_log_handler_to_the_orchestrator(
+        self, git_repo: Path
+    ) -> None:
+        """One handler writes live.log: the one on the adw logger."""
+        spy = MagicMock(wraps=create_orchestrator)
+        with patch("adw.cli.app.create_orchestrator", spy):
+            result = runner.invoke(
+                app, ["run", "--phase", "plan", "Add feature", "--no-worktree"]
+            )
+
+        assert result.exit_code == 0, result.output
+        live_stream = spy.call_args.kwargs["live_stream"]
+        live_handlers = [
+            h
+            for h in logging.getLogger("adw").handlers
+            if isinstance(h, LiveStreamHandler)
+        ]
+        assert live_handlers == [live_stream]
+        log_path = Path(live_stream.baseFilename)
+        assert log_path.name == "live.log"
+        assert log_path.parent.parent == git_repo / ".adw" / "runs"
+        # The run dir keeps its context .lock; live.log itself has none
+        assert not list((git_repo / ".adw" / "runs").rglob("live.log.lock"))

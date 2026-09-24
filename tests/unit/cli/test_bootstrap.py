@@ -369,3 +369,21 @@ class TestBootstrapHookWiring:
         assert orchestrator._phase_runner.hook_runner.config == HookConfig(
             timeout_seconds=5, shell="/bin/sh"
         )
+
+
+class TestBootstrapLiveStream:
+    """Tests for the live.log writer create_orchestrator hands the executor."""
+
+    def test_executor_writes_through_the_given_live_stream(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The executor gets setup_logging's handler, not a second writer."""
+        from adw.cli.bootstrap import create_orchestrator
+        from adw.logging.live_stream import LiveStreamHandler
+
+        monkeypatch.delenv("ADW_MOCK_EXECUTOR")
+        handler = LiveStreamHandler(tmp_path / "live.log")
+
+        orchestrator = create_orchestrator(with_progress=False, live_stream=handler)
+
+        assert orchestrator._phase_runner.executor.live_stream is handler

@@ -25,7 +25,7 @@ Reduce the test suite by eliminating tests in these waste categories:
 |----------|-------------|---------|
 | **Trivial Attribute Tests** | Tests that set a value and verify it equals what was set | `assert manager.runs_dir == runs_dir` |
 | **Pydantic Smoke Tests** | Tests verifying Pydantic's built-in serialization | `assert "field" in model.model_dump_json()` |
-| **Import Smoke Tests** | Tests that classes exist or can be imported | `assert LogManager is not None` |
+| **Import Smoke Tests** | Tests that classes exist or can be imported | `assert Redactor is not None` |
 | **Enum Existence Tests** | Tests that enum members exist or count | `assert len(PHASE_SEQUENCE) == 5` |
 | **Redundant Variants** | Same logic tested multiple ways | Multiple tests for `rm -rf /`, `rm -rf ~`, `rm -rf .` |
 | **Mock Class Tests** | Tests verifying mock objects work | `assert mock_executor.call_count == 0` |

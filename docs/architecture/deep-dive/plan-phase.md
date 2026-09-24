@@ -114,9 +114,7 @@ After plan phase completes:
 │   └── plan/
 │       ├── plan_output.md          # Generated plan (LLM output)
 │       └── plan_tool_calls.json    # Tool calls made (if any)
-├── logs/
-│   ├── logs.jsonl                  # Structured logs
-│   └── raw.log                     # Human-readable log
+├── live.log                        # Log records, LLM output, tool calls (redacted, UTC)
 ├── llm/
 │   ├── 001_request.json            # LLM prompt captured
 │   └── 001_response.json           # LLM response captured
