@@ -27,7 +27,6 @@ class MockWizardState:
             "task_manager": {},
             "ship": {},
             "llm_retry": {},
-            "security": {},
             "webhooks": {},
             "phases": {},
         }
@@ -118,7 +117,7 @@ class TestYAMLWithComments:
         assert "# === Task Manager ===" in yaml_content
         assert "# === Worktree & Ports ===" in yaml_content
         assert "# === LLM Configuration ===" in yaml_content
-        assert "# === Security ===" in yaml_content
+        assert "# === Security ===" not in yaml_content
         assert "# === Webhook Server ===" in yaml_content
         # Ship config is now in .adw/commands/ship/config.yaml
         assert "# === Ship Phase ===" not in yaml_content

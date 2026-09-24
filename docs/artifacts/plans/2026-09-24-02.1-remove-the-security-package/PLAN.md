@@ -86,6 +86,6 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
 - [x] TASK-001: Delete the security package and its runtime wiring
-- [ ] TASK-002: Remove the security config section (depends on TASK-001)
+- [x] TASK-002: Remove the security config section (depends on TASK-001)
 - [ ] TASK-003: Remove the wizard security step (depends on TASK-002)
 - [ ] TASK-004: Final Validation
