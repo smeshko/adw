@@ -259,9 +259,9 @@ def _configure_document_phase(console: Console) -> dict[str, Any]:
 def _configure_ship_phase(console: Console) -> dict[str, Any]:
     """Configure ship phase special options.
 
-    Prompts for deployment commands and PR settings.
-    This follows the same pattern as the ship.py standalone step but integrated
-    into the common phase configuration flow.
+    Prompts for deployment commands and whether to wait for CI before merging.
+    The project's build command comes from the basics step; PhaseRunner passes
+    it to the ship phase from project.yaml.
 
     Args:
         console: Console for output.
@@ -283,14 +283,6 @@ def _configure_ship_phase(console: Console) -> dict[str, Any]:
     ).strip()
     if version_bump:
         commands["version_bump"] = version_bump
-
-    build_cmd = Prompt.ask(
-        "Build command",
-        default="",
-        console=console,
-    ).strip()
-    if build_cmd:
-        commands["build"] = build_cmd
 
     publish_cmd = Prompt.ask(
         "Publish command",

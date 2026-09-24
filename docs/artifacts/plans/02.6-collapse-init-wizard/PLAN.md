@@ -83,7 +83,7 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
 - [x] TASK-001: Detect the language and test command with ProjectTypeDetector
-- [ ] TASK-002: Stop asking for a ship build command and delete ship.py
+- [x] TASK-002: Stop asking for a ship build command and delete ship.py
 - [ ] TASK-003: Drop the LLM retry step
 - [ ] TASK-004: Replace the flow controller and WizardState with run_wizard (depends on TASK-001,TASK-002,TASK-003)
 - [ ] TASK-005: Report honestly whether files were written (depends on TASK-004)

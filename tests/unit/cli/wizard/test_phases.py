@@ -15,6 +15,7 @@ from adw.cli.wizard.phases import (
     PhasesStepHandler,
     _configure_document_phase,
     _configure_phase,
+    _configure_ship_phase,
     _parse_int,
     _parse_phase_selection,
     _prompt_doc_mappings,
@@ -386,6 +387,35 @@ class TestValidatePhaseNoSpecialOptions:
         assert "enable_tests" not in config
         assert "max_iterations" not in config
         assert "linter_commands" not in config
+
+
+class TestShipPhaseOptions:
+    """Tests for the ship phase's special options."""
+
+    def test_ship_phase_asks_only_version_bump_and_publish(self) -> None:
+        """The ship options ask only for answers that reach the ship config."""
+        console = Console(force_terminal=True)
+        questions: list[str] = []
+        answers = {
+            "Version bump command": "npm version patch",
+            "Publish command": "npm publish",
+        }
+
+        def answer(question: str, **_: object) -> str:
+            questions.append(question)
+            return answers.get(question, "")
+
+        with (
+            patch("adw.cli.wizard.phases.Prompt.ask", side_effect=answer),
+            patch("adw.cli.wizard.phases.Confirm.ask", return_value=False),
+        ):
+            config = _configure_ship_phase(console)
+
+        assert not any("Build command" in q for q in questions)
+        assert config["commands"] == {
+            "version_bump": "npm version patch",
+            "publish": "npm publish",
+        }
 
 
 class TestInputFileLoop:
