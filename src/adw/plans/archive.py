@@ -37,8 +37,12 @@ def archive_plan(root: Path, slug: str, merged_on: date) -> Path:
     the archive.
 
     The archive is built as a copy, swapped in with a rename, and the source
-    is dropped last. If any step fails, the copy is removed and the epics are
-    restored, so the plan stays where it was and a retry starts clean.
+    is dropped last. Epics are rewritten atomically. If any step raises, the
+    copy is removed and the epics are restored, so the plan stays where it
+    was and a retry starts clean; if an epic can't be restored, the copy is
+    kept so its link still resolves, and the error's notes name the epic.
+    A hard kill mid-way is recovered through git: every file this touches
+    is tracked, so restore the plans and epics dirs and retry.
 
     Args:
         root: Project root.
@@ -89,18 +93,41 @@ def archive_plan(root: Path, slug: str, merged_on: date) -> Path:
         shutil.rmtree(staging, ignore_errors=True)
         raise
 
+    replaced: list[Path] = []
     try:
         for epic, (_, repointed) in epics.items():
-            epic.write_text(repointed, encoding="utf-8")
+            _write_atomically(epic, repointed)
+            replaced.append(epic)
         source.rename(discarded)
-    except BaseException:
-        for epic, (original, _) in epics.items():
-            with suppress(OSError):
-                epic.write_text(original, encoding="utf-8")
-        shutil.rmtree(destination, ignore_errors=True)
+    except BaseException as error:
+        unrestored = []
+        for epic in replaced:
+            try:
+                _write_atomically(epic, epics[epic][0])
+            except OSError:
+                unrestored.append(epic.name)
+        if unrestored:
+            error.add_note(
+                f"could not restore {', '.join(unrestored)}, which still link to "
+                f"{destination}; that copy is kept. Restore them from git."
+            )
+        else:
+            shutil.rmtree(destination, ignore_errors=True)
         raise
     shutil.rmtree(discarded, ignore_errors=True)
     return destination
+
+
+def _write_atomically(path: Path, text: str) -> None:
+    """Replace a file's text in one step, so a failure leaves the old text."""
+    temporary = path.with_name(f".{path.name}.tmp")
+    try:
+        temporary.write_text(text, encoding="utf-8")
+        os.replace(temporary, path)
+    except BaseException:
+        with suppress(OSError):
+            temporary.unlink()
+        raise
 
 
 def _repointed_epics(

@@ -1,5 +1,6 @@
 """Tests for adw.plans.archive: moving a merged plan and repairing its links."""
 
+import os
 import re
 from datetime import date
 from pathlib import Path
@@ -134,7 +135,7 @@ def _snapshot(root: Path) -> dict[str, bytes]:
 
 @pytest.mark.parametrize(
     "failing_file",
-    ["RESEARCH.md", "04-x.md"],
+    ["RESEARCH.md", ".04-x.md.tmp"],
     ids=["rewriting-the-plan", "repointing-the-epic"],
 )
 def test_a_failed_write_leaves_everything_as_it_was(
@@ -164,6 +165,43 @@ def test_a_failed_write_leaves_everything_as_it_was(
     monkeypatch.setattr(Path, "write_text", original_write_text)
     destination = archive_plan(root, "p", MERGED)
     assert destination.name == "2026-09-24-p"
+
+
+def test_an_epic_that_cannot_be_restored_keeps_the_archive(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    epics = root / "docs" / "artifacts" / "epics"
+    (epics / "05-y.md").write_text("**Plan**: [p](../plans/p/PLAN.md)\n")
+    source_before = {
+        path.relative_to(plans_dir(root)).as_posix(): path.read_bytes()
+        for path in (plans_dir(root) / "p").rglob("*")
+        if path.is_file()
+    }
+    original_replace = os.replace
+    calls = []
+
+    def replace_then_fail(src: str, dst: str) -> None:
+        calls.append(dst)
+        if len(calls) > 1:
+            raise OSError(5, "Input/output error")
+        original_replace(src, dst)
+
+    monkeypatch.setattr(os, "replace", replace_then_fail)
+
+    with pytest.raises(OSError, match="Input/output error") as excinfo:
+        archive_plan(root, "p", MERGED)
+
+    destination = plans_dir(root) / "archive" / "2026-09-24-p"
+    assert (destination / "PLAN.md").is_file()
+    assert "04-x.md" in " ".join(excinfo.value.__notes__)
+    assert "../plans/archive/2026-09-24-p/PLAN.md" in (epics / "04-x.md").read_text()
+    assert (epics / "05-y.md").read_text() == "**Plan**: [p](../plans/p/PLAN.md)\n"
+    assert not list(epics.glob(".*.tmp"))
+    assert {
+        path.relative_to(plans_dir(root)).as_posix(): path.read_bytes()
+        for path in (plans_dir(root) / "p").rglob("*")
+        if path.is_file()
+    } == source_before
 
 
 @pytest.mark.parametrize(
